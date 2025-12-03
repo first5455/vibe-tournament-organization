@@ -12,6 +12,7 @@ interface Participant {
   username?: string | null
   score: number
   dropped: boolean
+  note?: string | null
 }
 
 interface Match {
@@ -489,6 +490,7 @@ export default function TournamentView() {
               <tr>
                 <th className="px-4 py-3 font-medium">Rank</th>
                 <th className="px-4 py-3 font-medium">Player</th>
+                <th className="px-4 py-3 font-medium">Note</th>
                 <th className="px-4 py-3 font-medium text-right">Score</th>
                 {isAdmin && <th className="px-4 py-3 font-medium text-right">Actions</th>}
               </tr>
@@ -500,6 +502,33 @@ export default function TournamentView() {
                   <td className="px-4 py-3 text-white font-medium">
                     {p.username || p.guestName || `User ${p.userId}`}
                     {p.dropped && <span className="ml-2 text-xs text-red-500">(Dropped)</span>}
+                  </td>
+                  <td className="px-4 py-3 text-zinc-400">
+                    <div className="flex items-center gap-2 group/note">
+                      <span className="truncate max-w-[150px]">{p.note || '-'}</span>
+                      {(isAdmin || (user?.id === p.userId && p.userId)) && (
+                        <Button
+                          variant="ghost"
+                          size="sm" 
+                          className="h-6 w-6 p-0 opacity-0 group-hover/note:opacity-100 transition-opacity"
+                          onClick={async () => {
+                            const newNote = prompt('Edit Note:', p.note || '')
+                            if (newNote === null) return
+                            try {
+                              await api(`/tournaments/${id}/participants/${p.id}/note`, {
+                                method: 'PUT',
+                                body: JSON.stringify({ note: newNote, userId: user?.id })
+                              })
+                              loadTournament()
+                            } catch (err: any) {
+                              alert(`Failed to update note: ${err.message}`)
+                            }
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                        </Button>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-white">{p.score}</td>
                   {isAdmin && tournament.status !== 'completed' && (

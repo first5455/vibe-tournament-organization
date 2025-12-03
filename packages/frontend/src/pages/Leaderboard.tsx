@@ -66,15 +66,15 @@ export default function Leaderboard() {
           <table className="w-full text-left">
             <thead className="bg-zinc-900/80 text-xs uppercase text-zinc-400">
               <tr>
-                <th className="px-6 py-4 font-medium">Rank</th>
-                <th className="px-6 py-4 font-medium">Player</th>
-                <th className="px-6 py-4 font-medium text-right">MMR</th>
+                <th className="px-3 sm:px-6 py-4 font-medium">Rank</th>
+                <th className="px-3 sm:px-6 py-4 font-medium">Player</th>
+                <th className="px-3 sm:px-6 py-4 font-medium text-right">MMR</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
               {users.map((user, index) => (
                 <tr key={user.id} className="hover:bg-zinc-800/50 transition-colors">
-                  <td className="px-6 py-4">
+                  <td className="px-3 sm:px-6 py-4">
                     <div className="flex items-center gap-2">
                       {index === 0 && <Medal className="h-5 w-5 text-yellow-500" />}
                       {index === 1 && <Medal className="h-5 w-5 text-zinc-400" />}
@@ -84,10 +84,12 @@ export default function Leaderboard() {
                       </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-medium text-white">
-                    {user.username}
+                  <td className="px-3 sm:px-6 py-4 font-medium text-white">
+                    <div className="truncate max-w-[120px] sm:max-w-none">
+                      {user.username}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 text-right font-mono text-indigo-400">
+                  <td className="px-3 sm:px-6 py-4 text-right font-mono text-indigo-400">
                     {user.mmr}
                   </td>
                 </tr>

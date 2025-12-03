@@ -12,6 +12,7 @@ interface Tournament {
   totalRounds: number
   currentRound: number
   createdAt: string
+  participantCount: number
 }
 
 export default function Dashboard() {
@@ -51,7 +52,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Tournaments</h1>
           <p className="text-zinc-400">Manage and join tournaments</p>
@@ -92,7 +93,11 @@ export default function Dashboard() {
                       {tournament.status}
                     </span>
                     <span>•</span>
-                    <span>Round {tournament.currentRound}/{tournament.totalRounds}</span>
+                    <span>
+                      {tournament.status === 'completed' || (tournament.status === 'active' && tournament.currentRound === tournament.totalRounds) 
+                        ? 'Final Round' 
+                        : `Round ${tournament.currentRound}/${tournament.totalRounds}`}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -101,6 +106,10 @@ export default function Dashboard() {
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
                   <span>{new Date(tournament.createdAt).toLocaleDateString('en-GB')}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Trophy className="h-4 w-4" />
+                  <span>Players: {tournament.participantCount}</span>
                 </div>
               </div>
             </Link>
