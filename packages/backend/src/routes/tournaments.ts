@@ -36,7 +36,8 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       ...getTableColumns(tournaments),
       participantCount: sql<number>`count(${participants.id})`.mapWith(Number),
       createdByName: users.username,
-      createdByColor: users.color
+      createdByColor: users.color,
+      createdByAvatarUrl: users.avatarUrl
     })
     .from(tournaments)
     .leftJoin(participants, eq(tournaments.id, participants.tournamentId))
@@ -58,7 +59,8 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     const tournament = await db.select({
       ...getTableColumns(tournaments),
       createdByName: users.username,
-      createdByColor: users.color
+      createdByColor: users.color,
+      createdByAvatarUrl: users.avatarUrl
     })
     .from(tournaments)
     .leftJoin(users, eq(tournaments.createdBy, users.id))
@@ -84,7 +86,8 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       dropped: participants.dropped,
       note: participants.note,
       username: users.username,
-      userColor: users.color
+      userColor: users.color,
+      userAvatarUrl: users.avatarUrl
     })
     .from(participants)
     .leftJoin(users, eq(participants.userId, users.id))

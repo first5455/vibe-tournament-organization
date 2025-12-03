@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { Trophy, Medal } from 'lucide-react'
 import { UserLabel } from '../components/UserLabel'
+import { UserAvatar } from '../components/UserAvatar'
 
 interface User {
   id: number
   username: string
   mmr: number
   color?: string
+  avatarUrl?: string
 }
 
 export default function Leaderboard() {
@@ -87,8 +89,11 @@ export default function Leaderboard() {
                     </div>
                   </td>
                   <td className="px-3 sm:px-6 py-4 font-medium text-white">
-                    <div className="truncate max-w-[120px] sm:max-w-none">
-                      <UserLabel username={user.username} color={user.color} />
+                    <div className="flex items-center gap-3">
+                      <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="sm" />
+                      <div className="truncate max-w-[120px] sm:max-w-none">
+                        <UserLabel username={user.username} color={user.color} />
+                      </div>
                     </div>
                   </td>
                   <td className="px-3 sm:px-6 py-4 text-right font-mono text-indigo-400">

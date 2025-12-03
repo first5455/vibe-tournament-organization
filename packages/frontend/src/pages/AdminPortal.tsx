@@ -3,6 +3,7 @@ import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { Button } from '../components/ui/button'
 import { UserLabel } from '../components/UserLabel'
+import { UserAvatar } from '../components/UserAvatar'
 import { useNavigate } from 'react-router-dom'
 import { Check, X } from 'lucide-react'
 
@@ -13,6 +14,7 @@ interface User {
   mmr: number
   createdAt: string
   color?: string
+  avatarUrl?: string
 }
 
 export default function AdminPortal() {
@@ -143,6 +145,24 @@ export default function AdminPortal() {
     }
   }
 
+  const editAvatar = async (targetUser: User) => {
+    const newAvatarUrl = prompt(`Enter avatar URL for ${targetUser.username}:`, targetUser.avatarUrl || '')
+    if (newAvatarUrl === null) return
+
+    try {
+      await api(`/users/${targetUser.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ 
+          requesterId: user?.id,
+          avatarUrl: newAvatarUrl
+        })
+      })
+      loadUsers()
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
   if (loading) return <div className="p-8 text-center text-zinc-500">Loading...</div>
 
   return (
@@ -196,6 +216,7 @@ export default function AdminPortal() {
           <thead className="bg-zinc-900 text-zinc-200">
             <tr>
               <th className="px-4 py-3 font-medium">ID</th>
+              <th className="px-4 py-3 font-medium">Avatar</th>
               <th className="px-4 py-3 font-medium">Username</th>
               <th className="px-4 py-3 font-medium">Role</th>
               <th className="px-4 py-3 font-medium">MMR</th>
@@ -207,6 +228,9 @@ export default function AdminPortal() {
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-zinc-900/80">
                 <td className="px-4 py-3 font-mono">{u.id}</td>
+                <td className="px-4 py-3">
+                  <UserAvatar username={u.username} avatarUrl={u.avatarUrl} size="sm" />
+                </td>
                 <td className="px-4 py-3 font-bold">
                   <UserLabel username={u.username} color={u.color} />
                 </td>
@@ -287,6 +311,16 @@ export default function AdminPortal() {
                           Edit Color
                         </Button>
                       )}
+                    </div>
+                    <div className="w-28">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => editAvatar(u)}
+                      >
+                        Edit Avatar
+                      </Button>
                     </div>
                     <div className="w-20 flex justify-end">
                       {u.id !== user?.id && (

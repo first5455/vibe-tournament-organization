@@ -5,6 +5,7 @@ import { Plus, Calendar, Trophy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { UserLabel } from '../components/UserLabel'
+import { UserAvatar } from '../components/UserAvatar'
 
 interface Tournament {
   id: number
@@ -17,6 +18,7 @@ interface Tournament {
   type: 'swiss' | 'round_robin'
   createdByName?: string | null
   createdByColor?: string | null
+  createdByAvatarUrl?: string | null
 }
 
 export default function Dashboard() {
@@ -170,8 +172,11 @@ export default function Dashboard() {
                     <span className="capitalize">{tournament.type.replace('_', ' ')}</span>
                   </div>
                   {tournament.createdByName && (
-                    <div className="mt-1 text-xs text-zinc-500 flex items-center gap-1">
-                      by <UserLabel username={tournament.createdByName} color={tournament.createdByColor} />
+                    <div className="mt-1 text-xs text-zinc-500 flex items-center gap-2">
+                      <UserAvatar username={tournament.createdByName} avatarUrl={tournament.createdByAvatarUrl} size="sm" className="h-4 w-4" />
+                      <span className="flex items-center gap-1">
+                        by <UserLabel username={tournament.createdByName} color={tournament.createdByColor} />
+                      </span>
                     </div>
                   )}
                 </div>
