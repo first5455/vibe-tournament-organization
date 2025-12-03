@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { Button } from './ui/button'
-import { Trophy, Users, LogOut, LayoutDashboard, Menu, X } from 'lucide-react'
+import { Trophy, Users, LogOut, LayoutDashboard, Menu, X, Shield } from 'lucide-react'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -34,6 +34,14 @@ export default function Layout() {
                       Leaderboard
                     </Button>
                   </Link>
+                  {user.role === 'admin' && (
+                    <Link to="/admin">
+                      <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} size="sm">
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
@@ -88,6 +96,14 @@ export default function Layout() {
                       Leaderboard
                     </Button>
                   </Link>
+                  {user.role === 'admin' && (
+                    <Link to="/admin" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} className="w-full justify-start">
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin
+                      </Button>
+                    </Link>
+                  )}
                   <div className="my-2 border-t border-white/10" />
                   <div className="px-2 py-2 text-sm text-zinc-400">
                     Signed in as <Link to="/profile" className="text-white font-medium hover:underline" onClick={() => setIsMenuOpen(false)}>{user.username}</Link>
