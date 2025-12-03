@@ -16,6 +16,7 @@ export const tournaments = sqliteTable('tournaments', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   status: text('status', { enum: ['pending', 'active', 'completed'] }).default('pending').notNull(),
+  type: text('type', { enum: ['swiss', 'round_robin'] }).default('swiss').notNull(),
   totalRounds: integer('total_rounds').default(3).notNull(),
   currentRound: integer('current_round').default(0).notNull(),
   createdBy: integer('created_by').references(() => users.id).notNull(),

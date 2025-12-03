@@ -8,11 +8,12 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     const { name, createdBy } = body
     
     try {
-      console.log('Creating tournament:', { name, createdBy })
+      console.log('Creating tournament:', { name, createdBy, type: (body as any).type })
       const result = await db.insert(tournaments).values({
         name,
         createdBy,
-        status: 'pending'
+        status: 'pending',
+        type: (body as any).type || 'swiss'
       }).returning().get()
       console.log('Tournament created:', result)
       return { tournament: result }
@@ -26,16 +27,19 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   }, {
     body: t.Object({
       name: t.String(),
-      createdBy: t.Number()
+      createdBy: t.Number(),
+      type: t.Optional(t.String())
     })
   })
   .get('/', async () => {
     const result = await db.select({
       ...getTableColumns(tournaments),
-      participantCount: sql<number>`count(${participants.id})`.mapWith(Number)
+      participantCount: sql<number>`count(${participants.id})`.mapWith(Number),
+      createdByName: users.username
     })
     .from(tournaments)
     .leftJoin(participants, eq(tournaments.id, participants.tournamentId))
+    .leftJoin(users, eq(tournaments.createdBy, users.id))
     .groupBy(tournaments.id)
     .all()
     
@@ -50,7 +54,14 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       return { error: 'Invalid tournament ID' }
     }
 
-    const tournament = await db.select().from(tournaments).where(eq(tournaments.id, id)).get()
+    const tournament = await db.select({
+      ...getTableColumns(tournaments),
+      createdByName: users.username
+    })
+    .from(tournaments)
+    .leftJoin(users, eq(tournaments.createdBy, users.id))
+    .where(eq(tournaments.id, id))
+    .get()
     
     if (!tournament) {
       set.status = 404
@@ -310,8 +321,15 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       return { error: 'Need at least 2 participants to start' }
     }
 
-    // Auto-calculate rounds: ceil(log2(n))
-    const totalRounds = Math.max(1, Math.ceil(Math.log2(participantCount)))
+    // Calculate rounds based on type
+    let totalRounds = 3
+    if (tournament.type === 'round_robin') {
+      const isOdd = participantCount % 2 !== 0
+      totalRounds = isOdd ? participantCount : participantCount - 1
+    } else {
+      // Swiss: ceil(log2(n))
+      totalRounds = Math.max(1, Math.ceil(Math.log2(participantCount)))
+    }
 
     // Update status to active, current round to 1, and set total rounds
     await db.update(tournaments)
@@ -320,10 +338,18 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       .run()
 
     // Generate pairings for round 1
-    console.log('Starting tournament:', tournamentId)
+    console.log('Starting tournament:', tournamentId, 'Type:', tournament.type)
     try {
-      const { generatePairings } = await import('../services/swiss')
-      await generatePairings(tournamentId, 1)
+      if (tournament.type === 'round_robin') {
+        const { generatePairings } = await import('../services/round_robin')
+        // Generate ALL rounds for Round Robin
+        for (let r = 1; r <= totalRounds; r++) {
+          await generatePairings(tournamentId, r)
+        }
+      } else {
+        const { generatePairings } = await import('../services/swiss')
+        await generatePairings(tournamentId, 1)
+      }
     } catch (e) {
       console.error('Error generating pairings:', e)
       set.status = 500
@@ -421,8 +447,13 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
 
     // Generate pairings
     try {
-      const { generatePairings } = await import('../services/swiss')
-      await generatePairings(tournamentId, nextRound)
+      if (tournament.type === 'round_robin') {
+        const { generatePairings } = await import('../services/round_robin')
+        await generatePairings(tournamentId, nextRound)
+      } else {
+        const { generatePairings } = await import('../services/swiss')
+        await generatePairings(tournamentId, nextRound)
+      }
     } catch (e) {
       console.error('Error generating pairings:', e)
       set.status = 500

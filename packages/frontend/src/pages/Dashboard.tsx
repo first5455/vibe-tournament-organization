@@ -13,11 +13,16 @@ interface Tournament {
   currentRound: number
   createdAt: string
   participantCount: number
+  type: 'swiss' | 'round_robin'
+  createdByName?: string | null
 }
 
 export default function Dashboard() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isCreating, setIsCreating] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newType, setNewType] = useState<'swiss' | 'round_robin'>('swiss')
   const { user } = useAuth()
 
   useEffect(() => {
@@ -36,14 +41,21 @@ export default function Dashboard() {
   }
 
   const createTournament = async () => {
-    const name = prompt('Enter tournament name:')
-    if (!name) return
+    if (!newName) return
 
     try {
+      console.log('Creating tournament with type:', newType)
       await api('/tournaments', {
         method: 'POST',
-        body: JSON.stringify({ name, createdBy: user?.id }),
+        body: JSON.stringify({ 
+          name: newName, 
+          createdBy: user?.id,
+          type: newType
+        }),
       })
+      setIsCreating(false)
+      setNewName('')
+      setNewType('swiss')
       loadTournaments()
     } catch (err) {
       alert('Failed to create tournament')
@@ -57,11 +69,65 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-white">Tournaments</h1>
           <p className="text-zinc-400">Manage and join tournaments</p>
         </div>
-        <Button onClick={createTournament}>
+        <Button onClick={() => setIsCreating(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Create Tournament
         </Button>
       </div>
+
+      {isCreating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-xl">
+            <h2 className="mb-4 text-xl font-bold text-white">Create Tournament</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">Tournament Name</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="Enter name..."
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">Tournament Type</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewType('swiss')}
+                    className={`flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                      newType === 'swiss'
+                        ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400'
+                        : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-900'
+                    }`}
+                  >
+                    {newType === 'swiss' && <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                    Swiss System
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewType('round_robin')}
+                    className={`flex items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+                      newType === 'round_robin'
+                        ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400'
+                        : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:bg-zinc-900'
+                    }`}
+                  >
+                    {newType === 'round_robin' && <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                    Round Robin
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
+                <Button onClick={createTournament}>Create</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-center text-zinc-500">Loading tournaments...</div>
@@ -98,7 +164,14 @@ export default function Dashboard() {
                         ? 'Final Round' 
                         : `Round ${tournament.currentRound}/${tournament.totalRounds}`}
                     </span>
+                    <span>•</span>
+                    <span className="capitalize">{tournament.type.replace('_', ' ')}</span>
                   </div>
+                  {tournament.createdByName && (
+                    <div className="mt-1 text-xs text-zinc-500">
+                      by {tournament.createdByName}
+                    </div>
+                  )}
                 </div>
               </div>
               
