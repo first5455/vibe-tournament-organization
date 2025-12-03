@@ -7,11 +7,20 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/', async ({ body, set }) => {
     const { name, createdBy } = body
     
-    const result = await db.insert(tournaments).values({
-      name,
-      createdBy,
-      status: 'pending'
-    }).returning().get()
+    try {
+      console.log('Creating tournament:', { name, createdBy })
+      const result = await db.insert(tournaments).values({
+        name,
+        createdBy,
+        status: 'pending'
+      }).returning().get()
+      console.log('Tournament created:', result)
+      return { tournament: result }
+    } catch (e) {
+      console.error('Failed to create tournament:', e)
+      set.status = 500
+      return { error: 'Failed to create tournament' }
+    }
 
     return { tournament: result }
   }, {
