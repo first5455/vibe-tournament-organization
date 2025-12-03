@@ -29,7 +29,7 @@ export const participants = sqliteTable('participants', {
   userId: integer('user_id').references(() => users.id), // Nullable for guests
   guestName: text('guest_name'), // For guests
   score: integer('score').default(0).notNull(),
-  tieBreakers: text('tie_breakers', { mode: 'json' }).$type<{ buchholz: number }>().default(JSON.stringify({ buchholz: 0 })),
+  tieBreakers: text('tie_breakers', { mode: 'json' }).$type<{ buchholz: number }>().default({ buchholz: 0 }),
   dropped: integer('dropped', { mode: 'boolean' }).default(false).notNull(),
 })
 
