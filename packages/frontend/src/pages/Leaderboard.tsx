@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { Trophy, Medal } from 'lucide-react'
+import { UserLabel } from '../components/UserLabel'
 
 interface User {
   id: number
   username: string
   mmr: number
+  color?: string
 }
 
 export default function Leaderboard() {
@@ -86,7 +88,7 @@ export default function Leaderboard() {
                   </td>
                   <td className="px-3 sm:px-6 py-4 font-medium text-white">
                     <div className="truncate max-w-[120px] sm:max-w-none">
-                      {user.username}
+                      <UserLabel username={user.username} color={user.color} />
                     </div>
                   </td>
                   <td className="px-3 sm:px-6 py-4 text-right font-mono text-indigo-400">

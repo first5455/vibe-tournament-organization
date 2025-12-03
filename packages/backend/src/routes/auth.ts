@@ -30,7 +30,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       securityAnswerHash,
     }).returning().get()
 
-    return { user: { id: result.id, username: result.username, role: result.role } }
+    return { user: { id: result.id, username: result.username, role: result.role, color: result.color } }
   }, {
     body: t.Object({
       username: t.String(),
@@ -98,7 +98,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return { error: 'Invalid credentials' }
     }
 
-    return { user: { id: user.id, username: user.username, role: user.role } }
+    return { user: { id: user.id, username: user.username, role: user.role, color: user.color } }
   }, {
     body: t.Object({
       username: t.String(),
@@ -106,7 +106,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     })
   })
   .put('/profile', async ({ body, set }) => {
-    const { userId, username, password } = body
+    const { userId, username, password, color } = body
 
     const user = await db.select().from(users).where(eq(users.id, userId)).get()
     if (!user) {
@@ -129,17 +129,22 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       updates.passwordHash = await Bun.password.hash(password)
     }
 
+    if (color) {
+      updates.color = color
+    }
+
     if (Object.keys(updates).length > 0) {
       await db.update(users).set(updates).where(eq(users.id, userId)).run()
     }
 
     const updatedUser = await db.select().from(users).where(eq(users.id, userId)).get()
-    return { user: { id: updatedUser!.id, username: updatedUser!.username } }
+    return { user: { id: updatedUser!.id, username: updatedUser!.username, role: updatedUser!.role, color: updatedUser!.color } }
   }, {
     body: t.Object({
       userId: t.Number(),
       username: t.Optional(t.String()),
-      password: t.Optional(t.String())
+      password: t.Optional(t.String()),
+      color: t.Optional(t.String())
     })
   })
   .delete('/account', async ({ body, set }) => {

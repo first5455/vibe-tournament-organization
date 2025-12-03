@@ -9,6 +9,7 @@ export default function Profile() {
   const navigate = useNavigate()
   const [username, setUsername] = useState(user?.username || '')
   const [password, setPassword] = useState('')
+  const [color, setColor] = useState(user?.color || '#ffffff')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -21,7 +22,8 @@ export default function Profile() {
         body: JSON.stringify({
           userId: user?.id,
           username: username !== user?.username ? username : undefined,
-          password: password || undefined
+          password: password || undefined,
+          color: color !== user?.color ? color : undefined
         })
       })
       
@@ -79,6 +81,21 @@ export default function Profile() {
             onChange={(e) => setUsername(e.target.value)}
             className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-zinc-600"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-zinc-400 mb-1">Custom Color</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              className="h-10 w-20 bg-transparent cursor-pointer rounded border border-zinc-700"
+            />
+            <div className="text-sm text-zinc-500">
+              Pick a color to stand out!
+            </div>
+          </div>
         </div>
 
         <div>

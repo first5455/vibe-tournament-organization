@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { useAuth } from '../lib/auth'
 import { Trophy, Users, Play } from 'lucide-react'
+import { UserLabel } from '../components/UserLabel'
 
 interface Participant {
   id: number
@@ -13,6 +14,7 @@ interface Participant {
   score: number
   dropped: boolean
   note?: string | null
+  userColor?: string | null
 }
 
 interface Match {
@@ -36,6 +38,7 @@ interface Tournament {
   endDate?: string
   type?: 'swiss' | 'round_robin'
   createdByName?: string | null
+  createdByColor?: string | null
 }
 
 export default function TournamentView() {
@@ -306,8 +309,8 @@ export default function TournamentView() {
               </span>
             )}
             {tournament.createdByName && (
-              <span className="text-xs text-zinc-500 border-l border-zinc-700 pl-4 ml-2">
-                Created by: <span className="text-zinc-300">{tournament.createdByName}</span>
+              <span className="text-xs text-zinc-500 border-l border-zinc-700 pl-4 ml-2 flex items-center gap-1">
+                Created by: <UserLabel username={tournament.createdByName} color={tournament.createdByColor} className="text-zinc-300" />
               </span>
             )}
           </div>
@@ -419,7 +422,7 @@ export default function TournamentView() {
                 <th className="p-2 border border-zinc-800 bg-zinc-950/50"></th>
                 {participants.map(p => (
                   <th key={p.id} className="p-2 border border-zinc-800 bg-zinc-950/50 text-zinc-300 font-medium min-w-[100px]">
-                    {p.username || p.guestName || `User ${p.userId}`}
+                    <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} />
                   </th>
                 ))}
               </tr>
@@ -428,7 +431,7 @@ export default function TournamentView() {
               {participants.map((p1, i) => (
                 <tr key={p1.id}>
                   <td className="p-2 border border-zinc-800 bg-zinc-950/50 text-zinc-300 font-medium">
-                    {p1.username || p1.guestName || `User ${p1.userId}`}
+                    <UserLabel username={p1.username || p1.guestName || `User ${p1.userId}`} color={p1.userColor} />
                   </td>
                   {participants.map((p2, j) => {
                     if (i === j) {
@@ -498,11 +501,19 @@ export default function TournamentView() {
                       <div key={match.id} className={`border rounded-lg p-4 flex items-center justify-between ${isCurrentRound ? 'border-zinc-800 bg-zinc-900/30' : 'border-zinc-900 bg-zinc-950/50'}`}>
                         <div className="flex flex-col gap-2">
                           <div className={`flex items-center gap-2 ${match.winnerId === match.player1Id ? 'text-green-400 font-bold' : 'text-zinc-300'}`}>
-                            {p1?.username || p1?.guestName || (p1?.userId ? `User ${p1.userId}` : 'Unknown')}
+                            <UserLabel 
+                              username={p1?.username || p1?.guestName || (p1?.userId ? `User ${p1.userId}` : 'Unknown')} 
+                              color={match.winnerId !== match.player1Id ? p1?.userColor : undefined}
+                            />
                           </div>
                           <div className="text-zinc-600 text-xs">vs</div>
                           <div className={`flex items-center gap-2 ${match.winnerId === match.player2Id ? 'text-green-400 font-bold' : 'text-zinc-300'}`}>
-                            {match.isBye ? <span className="italic text-zinc-500">Bye</span> : (p2?.username || p2?.guestName || (p2?.userId ? `User ${p2.userId}` : 'Unknown'))}
+                            {match.isBye ? <span className="italic text-zinc-500">Bye</span> : (
+                              <UserLabel 
+                                username={p2?.username || p2?.guestName || (p2?.userId ? `User ${p2.userId}` : 'Unknown')} 
+                                color={match.winnerId !== match.player2Id ? p2?.userColor : undefined}
+                              />
+                            )}
                           </div>
                         </div>
   
@@ -587,7 +598,7 @@ export default function TournamentView() {
                 <tr key={p.id} className="hover:bg-zinc-900/80">
                   <td className="px-4 py-3 font-mono">{index + 1}</td>
                   <td className="px-4 py-3 text-white font-medium">
-                    {p.username || p.guestName || `User ${p.userId}`}
+                    <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} />
                     {p.dropped && <span className="ml-2 text-xs text-red-500">(Dropped)</span>}
                   </td>
                   <td className="px-4 py-3 text-zinc-400">
