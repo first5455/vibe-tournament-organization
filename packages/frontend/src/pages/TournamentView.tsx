@@ -46,24 +46,43 @@ export default function TournamentView() {
   useEffect(() => {
     loadTournament()
 
-    const ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
+    let ws: WebSocket | null = null
     
-    ws.onopen = () => {
-      if (id) {
-        ws.send(JSON.stringify({ type: 'SUBSCRIBE_TOURNAMENT', tournamentId: parseInt(id) }))
-      }
-    }
+    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true') {
+      try {
+        const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws'
+        ws = new WebSocket(wsUrl)
+        
+        ws.onopen = () => {
+          if (id) {
+            ws?.send(JSON.stringify({ type: 'SUBSCRIBE_TOURNAMENT', tournamentId: parseInt(id) }))
+          }
+        }
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === 'UPDATE_TOURNAMENT') {
-        console.log('Tournament updated, reloading...')
-        loadTournament()
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data)
+            if (data.type === 'UPDATE_TOURNAMENT') {
+              console.log('Tournament updated, reloading...')
+              loadTournament()
+            }
+          } catch (e) {
+            console.error('WS Message Parse Error', e)
+          }
+        }
+        
+        ws.onerror = (e) => {
+          console.error('WebSocket error:', e)
+        }
+      } catch (e) {
+        console.error('Failed to initialize WebSocket:', e)
       }
     }
 
     return () => {
-      ws.close()
+      if (ws) {
+        ws.close()
+      }
     }
   }, [id])
 

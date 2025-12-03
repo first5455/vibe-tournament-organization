@@ -16,17 +16,25 @@ export default function Leaderboard() {
     loadLeaderboard()
 
     // WebSocket connection
-    const ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.type === 'UPDATE_LEADERBOARD') {
-        loadLeaderboard()
+    // WebSocket connection
+    let ws: WebSocket | null = null
+    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true') {
+      try {
+        ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
+        
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data)
+          if (data.type === 'UPDATE_LEADERBOARD') {
+            loadLeaderboard()
+          }
+        }
+      } catch (e) {
+        console.error('WS Error', e)
       }
     }
 
     return () => {
-      ws.close()
+      if (ws) ws.close()
     }
   }, [])
 
