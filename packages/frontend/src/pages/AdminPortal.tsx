@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { Button } from '../components/ui/button'
+import { UserLabel } from '../components/UserLabel'
 import { useNavigate } from 'react-router-dom'
+import { Check, X } from 'lucide-react'
 
 interface User {
   id: number
@@ -10,6 +12,7 @@ interface User {
   role: string
   mmr: number
   createdAt: string
+  color?: string
 }
 
 export default function AdminPortal() {
@@ -17,6 +20,8 @@ export default function AdminPortal() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [editingColorId, setEditingColorId] = useState<number | null>(null)
+  const [tempColor, setTempColor] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -112,6 +117,32 @@ export default function AdminPortal() {
     }
   }
 
+  const startEditColor = (targetUser: User) => {
+    setEditingColorId(targetUser.id)
+    setTempColor(targetUser.color || '#ffffff')
+  }
+
+  const cancelEditColor = () => {
+    setEditingColorId(null)
+    setTempColor('')
+  }
+
+  const saveColor = async (targetUser: User) => {
+    try {
+      await api(`/users/${targetUser.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ 
+          requesterId: user?.id,
+          color: tempColor
+        })
+      })
+      loadUsers()
+      setEditingColorId(null)
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
   if (loading) return <div className="p-8 text-center text-zinc-500">Loading...</div>
 
   return (
@@ -176,7 +207,9 @@ export default function AdminPortal() {
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-zinc-900/80">
                 <td className="px-4 py-3 font-mono">{u.id}</td>
-                <td className="px-4 py-3 text-white font-medium">{u.username}</td>
+                <td className="px-4 py-3 font-bold">
+                  <UserLabel username={u.username} color={u.color} />
+                </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-1 rounded text-xs ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-zinc-800 text-zinc-400'}`}>
                     {u.role}
@@ -217,6 +250,43 @@ export default function AdminPortal() {
                       >
                         Edit MMR
                       </Button>
+                    </div>
+                    <div className="w-36 flex items-center justify-end gap-1">
+                      {editingColorId === u.id ? (
+                        <>
+                          <input 
+                            type="color" 
+                            value={tempColor}
+                            onChange={(e) => setTempColor(e.target.value)}
+                            className="h-8 w-8 bg-transparent cursor-pointer rounded border border-zinc-700"
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                            onClick={() => saveColor(u)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-zinc-400 hover:text-zinc-300"
+                            onClick={cancelEditColor}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="w-full"
+                          onClick={() => startEditColor(u)}
+                        >
+                          Edit Color
+                        </Button>
+                      )}
                     </div>
                     <div className="w-20 flex justify-end">
                       {u.id !== user?.id && (

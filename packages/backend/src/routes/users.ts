@@ -9,6 +9,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       id: users.id,
       username: users.username,
       mmr: users.mmr,
+      color: users.color,
     })
     .from(users)
     .orderBy(desc(users.mmr))
@@ -21,6 +22,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       mmr: users.mmr,
       createdAt: users.createdAt,
       role: users.role,
+      color: users.color,
     })
     .from(users)
     .where(eq(users.id, parseInt(params.id)))
@@ -56,6 +58,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       role: users.role,
       mmr: users.mmr,
       createdAt: users.createdAt,
+      color: users.color,
     }).from(users).all()
 
     return { users: allUsers }
@@ -65,7 +68,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     })
   })
   .put('/:id', async ({ params, body, set }) => {
-    const { requesterId, username, password, role, mmr } = body
+    const { requesterId, username, password, role, mmr, color } = body
     
     const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
     if (!requester || requester.role !== 'admin') {
@@ -77,6 +80,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     if (username) updates.username = username
     if (role) updates.role = role
     if (mmr !== undefined) updates.mmr = mmr
+    if (color) updates.color = color
     if (password) {
       updates.passwordHash = await Bun.password.hash(password)
     }
@@ -96,7 +100,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       username: t.Optional(t.String()),
       password: t.Optional(t.String()),
       role: t.Optional(t.String()),
-      mmr: t.Optional(t.Number())
+      mmr: t.Optional(t.Number()),
+      color: t.Optional(t.String())
     })
   })
   .delete('/:id', async ({ params, body, set }) => {
