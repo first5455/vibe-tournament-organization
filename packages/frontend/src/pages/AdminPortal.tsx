@@ -88,6 +88,30 @@ export default function AdminPortal() {
     }
   }
 
+  const editMMR = async (targetUser: User) => {
+    const newMMR = prompt(`Enter new MMR for ${targetUser.username}:`, targetUser.mmr.toString())
+    if (newMMR === null) return
+    
+    const mmrValue = parseInt(newMMR)
+    if (isNaN(mmrValue)) {
+      alert('Invalid MMR value')
+      return
+    }
+
+    try {
+      await api(`/users/${targetUser.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ 
+          requesterId: user?.id,
+          mmr: mmrValue
+        })
+      })
+      loadUsers()
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
   if (loading) return <div className="p-8 text-center text-zinc-500">Loading...</div>
 
   return (
@@ -161,32 +185,52 @@ export default function AdminPortal() {
                 <td className="px-4 py-3 font-mono">{u.mmr}</td>
                 <td className="px-4 py-3">{new Date(u.createdAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3 text-right space-x-2">
-                  {u.id !== user?.id && (
-                    <>
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        onClick={() => toggleRole(u)}
-                      >
-                        {u.role === 'admin' ? 'Demote' : 'Promote'}
-                      </Button>
+                  <div className="flex gap-2 justify-end items-center">
+                    <div className="w-24 flex justify-end">
+                      {u.id !== user?.id && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          className="w-full"
+                          onClick={() => toggleRole(u)}
+                        >
+                          {u.role === 'admin' ? 'Demote' : 'Promote'}
+                        </Button>
+                      )}
+                    </div>
+                    <div className="w-32">
                       <Button
                         size="sm"
                         variant="ghost"
+                        className="w-full"
                         onClick={() => changePassword(u)}
                       >
                         Reset Password
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                        onClick={() => deleteUser(u.id)}
+                    </div>
+                    <div className="w-28">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="w-full"
+                        onClick={() => editMMR(u)}
                       >
-                        Delete
+                        Edit MMR
                       </Button>
-                    </>
-                  )}
+                    </div>
+                    <div className="w-20 flex justify-end">
+                      {u.id !== user?.id && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          onClick={() => deleteUser(u.id)}
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </td>
               </tr>
             ))}
