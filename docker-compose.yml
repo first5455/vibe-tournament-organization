@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./packages/backend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATABASE_URL=file:/data/local.db
+    volumes:
+      - ./data:/data
+
+  frontend:
+    build:
+      context: ./packages/frontend
+      args:
+        - VITE_API_URL=http://localhost:3000
+        - VITE_WS_URL=ws://localhost:3000/ws
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
