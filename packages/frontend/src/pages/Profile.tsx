@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth'
 import { Button } from '../components/ui/button'
 
 export default function Profile() {
-  const { user, logout, login } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState(user?.username || '')
   const [password, setPassword] = useState('')

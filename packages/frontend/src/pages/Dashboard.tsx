@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
-import { Plus, Calendar, Users, Trophy } from 'lucide-react'
+import { Plus, Calendar, Trophy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 
