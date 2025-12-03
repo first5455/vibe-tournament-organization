@@ -8,12 +8,22 @@ import Dashboard from './pages/Dashboard'
 import TournamentView from './pages/TournamentView'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
+import AdminPortal from './pages/AdminPortal'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
   
   if (isLoading) return <div className="flex h-screen items-center justify-center text-zinc-500">Loading...</div>
   if (!user) return <Navigate to="/login" />
+  
+  return <>{children}</>
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth()
+  
+  if (isLoading) return <div className="flex h-screen items-center justify-center text-zinc-500">Loading...</div>
+  if (!user || user.role !== 'admin') return <Navigate to="/" />
   
   return <>{children}</>
 }
@@ -47,6 +57,11 @@ function App() {
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <AdminRoute>
+                <AdminPortal />
+              </AdminRoute>
             } />
             
             {/* Add other protected routes here */}

@@ -371,7 +371,7 @@ export default function TournamentView() {
           return (
             <div key={roundNum} className={`rounded-xl border ${isCurrentRound ? 'border-zinc-800 bg-zinc-900/50' : 'border-zinc-900 bg-zinc-950/30'} p-6`}>
               <h2 className={`text-xl font-semibold mb-4 ${isCurrentRound ? 'text-white' : 'text-zinc-500'}`}>
-                {isCurrentRound ? 'Current Round Matches' : `Round ${roundNum}`}
+                {isCurrentRound ? (tournament.currentRound === tournament.totalRounds ? 'Final Round Matches' : 'Current Round Matches') : `Round ${roundNum}`}
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
                 {roundMatches.map(match => {

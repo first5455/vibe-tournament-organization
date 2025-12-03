@@ -30,7 +30,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       securityAnswerHash,
     }).returning().get()
 
-    return { user: { id: result.id, username: result.username } }
+    return { user: { id: result.id, username: result.username, role: result.role } }
   }, {
     body: t.Object({
       username: t.String(),
@@ -98,7 +98,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return { error: 'Invalid credentials' }
     }
 
-    return { user: { id: user.id, username: user.username } }
+    return { user: { id: user.id, username: user.username, role: user.role } }
   }, {
     body: t.Object({
       username: t.String(),
