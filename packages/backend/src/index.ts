@@ -68,3 +68,5 @@ events.on(EVENTS.TOURNAMENT_UPDATED, ({ tournamentId }) => {
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
 )
+
+export default app
