@@ -29,7 +29,7 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
     const isAdmin = tournament?.createdBy === reportedBy
     
     // Check if reporter is a participant in this match
-    const p1 = await db.select().from(participants).where(eq(participants.id, match.player1Id)).get()
+    const p1 = match.player1Id ? await db.select().from(participants).where(eq(participants.id, match.player1Id)).get() : null
     let p2 = null
     if (match.player2Id) {
       p2 = await db.select().from(participants).where(eq(participants.id, match.player2Id)).get()
@@ -64,9 +64,9 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
     // Winner gets 1 point (simplified)
     // Update participant score
     // Winner gets 1 point
-    const participant = await db.select().from(participants)
+    const participant = winnerId ? await db.select().from(participants)
       .where(eq(participants.id, winnerId))
-      .get()
+      .get() : null
     
     if (participant) {
       await db.update(participants)
