@@ -22,7 +22,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       return { error: 'Failed to create tournament' }
     }
 
-    return { tournament: result }
+
   }, {
     body: t.Object({
       name: t.String(),
