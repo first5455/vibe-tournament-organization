@@ -205,7 +205,7 @@ export default function TournamentView() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div>
           {isEditing ? (
             <div className="flex items-center gap-2">
@@ -220,7 +220,7 @@ export default function TournamentView() {
           ) : (
             <h1 className="text-3xl font-bold text-white">{tournament.name}</h1>
           )}
-          <div className="mt-2 flex items-center gap-4 text-zinc-400">
+          <div className="mt-2 flex flex-wrap items-center gap-4 text-zinc-400">
             <span className="flex items-center gap-1">
               <Trophy className="h-4 w-4" />
               Round {tournament.currentRound}/{tournament.totalRounds}
@@ -247,7 +247,7 @@ export default function TournamentView() {
           </div>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {isAdmin && (
             <>
               <Button variant="outline" onClick={() => setIsEditing(true)}>Edit</Button>

@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { tournaments, participants, users, matches } from '../db/schema'
-import { eq, and, or } from 'drizzle-orm'
+import { eq, and, or, isNull } from 'drizzle-orm'
 
 export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/', async ({ body, set }) => {
@@ -297,7 +297,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       eq(matches.tournamentId, tournamentId),
       eq(matches.roundNumber, tournament.currentRound),
       or(
-        eq(matches.result, null), // Not reported
+        isNull(matches.result), // Not reported
         // We could also check for partial reports if we had them, but currently result is string
       )
     )).all()
