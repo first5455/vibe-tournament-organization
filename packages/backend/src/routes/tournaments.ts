@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { tournaments, participants, users, matches } from '../db/schema'
-import { eq, and, or, isNull } from 'drizzle-orm'
+import { eq, and, or, isNull, sql, getTableColumns } from 'drizzle-orm'
 
 export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/', async ({ body, set }) => {
@@ -30,7 +30,16 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     })
   })
   .get('/', async () => {
-    return await db.select().from(tournaments).all()
+    const result = await db.select({
+      ...getTableColumns(tournaments),
+      participantCount: sql<number>`count(${participants.id})`.mapWith(Number)
+    })
+    .from(tournaments)
+    .leftJoin(participants, eq(tournaments.id, participants.tournamentId))
+    .groupBy(tournaments.id)
+    .all()
+    
+    return result
   })
   .get('/:id', async ({ params, set }) => {
     const id = parseInt(params.id)
@@ -60,6 +69,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       guestName: participants.guestName,
       score: participants.score,
       dropped: participants.dropped,
+      note: participants.note,
       username: users.username
     })
     .from(participants)
@@ -235,6 +245,49 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   }, {
     params: t.Object({ id: t.String(), participantId: t.String() }),
     body: t.Object({ createdBy: t.Number() })
+  })
+  .put('/:id/participants/:participantId/note', async ({ params, body, set }) => {
+    const tournamentId = parseInt(params.id)
+    const participantId = parseInt(params.participantId)
+    const { note, userId } = body
+
+    const tournament = await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).get()
+    if (!tournament) {
+      set.status = 404
+      return { error: 'Tournament not found' }
+    }
+
+    const participant = await db.select().from(participants).where(and(
+      eq(participants.id, participantId),
+      eq(participants.tournamentId, tournamentId)
+    )).get()
+
+    if (!participant) {
+      set.status = 404
+      return { error: 'Participant not found' }
+    }
+
+    // Permission Check
+    const isOwner = tournament.createdBy === userId
+    const isSelf = participant.userId === userId && userId !== null
+
+    if (!isOwner && !isSelf) {
+      set.status = 403
+      return { error: 'Unauthorized' }
+    }
+
+    await db.update(participants)
+      .set({ note })
+      .where(eq(participants.id, participantId))
+      .run()
+
+    return { success: true }
+  }, {
+    params: t.Object({ id: t.String(), participantId: t.String() }),
+    body: t.Object({ 
+      note: t.String(),
+      userId: t.Number()
+    })
   })
   .post('/:id/start', async ({ params, set }) => {
     const tournamentId = parseInt(params.id)

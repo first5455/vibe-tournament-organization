@@ -31,6 +31,7 @@ export const participants = sqliteTable('participants', {
   score: integer('score').default(0).notNull(),
   tieBreakers: text('tie_breakers', { mode: 'json' }).$type<{ buchholz: number }>().default({ buchholz: 0 }),
   dropped: integer('dropped', { mode: 'boolean' }).default(false).notNull(),
+  note: text('note'),
 })
 
 export const matches = sqliteTable('matches', {
