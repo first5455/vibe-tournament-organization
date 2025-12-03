@@ -10,6 +10,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       username: users.username,
       mmr: users.mmr,
       color: users.color,
+      avatarUrl: users.avatarUrl,
     })
     .from(users)
     .orderBy(desc(users.mmr))
@@ -23,6 +24,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       createdAt: users.createdAt,
       role: users.role,
       color: users.color,
+      avatarUrl: users.avatarUrl,
     })
     .from(users)
     .where(eq(users.id, parseInt(params.id)))
@@ -59,6 +61,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       mmr: users.mmr,
       createdAt: users.createdAt,
       color: users.color,
+      avatarUrl: users.avatarUrl,
     }).from(users).all()
 
     return { users: allUsers }
@@ -81,6 +84,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     if (role) updates.role = role
     if (mmr !== undefined) updates.mmr = mmr
     if (color) updates.color = color
+    if (body.avatarUrl !== undefined) updates.avatarUrl = body.avatarUrl
     if (password) {
       updates.passwordHash = await Bun.password.hash(password)
     }
@@ -101,7 +105,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       password: t.Optional(t.String()),
       role: t.Optional(t.String()),
       mmr: t.Optional(t.Number()),
-      color: t.Optional(t.String())
+      color: t.Optional(t.String()),
+      avatarUrl: t.Optional(t.String())
     })
   })
   .delete('/:id', async ({ params, body, set }) => {

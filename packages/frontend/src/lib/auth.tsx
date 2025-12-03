@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
-
 interface User {
   id: number
   username: string
-  role?: string
+  role: 'user' | 'admin'
   color?: string
+  avatarUrl?: string
 }
 
 interface AuthContextType {

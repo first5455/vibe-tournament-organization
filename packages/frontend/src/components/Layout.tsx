@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth'
 import { Button } from './ui/button'
 import { Trophy, Users, LogOut, LayoutDashboard, Menu, X, Shield } from 'lucide-react'
 import { UserLabel } from './UserLabel'
+import { UserAvatar } from './UserAvatar'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -50,6 +51,7 @@ export default function Layout() {
             <div className="hidden md:flex items-center gap-4">
               {user ? (
                 <div className="flex items-center gap-4">
+                  <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="sm" />
                   <span className="text-sm text-zinc-400 flex items-center gap-1">
                     Signed in as <Link to="/profile" className="text-white font-medium hover:underline"><UserLabel username={user.username} color={user.color} /></Link>
                   </span>
@@ -106,8 +108,11 @@ export default function Layout() {
                     </Link>
                   )}
                   <div className="my-2 border-t border-white/10" />
-                  <div className="px-2 py-2 text-sm text-zinc-400 flex items-center gap-1">
-                    Signed in as <Link to="/profile" className="text-white font-medium hover:underline" onClick={() => setIsMenuOpen(false)}><UserLabel username={user.username} color={user.color} /></Link>
+                  <div className="px-2 py-2 flex items-center gap-3">
+                    <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="sm" />
+                    <div className="text-sm text-zinc-400 flex items-center gap-1">
+                      Signed in as <Link to="/profile" className="text-white font-medium hover:underline" onClick={() => setIsMenuOpen(false)}><UserLabel username={user.username} color={user.color} /></Link>
+                    </div>
                   </div>
                   <Button variant="outline" className="w-full justify-start" onClick={() => { logout(); setIsMenuOpen(false) }}>
                     <LogOut className="mr-2 h-4 w-4" />

@@ -11,6 +11,7 @@ export const users = sqliteTable('users', {
   securityAnswerHash: text('security_answer_hash'),
   role: text('role', { enum: ['user', 'admin'] }).default('user').notNull(),
   color: text('color').default('#ffffff'),
+  avatarUrl: text('avatar_url'),
 })
 
 export const tournaments = sqliteTable('tournaments', {

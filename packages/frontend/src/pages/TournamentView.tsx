@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button'
 import { useAuth } from '../lib/auth'
 import { Trophy, Users, Play } from 'lucide-react'
 import { UserLabel } from '../components/UserLabel'
+import { UserAvatar } from '../components/UserAvatar'
 
 interface Participant {
   id: number
@@ -15,6 +16,7 @@ interface Participant {
   dropped: boolean
   note?: string | null
   userColor?: string | null
+  userAvatarUrl?: string | null
 }
 
 interface Match {
@@ -39,6 +41,7 @@ interface Tournament {
   type?: 'swiss' | 'round_robin'
   createdByName?: string | null
   createdByColor?: string | null
+  createdByAvatarUrl?: string | null
 }
 
 export default function TournamentView() {
@@ -309,8 +312,11 @@ export default function TournamentView() {
               </span>
             )}
             {tournament.createdByName && (
-              <span className="text-xs text-zinc-500 border-l border-zinc-700 pl-4 ml-2 flex items-center gap-1">
-                Created by: <UserLabel username={tournament.createdByName} color={tournament.createdByColor} className="text-zinc-300" />
+              <span className="text-xs text-zinc-500 border-l border-zinc-700 pl-4 ml-2 flex items-center gap-2">
+                <UserAvatar username={tournament.createdByName} avatarUrl={tournament.createdByAvatarUrl} size="sm" className="h-5 w-5" />
+                <span className="flex items-center gap-1">
+                  Created by: <UserLabel username={tournament.createdByName} color={tournament.createdByColor} className="text-zinc-300" />
+                </span>
               </span>
             )}
           </div>
@@ -422,7 +428,10 @@ export default function TournamentView() {
                 <th className="p-2 border border-zinc-800 bg-zinc-950/50"></th>
                 {participants.map(p => (
                   <th key={p.id} className="p-2 border border-zinc-800 bg-zinc-950/50 text-zinc-300 font-medium min-w-[100px]">
-                    <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} />
+                    <div className="flex items-center gap-2 justify-center">
+                      <UserAvatar username={p.username || p.guestName || `User ${p.userId}`} avatarUrl={p.userAvatarUrl} size="sm" className="h-5 w-5" />
+                      <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} />
+                    </div>
                   </th>
                 ))}
               </tr>
@@ -431,7 +440,10 @@ export default function TournamentView() {
               {participants.map((p1, i) => (
                 <tr key={p1.id}>
                   <td className="p-2 border border-zinc-800 bg-zinc-950/50 text-zinc-300 font-medium">
-                    <UserLabel username={p1.username || p1.guestName || `User ${p1.userId}`} color={p1.userColor} />
+                    <div className="flex items-center gap-2">
+                      <UserAvatar username={p1.username || p1.guestName || `User ${p1.userId}`} avatarUrl={p1.userAvatarUrl} size="sm" className="h-5 w-5" />
+                      <UserLabel username={p1.username || p1.guestName || `User ${p1.userId}`} color={p1.userColor} />
+                    </div>
                   </td>
                   {participants.map((p2, j) => {
                     if (i === j) {
@@ -501,6 +513,11 @@ export default function TournamentView() {
                       <div key={match.id} className={`border rounded-lg p-4 flex items-center justify-between ${isCurrentRound ? 'border-zinc-800 bg-zinc-900/30' : 'border-zinc-900 bg-zinc-950/50'}`}>
                         <div className="flex flex-col gap-2">
                           <div className={`flex items-center gap-2 ${match.winnerId === match.player1Id ? 'text-green-400 font-bold' : 'text-zinc-300'}`}>
+                            <UserAvatar 
+                              username={p1?.username || p1?.guestName || (p1?.userId ? `User ${p1.userId}` : 'Unknown')} 
+                              avatarUrl={p1?.userAvatarUrl}
+                              size="sm"
+                            />
                             <UserLabel 
                               username={p1?.username || p1?.guestName || (p1?.userId ? `User ${p1.userId}` : 'Unknown')} 
                               color={match.winnerId !== match.player1Id ? p1?.userColor : undefined}
@@ -509,10 +526,17 @@ export default function TournamentView() {
                           <div className="text-zinc-600 text-xs">vs</div>
                           <div className={`flex items-center gap-2 ${match.winnerId === match.player2Id ? 'text-green-400 font-bold' : 'text-zinc-300'}`}>
                             {match.isBye ? <span className="italic text-zinc-500">Bye</span> : (
-                              <UserLabel 
-                                username={p2?.username || p2?.guestName || (p2?.userId ? `User ${p2.userId}` : 'Unknown')} 
-                                color={match.winnerId !== match.player2Id ? p2?.userColor : undefined}
-                              />
+                              <>
+                                <UserAvatar 
+                                  username={p2?.username || p2?.guestName || (p2?.userId ? `User ${p2.userId}` : 'Unknown')} 
+                                  avatarUrl={p2?.userAvatarUrl}
+                                  size="sm"
+                                />
+                                <UserLabel 
+                                  username={p2?.username || p2?.guestName || (p2?.userId ? `User ${p2.userId}` : 'Unknown')} 
+                                  color={match.winnerId !== match.player2Id ? p2?.userColor : undefined}
+                                />
+                              </>
                             )}
                           </div>
                         </div>
@@ -598,19 +622,24 @@ export default function TournamentView() {
                 <tr key={p.id} className="hover:bg-zinc-900/80">
                   <td className="px-4 py-3 font-mono">{index + 1}</td>
                   <td className="px-4 py-3 text-white font-medium">
-                    <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} />
-                    {p.dropped && <span className="ml-2 text-xs text-red-500">(Dropped)</span>}
+                    <div className="flex items-center gap-2">
+                      <UserAvatar username={p.username || p.guestName || `User ${p.userId}`} avatarUrl={p.userAvatarUrl} size="sm" />
+                      <div>
+                        <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} />
+                        {p.dropped && <span className="ml-2 text-xs text-red-500">(Dropped)</span>}
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-zinc-400">
-                    <div className="flex items-center gap-2 group/note">
-                      <span className="truncate max-w-[150px]">{p.note || '-'}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate max-w-[150px]">{p.note || <span className="text-zinc-600 italic">No note</span>}</span>
                       {(isAdmin || (user?.id === p.userId && p.userId)) && (
                         <Button
                           variant="ghost"
                           size="sm" 
-                          className="h-6 w-6 p-0 opacity-0 group-hover/note:opacity-100 transition-opacity"
+                          className="h-6 w-6 p-0 text-zinc-400 hover:text-white"
                           onClick={async () => {
-                            const newNote = prompt('Edit Note:', p.note || '')
+                            const newNote = prompt(p.note ? 'Edit Note:' : 'Add Note:', p.note || '')
                             if (newNote === null) return
                             try {
                               await api(`/tournaments/${id}/participants/${p.id}/note`, {
@@ -623,7 +652,11 @@ export default function TournamentView() {
                             }
                           }}
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                          {p.note ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                          )}
                         </Button>
                       )}
                     </div>
