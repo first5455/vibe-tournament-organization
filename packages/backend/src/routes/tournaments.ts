@@ -397,6 +397,53 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       return { error: 'Unauthorized' }
     }
 
+    // Auto-resolve unfinished matches as 0-0 draws
+    const unfinishedMatches = await db.select().from(matches).where(and(
+      eq(matches.tournamentId, tournamentId),
+      or(
+        isNull(matches.result),
+        eq(matches.result, '')
+      )
+    )).all()
+
+    for (const m of unfinishedMatches) {
+      if (m.isBye) continue
+
+      console.log(`Auto-resolving match ${m.id} as 0-0 on stop`)
+      
+      await db.update(matches)
+        .set({ result: '0-0', winnerId: null })
+        .where(eq(matches.id, m.id))
+        .run()
+
+      // MMR Update (Loss for both)
+      const p1 = await db.select().from(participants).where(eq(participants.id, m.player1Id!)).get()
+      const p2 = await db.select().from(participants).where(eq(participants.id, m.player2Id!)).get()
+
+      if (p1?.userId && p2?.userId) {
+        const user1 = await db.select().from(users).where(eq(users.id, p1.userId)).get()
+        const user2 = await db.select().from(users).where(eq(users.id, p2.userId)).get()
+
+        if (user1 && user2) {
+          const K = 32
+          const r1 = user1.mmr
+          const r2 = user2.mmr
+
+          const e1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400))
+          const e2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400))
+
+          const s1 = 0
+          const s2 = 0
+
+          const newR1 = Math.round(r1 + K * (s1 - e1))
+          const newR2 = Math.round(r2 + K * (s2 - e2))
+
+          await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
+          await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+        }
+      }
+    }
+
     await db.update(tournaments)
       .set({ status: 'completed' })
       .where(eq(tournaments.id, tournamentId))
