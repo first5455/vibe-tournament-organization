@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import { useAuth } from '../lib/auth'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
-import { Trophy, Swords, Calendar } from 'lucide-react'
+import { Button } from '../components/ui/button'
+import { Trophy, Swords, Calendar, MoreVertical } from 'lucide-react'
+import { ProfileSettingsDialog } from '../components/ProfileSettingsDialog'
 
 interface UserProfile {
   id: number
@@ -37,39 +40,53 @@ interface DuelHistory {
 
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
+  const { user: currentUser } = useAuth()
   const [user, setUser] = useState<UserProfile | null>(null)
   const [history, setHistory] = useState<TournamentHistory[]>([])
   const [duels, setDuels] = useState<DuelHistory[]>([])
   const [loading, setLoading] = useState(true)
+  
+  const fetchData = async () => {
+    if (!id) return
+    setLoading(true)
+    try {
+      const userRes = await api(`/users/${id}`)
+      setUser(userRes.user)
+
+      const historyRes = await api(`/users/${id}/history`)
+      setHistory(historyRes.history)
+      setDuels(historyRes.duels || [])
+    } catch (error) {
+      console.error('Failed to fetch user data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return
-      setLoading(true)
-      try {
-        const userRes = await api(`/users/${id}`)
-        setUser(userRes.user)
-
-        const historyRes = await api(`/users/${id}/history`)
-        setHistory(historyRes.history)
-        setDuels(historyRes.duels || [])
-      } catch (error) {
-        console.error('Failed to fetch user data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
     fetchData()
   }, [id])
 
   if (loading) return <div className="flex justify-center items-center h-96 text-zinc-500">Loading profile...</div>
   if (!user) return <div className="flex justify-center items-center h-96 text-red-500">User not found</div>
 
+  const canEdit = currentUser?.id === user.id || currentUser?.role === 'admin'
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Header */}
-      <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-8">
-        <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="xl" className="h-32 w-32 text-4xl" />
+      <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-8 relative">
+        {canEdit && (
+          <div className="absolute top-4 right-4">
+            <ProfileSettingsDialog user={user} onUpdate={fetchData}>
+              <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </ProfileSettingsDialog>
+          </div>
+        )}
+
+        <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="lg" className="text-4xl" />
         <div className="text-center md:text-left space-y-2">
           <h1 className="text-4xl font-bold text-white">
             <UserLabel username={user.username} color={user.color} userId={user.id} />

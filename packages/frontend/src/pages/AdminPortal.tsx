@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth'
 import { Button } from '../components/ui/button'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -27,7 +27,10 @@ interface User {
 
 export default function AdminPortal() {
   const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels'>('users')
   const [users, setUsers] = useState<User[]>([])
+  const [tournaments, setTournaments] = useState<any[]>([])
+  const [duels, setDuels] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingColorId, setEditingColorId] = useState<number | null>(null)
@@ -39,14 +42,23 @@ export default function AdminPortal() {
       navigate('/')
       return
     }
-    loadUsers()
-  }, [user])
+    loadData()
+  }, [user, activeTab])
 
-  const loadUsers = async () => {
+  const loadData = async () => {
+    setLoading(true)
+    setError('')
     try {
-      setLoading(true)
-      const data = await api(`/users?requesterId=${user?.id}`)
-      setUsers(data.users)
+      if (activeTab === 'users') {
+        const data = await api(`/users?requesterId=${user?.id}`)
+        setUsers(data.users)
+      } else if (activeTab === 'tournaments') {
+        const data = await api('/tournaments')
+        setTournaments(data)
+      } else if (activeTab === 'duels') {
+        const data = await api(`/duels?admin=true&requesterId=${user?.id}`)
+        setDuels(data)
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -61,7 +73,33 @@ export default function AdminPortal() {
         method: 'DELETE',
         body: JSON.stringify({ requesterId: user?.id })
       })
-      loadUsers()
+      loadData()
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
+  const deleteTournament = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this tournament?')) return
+    try {
+      await api(`/tournaments/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ createdBy: user?.id })
+      })
+      loadData()
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
+  const deleteDuel = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this duel room?')) return
+    try {
+      await api(`/duels/${id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ userId: user?.id })
+      })
+      loadData()
     } catch (err: any) {
       alert(err.message)
     }
@@ -79,7 +117,7 @@ export default function AdminPortal() {
           role: newRole 
         })
       })
-      loadUsers()
+      loadData()
     } catch (err: any) {
       alert(err.message)
     }
@@ -121,7 +159,7 @@ export default function AdminPortal() {
           mmr: mmrValue
         })
       })
-      loadUsers()
+      loadData()
     } catch (err: any) {
       alert(err.message)
     }
@@ -146,7 +184,7 @@ export default function AdminPortal() {
           color: tempColor
         })
       })
-      loadUsers()
+      loadData()
       setEditingColorId(null)
     } catch (err: any) {
       alert(err.message)
@@ -165,19 +203,19 @@ export default function AdminPortal() {
           avatarUrl: newAvatarUrl
         })
       })
-      loadUsers()
+      loadData()
     } catch (err: any) {
       alert(err.message)
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-zinc-500">Loading...</div>
+  if (loading && !users.length && !tournaments.length && !duels.length) return <div className="p-8 text-center text-zinc-500">Loading...</div>
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-white">Admin Portal</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button 
             className="bg-red-600 hover:bg-red-700 text-white"
             size="sm"
@@ -186,6 +224,7 @@ export default function AdminPortal() {
               try {
                 await api(`/admin/data?requesterId=${user?.id}`, { method: 'DELETE' })
                 alert('All data deleted successfully')
+                loadData()
               } catch (err: any) {
                 alert(err.message)
               }
@@ -201,7 +240,7 @@ export default function AdminPortal() {
               try {
                 await api(`/admin/reset-leaderboard?requesterId=${user?.id}`, { method: 'POST' })
                 alert('Leaderboard reset successfully')
-                loadUsers()
+                loadData()
               } catch (err: any) {
                 alert(err.message)
               }
@@ -209,8 +248,29 @@ export default function AdminPortal() {
           >
             Reset Leaderboard
           </Button>
-          <Button onClick={loadUsers} variant="outline" size="sm">Refresh</Button>
+          <Button onClick={loadData} variant="outline" size="sm">Refresh</Button>
         </div>
+      </div>
+
+      <div className="flex gap-2 border-b border-zinc-800 pb-1">
+        <Button 
+          variant={activeTab === 'users' ? 'secondary' : 'ghost'} 
+          onClick={() => setActiveTab('users')}
+        >
+          Users
+        </Button>
+        <Button 
+          variant={activeTab === 'tournaments' ? 'secondary' : 'ghost'} 
+          onClick={() => setActiveTab('tournaments')}
+        >
+          Tournaments
+        </Button>
+        <Button 
+          variant={activeTab === 'duels' ? 'secondary' : 'ghost'} 
+          onClick={() => setActiveTab('duels')}
+        >
+          Duel Rooms
+        </Button>
       </div>
 
       {error && (
@@ -219,115 +279,252 @@ export default function AdminPortal() {
         </div>
       )}
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50">
-        <table className="w-full text-left text-sm text-zinc-400">
-          <thead className="bg-zinc-900 text-zinc-200">
-            <tr>
-              <th className="px-4 py-3 font-medium">ID</th>
-              <th className="px-4 py-3 font-medium">Avatar</th>
-              <th className="px-4 py-3 font-medium">Username</th>
-              <th className="px-4 py-3 font-medium">Role</th>
-              <th className="px-4 py-3 font-medium">MMR</th>
-              <th className="px-4 py-3 font-medium">Joined</th>
-              <th className="px-4 py-3 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-800">
-            {users.map((u, index) => (
-              <tr key={u.id} className="hover:bg-zinc-900/80">
-                <td className="px-4 py-3 font-mono">{u.id}</td>
-                <td className="px-4 py-3">
-                  <UserAvatar username={u.username} avatarUrl={u.avatarUrl} size="sm" />
-                </td>
-                <td className="px-4 py-3 font-bold">
-                  <UserLabel username={u.username} color={u.color} />
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded text-xs ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-zinc-800 text-zinc-400'}`}>
-                    {u.role}
-                  </span>
-                </td>
-                <td className="px-4 py-3 font-mono">{u.mmr}</td>
-                <td className="px-4 py-3">{new Date(u.createdAt).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-right">
-                  {editingColorId === u.id ? (
-                    <div className="flex items-center justify-end gap-1">
-                      <input 
-                        type="color" 
-                        value={tempColor}
-                        onChange={(e) => setTempColor(e.target.value)}
-                        className="h-8 w-8 bg-transparent cursor-pointer rounded border border-zinc-700"
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-green-400 hover:text-green-300 hover:bg-green-500/10"
-                        onClick={() => saveColor(u)}
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-zinc-400 hover:text-zinc-300"
-                        onClick={cancelEditColor}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" side={index >= users.length - 3 ? 'top' : 'bottom'}>
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {u.id !== user?.id && (
-                          <DropdownMenuItem onClick={() => toggleRole(u)}>
-                            <Shield className="mr-2 h-4 w-4" />
-                            {u.role === 'admin' ? 'Demote to User' : 'Promote to Admin'}
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => changePassword(u)}>
-                          <Key className="mr-2 h-4 w-4" />
-                          Reset Password
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => editMMR(u)}>
-                          <Trophy className="mr-2 h-4 w-4" />
-                          Edit MMR
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => startEditColor(u)}>
-                          <Palette className="mr-2 h-4 w-4" />
-                          Edit Color
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => editAvatar(u)}>
-                          <ImageIcon className="mr-2 h-4 w-4" />
-                          Edit Avatar
-                        </DropdownMenuItem>
-                        {u.id !== user?.id && (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              variant="destructive"
-                              onClick={() => deleteUser(u.id)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete User
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </td>
+      {activeTab === 'users' && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
+          <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
+            <thead className="bg-zinc-900 text-zinc-200">
+              <tr>
+                <th className="px-4 py-3 font-medium">ID</th>
+                <th className="px-4 py-3 font-medium">Avatar</th>
+                <th className="px-4 py-3 font-medium">Username</th>
+                <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">MMR</th>
+                <th className="px-4 py-3 font-medium">Joined</th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-zinc-800">
+              {users.map((u, index) => (
+                <tr key={u.id} className="hover:bg-zinc-900/80">
+                  <td className="px-4 py-3 font-mono">{u.id}</td>
+                  <td className="px-4 py-3">
+                    <UserAvatar username={u.username} avatarUrl={u.avatarUrl} size="sm" />
+                  </td>
+                  <td className="px-4 py-3 font-bold">
+                    <Link to={`/users/${u.id}`} className="hover:underline text-white">
+                      <UserLabel username={u.username} color={u.color} />
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-xs ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-zinc-800 text-zinc-400'}`}>
+                      {u.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 font-mono">{u.mmr}</td>
+                  <td className="px-4 py-3">{new Date(u.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-right">
+                    {editingColorId === u.id ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <input 
+                          type="color" 
+                          value={tempColor}
+                          onChange={(e) => setTempColor(e.target.value)}
+                          className="h-8 w-8 bg-transparent cursor-pointer rounded border border-zinc-700"
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                          onClick={() => saveColor(u)}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-zinc-400 hover:text-zinc-300"
+                          onClick={cancelEditColor}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" side={index >= users.length - 3 ? 'top' : 'bottom'}>
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {u.id !== user?.id && (
+                            <DropdownMenuItem onClick={() => toggleRole(u)}>
+                              <Shield className="mr-2 h-4 w-4" />
+                              {u.role === 'admin' ? 'Demote to User' : 'Promote to Admin'}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => changePassword(u)}>
+                            <Key className="mr-2 h-4 w-4" />
+                            Reset Password
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => editMMR(u)}>
+                            <Trophy className="mr-2 h-4 w-4" />
+                            Edit MMR
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => startEditColor(u)}>
+                            <Palette className="mr-2 h-4 w-4" />
+                            Edit Color
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => editAvatar(u)}>
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            Edit Avatar
+                          </DropdownMenuItem>
+                          {u.id !== user?.id && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                variant="destructive"
+                                onClick={() => deleteUser(u.id)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === 'tournaments' && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
+          <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
+            <thead className="bg-zinc-900 text-zinc-200">
+              <tr>
+                <th className="px-4 py-3 font-medium">ID</th>
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Type</th>
+                <th className="px-4 py-3 font-medium">Created By</th>
+                <th className="px-4 py-3 font-medium">Participants</th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800">
+              {tournaments.map((t) => (
+                <tr key={t.id} className="hover:bg-zinc-900/80">
+                  <td className="px-4 py-3 font-mono">{t.id}</td>
+                  <td className="px-4 py-3 font-bold text-white">
+                    <Link to={`/tournaments/${t.id}`} className="hover:underline">
+                      {t.name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-xs uppercase font-bold ${
+                      t.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                      t.status === 'completed' ? 'bg-zinc-800 text-zinc-500' :
+                      'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {t.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 capitalize">{t.type}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <UserAvatar username={t.createdByName} avatarUrl={t.createdByAvatarUrl} size="sm" />
+                      <UserLabel username={t.createdByName} color={t.createdByColor} />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">{t.participantCount}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      onClick={() => deleteTournament(t.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+              {tournaments.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">No tournaments found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {activeTab === 'duels' && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
+          <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
+            <thead className="bg-zinc-900 text-zinc-200">
+              <tr>
+                <th className="px-4 py-3 font-medium">ID</th>
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Player 1</th>
+                <th className="px-4 py-3 font-medium">Player 2</th>
+                <th className="px-4 py-3 font-medium">Result</th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800">
+              {duels.map((d) => (
+                <tr key={d.id} className="hover:bg-zinc-900/80">
+                  <td className="px-4 py-3 font-mono">{d.id}</td>
+                  <td className="px-4 py-3 font-bold text-white">
+                    <Link to={`/duels/${d.id}`} className="hover:underline">
+                      {d.name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-xs uppercase font-bold ${
+                      d.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                      d.status === 'completed' ? 'bg-zinc-800 text-zinc-500' :
+                      'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {d.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <UserAvatar username={d.player1Name} avatarUrl={d.player1Avatar} size="sm" />
+                      <UserLabel username={d.player1Name} color={d.player1Color} />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {d.player2Id ? (
+                      <div className="flex items-center gap-2">
+                        <UserAvatar username={d.player2Name} avatarUrl={d.player2Avatar} size="sm" />
+                        <UserLabel username={d.player2Name} color={d.player2Color} />
+                      </div>
+                    ) : (
+                      <span className="text-zinc-600 italic">Waiting...</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">{d.result || '-'}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      onClick={() => deleteDuel(d.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+              {duels.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">No duel rooms found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
