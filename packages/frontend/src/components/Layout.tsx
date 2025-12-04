@@ -58,10 +58,10 @@ export default function Layout() {
               {user ? (
                 <div className="flex items-center gap-4">
                   <Link to={`/users/${user.id}`}>
-                    <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="sm" />
+                    <UserAvatar username={user.username} displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
                   </Link>
                   <span className="text-sm text-zinc-400 flex items-center gap-1">
-                    Signed in as <Link to={`/users/${user.id}`} className="text-white font-medium hover:underline"><UserLabel username={user.username} color={user.color} /></Link>
+                    Signed in as <Link to={`/users/${user.id}`} className="text-white font-medium hover:underline"><UserLabel username={user.username} displayName={user.displayName} color={user.color} /></Link>
                   </span>
                   <Button variant="outline" size="sm" onClick={logout}>
                     <LogOut className="mr-2 h-4 w-4" />
@@ -124,10 +124,10 @@ export default function Layout() {
                   <div className="my-2 border-t border-white/10" />
                   <div className="px-2 py-2 flex items-center gap-3">
                     <Link to={`/users/${user.id}`} onClick={() => setIsMenuOpen(false)}>
-                      <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="sm" />
+                      <UserAvatar username={user.username} displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
                     </Link>
                     <div className="text-sm text-zinc-400 flex items-center gap-1">
-                      Signed in as <Link to={`/users/${user.id}`} className="text-white font-medium hover:underline" onClick={() => setIsMenuOpen(false)}><UserLabel username={user.username} color={user.color} /></Link>
+                      Signed in as <Link to={`/users/${user.id}`} className="text-white font-medium hover:underline" onClick={() => setIsMenuOpen(false)}><UserLabel username={user.username} displayName={user.displayName} color={user.color} /></Link>
                     </div>
                   </div>
                   <Button variant="outline" className="w-full justify-start" onClick={() => { logout(); setIsMenuOpen(false) }}>

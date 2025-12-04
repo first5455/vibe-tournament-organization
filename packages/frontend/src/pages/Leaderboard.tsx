@@ -9,6 +9,7 @@ import { useRefresh } from '../hooks/useRefresh'
 interface User {
   id: number
   username: string
+  displayName?: string
   mmr: number
   color?: string
   avatarUrl?: string
@@ -105,9 +106,9 @@ export default function Leaderboard() {
                   </td>
                   <td className="px-3 sm:px-6 py-4 font-medium text-white">
                     <div className="flex items-center gap-3">
-                      <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="sm" />
+                      <UserAvatar username={user.username} displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
                       <div className="truncate max-w-[120px] sm:max-w-none">
-                        <UserLabel username={user.username} color={user.color} userId={user.id} />
+                        <UserLabel username={user.username} displayName={user.displayName} color={user.color} userId={user.id} />
                       </div>
                     </div>
                   </td>

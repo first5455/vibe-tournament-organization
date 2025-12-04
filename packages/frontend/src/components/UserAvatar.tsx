@@ -2,12 +2,13 @@ import { cn } from '../lib/utils'
 
 interface UserAvatarProps {
   username: string
+  displayName?: string | null
   avatarUrl?: string | null
   className?: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
-export function UserAvatar({ username, avatarUrl, className, size = 'md' }: UserAvatarProps) {
+export function UserAvatar({ username, displayName, avatarUrl, className, size = 'md' }: UserAvatarProps) {
   const sizeClasses = {
     sm: 'h-16 w-16 text-base',
     md: 'h-[4.5rem] w-[4.5rem] text-lg',
@@ -34,7 +35,7 @@ export function UserAvatar({ username, avatarUrl, className, size = 'md' }: User
         />
       ) : null}
       <div className={cn("flex items-center justify-center w-full h-full text-zinc-400", avatarUrl ? "hidden" : "")}>
-        <span className="font-bold uppercase">{username.substring(0, 2)}</span>
+        <span className="font-bold uppercase">{(displayName || username).substring(0, 2)}</span>
       </div>
     </div>
   )

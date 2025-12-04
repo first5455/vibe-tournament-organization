@@ -8,6 +8,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     return await db.select({
       id: users.id,
       username: users.username,
+      displayName: users.displayName,
       mmr: users.mmr,
       color: users.color,
       avatarUrl: users.avatarUrl,
@@ -20,6 +21,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     const user = await db.select({
       id: users.id,
       username: users.username,
+      displayName: users.displayName,
       mmr: users.mmr,
       createdAt: users.createdAt,
       role: users.role,
@@ -116,8 +118,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       const opponentId = d.player1Id === id ? d.player2Id : d.player1Id
       let opponentName = 'Unknown'
       if (opponentId) {
-        const opponent = await db.select({ username: users.username }).from(users).where(eq(users.id, opponentId)).get()
-        if (opponent) opponentName = opponent.username
+        const opponent = await db.select({ username: users.username, displayName: users.displayName }).from(users).where(eq(users.id, opponentId)).get()
+        if (opponent) opponentName = opponent.displayName || opponent.username
       } else {
         opponentName = 'Waiting...'
       }
@@ -159,6 +161,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     const allUsers = await db.select({
       id: users.id,
       username: users.username,
+      displayName: users.displayName,
       role: users.role,
       mmr: users.mmr,
       createdAt: users.createdAt,
@@ -173,18 +176,29 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     })
   })
   .put('/:id', async ({ params, body, set }) => {
-    const { requesterId, username, password, role, mmr, color } = body
+    const { requesterId, username, displayName, password, role, mmr, color } = body
     
     const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
-    if (!requester || requester.role !== 'admin') {
+    
+    // Allow if admin OR if updating self
+    const isSelfUpdate = requesterId === parseInt(params.id)
+    const isAdmin = requester?.role === 'admin'
+
+    if (!requester || (!isAdmin && !isSelfUpdate)) {
       set.status = 403
       return { error: 'Forbidden' }
     }
 
     const updates: any = {}
     if (username) updates.username = username
-    if (role) updates.role = role
-    if (mmr !== undefined) updates.mmr = mmr
+    if (displayName) updates.displayName = displayName
+    
+    // Only admin can update role and mmr
+    if (isAdmin) {
+      if (role) updates.role = role
+      if (mmr !== undefined) updates.mmr = mmr
+    }
+
     if (color) updates.color = color
     if (body.avatarUrl !== undefined) updates.avatarUrl = body.avatarUrl
     if (password) {
@@ -196,7 +210,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       .where(eq(users.id, parseInt(params.id)))
       .run()
 
-    return { success: true }
+    const updatedUser = await db.select().from(users).where(eq(users.id, parseInt(params.id))).get()
+    return { user: updatedUser }
   }, {
     params: t.Object({
       id: t.String()
@@ -204,6 +219,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     body: t.Object({
       requesterId: t.Number(),
       username: t.Optional(t.String()),
+      displayName: t.Optional(t.String()),
       password: t.Optional(t.String()),
       role: t.Optional(t.String()),
       mmr: t.Optional(t.Number()),
@@ -227,6 +243,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     await db.update(users)
       .set({
         username: `Deleted User ${userId}`,
+        displayName: `Deleted User ${userId}`,
         passwordHash: 'deleted', // Invalidate login
         avatarUrl: null,
         color: '#3f3f46', // Zinc-700 (neutral color)

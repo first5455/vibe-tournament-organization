@@ -5,6 +5,7 @@ import { Plus, Swords, RefreshCw } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { UserAvatar } from '../components/UserAvatar'
+import { UserLabel } from '../components/UserLabel'
 import { useRefresh } from '../hooks/useRefresh'
 
 interface Duel {
@@ -17,7 +18,13 @@ interface Duel {
   result?: string
   createdAt: string
   player1Name: string
+  player1DisplayName?: string
   player1Avatar?: string
+  player1Color?: string
+  player2Name?: string
+  player2DisplayName?: string
+  player2Avatar?: string
+  player2Color?: string
 }
 
 export default function DuelDashboard() {
@@ -149,13 +156,18 @@ export default function DuelDashboard() {
                     </span>
                   </div>
                   <div className="mt-4 flex items-center gap-2">
-                    <UserAvatar username={duel.player1Name} avatarUrl={duel.player1Avatar} size="sm" className="h-6 w-6" />
-                    <span className="text-sm text-zinc-300">
-                      {duel.player1Name}
+                    <UserAvatar username={duel.player1Name} displayName={duel.player1DisplayName} avatarUrl={duel.player1Avatar} size="sm" className="h-6 w-6" />
+                    <span className="font-medium text-white">
+                      <UserLabel username={duel.player1Name} displayName={duel.player1DisplayName} color={duel.player1Color} />
                     </span>
-                    <span className="text-zinc-500 text-xs">vs</span>
-                    {duel.player2Id ? (
-                      <span className="text-sm text-zinc-300">Player 2</span>
+                    <span className="text-zinc-600 font-bold">VS</span>
+                    {duel.player2Name ? (
+                      <>
+                        <span className="font-medium text-white">
+                          <UserLabel username={duel.player2Name} displayName={duel.player2DisplayName} color={duel.player2Color} />
+                        </span>
+                        <UserAvatar username={duel.player2Name} displayName={duel.player2DisplayName} avatarUrl={duel.player2Avatar} size="sm" className="h-6 w-6" />
+                      </>
                     ) : (
                       <span className="text-sm text-zinc-500 italic">Waiting...</span>
                     )}

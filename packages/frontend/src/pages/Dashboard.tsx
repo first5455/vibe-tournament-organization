@@ -17,9 +17,10 @@ interface Tournament {
   createdAt: string
   participantCount: number
   type: 'swiss' | 'round_robin'
-  createdByName?: string | null
-  createdByColor?: string | null
-  createdByAvatarUrl?: string | null
+  createdByName: string
+  createdByDisplayName?: string
+  createdByColor?: string
+  createdByAvatarUrl?: string
   startDate?: string
   endDate?: string
 }
@@ -190,9 +191,9 @@ export default function Dashboard() {
                   </div>
                   {tournament.createdByName && (
                     <div className="mt-1 text-xs text-zinc-500 flex items-center gap-2">
-                      <UserAvatar username={tournament.createdByName} avatarUrl={tournament.createdByAvatarUrl} size="sm" className="h-4 w-4" />
+                      <UserAvatar username={tournament.createdByName} displayName={tournament.createdByDisplayName} avatarUrl={tournament.createdByAvatarUrl} size="sm" className="h-4 w-4" />
                       <span className="flex items-center gap-1">
-                        by <UserLabel username={tournament.createdByName} color={tournament.createdByColor} />
+                        by <UserLabel username={tournament.createdByName} displayName={tournament.createdByDisplayName} color={tournament.createdByColor} />
                       </span>
                     </div>
                   )}

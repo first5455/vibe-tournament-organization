@@ -11,6 +11,7 @@ import { useRefresh } from '../hooks/useRefresh'
 interface Player {
   id: number
   username: string
+  displayName?: string
   avatarUrl?: string
   color?: string
   mmr: number
@@ -188,9 +189,9 @@ export default function DuelRoom() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
         {/* Player 1 */}
         <div className={`bg-zinc-900/50 rounded-xl p-8 border ${duel.winnerId === duel.player1Id ? 'border-green-500/50 bg-green-900/10' : 'border-white/5'} flex flex-col items-center gap-4`}>
-          <UserAvatar username={duel.player1?.username} avatarUrl={duel.player1?.avatarUrl} size="lg" />
+          <UserAvatar username={duel.player1?.username} displayName={duel.player1?.displayName} avatarUrl={duel.player1?.avatarUrl} size="lg" />
           <div className="text-center">
-            <UserLabel username={duel.player1?.username} color={duel.player1?.color} userId={duel.player1?.id} className="text-xl" />
+            <UserLabel username={duel.player1?.username} displayName={duel.player1?.displayName} color={duel.player1?.color} userId={duel.player1?.id} className="text-xl" />
             <div className="text-zinc-500 text-sm mt-1">MMR: {duel.player1?.mmr}</div>
           </div>
           {duel.status === 'active' && (isParticipant || isAdmin) && (
@@ -222,9 +223,9 @@ export default function DuelRoom() {
         <div className={`bg-zinc-900/50 rounded-xl p-8 border ${duel.winnerId === duel.player2Id ? 'border-green-500/50 bg-green-900/10' : 'border-white/5'} flex flex-col items-center gap-4 min-h-[300px] justify-center`}>
           {duel.player2 ? (
             <>
-              <UserAvatar username={duel.player2.username} avatarUrl={duel.player2.avatarUrl} size="lg" />
+              <UserAvatar username={duel.player2.username} displayName={duel.player2.displayName} avatarUrl={duel.player2.avatarUrl} size="lg" />
               <div className="text-center">
-                <UserLabel username={duel.player2.username} color={duel.player2.color} userId={duel.player2.id} className="text-xl" />
+                <UserLabel username={duel.player2.username} displayName={duel.player2.displayName} color={duel.player2.color} userId={duel.player2.id} className="text-xl" />
                 <div className="text-zinc-500 text-sm mt-1">MMR: {duel.player2.mmr}</div>
               </div>
               {duel.status === 'active' && (isParticipant || isAdmin) && (

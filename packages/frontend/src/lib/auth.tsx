@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { api } from './api'
 
 interface User {
   id: number
   username: string
+  displayName?: string
   role: 'user' | 'admin'
   color?: string
   avatarUrl?: string
@@ -12,6 +14,8 @@ interface AuthContextType {
   user: User | null
   login: (token: string, user: User) => void
   logout: () => void
+  updateUser: (user: Partial<User>) => void
+  refreshUser: () => Promise<void>
   isLoading: boolean
 }
 
@@ -24,11 +28,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem('token')
     const savedUser = localStorage.getItem('user')
+    const expiry = localStorage.getItem('sessionExpiry')
+    
     if (token && savedUser) {
+      // Check expiry
+      if (expiry && new Date().getTime() > parseInt(expiry)) {
+        // Expired
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        localStorage.removeItem('sessionExpiry')
+        setIsLoading(false)
+        return
+      }
+
       try {
         const parsedUser = JSON.parse(savedUser)
         if (parsedUser && typeof parsedUser.id === 'number') {
           setUser(parsedUser)
+          // Auto-refresh: Extend session if valid
+          localStorage.setItem('sessionExpiry', (new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toString())
         } else {
           // Invalid user data, clear it
           localStorage.removeItem('token')
@@ -45,17 +63,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = (token: string, user: User) => {
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(user))
+    // Set expiry to 7 days from now
+    localStorage.setItem('sessionExpiry', (new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toString())
     setUser(user)
   }
 
   const logout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    localStorage.removeItem('sessionExpiry')
     setUser(null)
   }
 
+  const updateUser = (updatedUser: Partial<User>) => {
+    if (!user) return
+    const newUser = { ...user, ...updatedUser }
+    localStorage.setItem('user', JSON.stringify(newUser))
+    setUser(newUser)
+  }
+
+  const refreshUser = async () => {
+    if (!user) return
+    try {
+      const res = await api(`/users/${user.id}`)
+      if (res.user) {
+        const updated = res.user
+        localStorage.setItem('user', JSON.stringify(updated))
+        setUser(updated)
+      }
+    } catch (e) {
+      console.error('Failed to refresh user:', e)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, refreshUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

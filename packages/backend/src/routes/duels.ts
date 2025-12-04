@@ -27,9 +27,11 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       result: duelRooms.result,
       createdAt: duelRooms.createdAt,
       player1Name: users.username,
+      player1DisplayName: users.displayName,
       player1Avatar: users.avatarUrl,
       player1Color: users.color,
       player2Name: p2.username,
+      player2DisplayName: p2.displayName,
       player2Avatar: p2.avatarUrl,
       player2Color: p2.color,
     })
@@ -88,8 +90,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     return { 
       duel: {
         ...duel,
-        player1: p1 ? { id: p1.id, username: p1.username, avatarUrl: p1.avatarUrl, color: p1.color, mmr: p1.mmr } : null,
-        player2: p2 ? { id: p2.id, username: p2.username, avatarUrl: p2.avatarUrl, color: p2.color, mmr: p2.mmr } : null,
+        player1: p1 ? { id: p1.id, username: p1.username, displayName: p1.displayName, avatarUrl: p1.avatarUrl, color: p1.color, mmr: p1.mmr } : null,
+        player2: p2 ? { id: p2.id, username: p2.username, displayName: p2.displayName, avatarUrl: p2.avatarUrl, color: p2.color, mmr: p2.mmr } : null,
       }
     }
   }, {

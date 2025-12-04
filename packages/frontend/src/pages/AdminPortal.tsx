@@ -18,6 +18,7 @@ import {
 interface User {
   id: number
   username: string
+  displayName?: string
   role: string
   mmr: number
   createdAt: string
@@ -290,6 +291,7 @@ export default function AdminPortal() {
               <tr>
                 <th className="px-4 py-3 font-medium">ID</th>
                 <th className="px-4 py-3 font-medium">Avatar</th>
+                <th className="px-4 py-3 font-medium">Display Name</th>
                 <th className="px-4 py-3 font-medium">Username</th>
                 <th className="px-4 py-3 font-medium">Role</th>
                 <th className="px-4 py-3 font-medium">MMR</th>
@@ -304,9 +306,12 @@ export default function AdminPortal() {
                   <td className="px-4 py-3">
                     <UserAvatar username={u.username} avatarUrl={u.avatarUrl} size="sm" />
                   </td>
-                  <td className="px-4 py-3 font-bold">
-                    <Link to={`/users/${u.id}`} className="hover:underline text-white">
-                      <UserLabel username={u.username} color={u.color} />
+                  <td className="px-4 py-3 font-bold" style={{ color: u.color || '#ffffff' }}>
+                    {u.displayName || '-'}
+                  </td>
+                  <td className="px-4 py-3 text-zinc-400">
+                    <Link to={`/users/${u.id}`} className="hover:underline hover:text-white">
+                      {u.username}
                     </Link>
                   </td>
                   <td className="px-4 py-3">
@@ -434,8 +439,8 @@ export default function AdminPortal() {
                   <td className="px-4 py-3 capitalize">{t.type}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <UserAvatar username={t.createdByName} avatarUrl={t.createdByAvatarUrl} size="sm" />
-                      <UserLabel username={t.createdByName} color={t.createdByColor} />
+                      <UserAvatar username={t.createdByName} displayName={t.createdByDisplayName} avatarUrl={t.createdByAvatarUrl} size="sm" />
+                      <UserLabel username={t.createdByName} displayName={t.createdByDisplayName} color={t.createdByColor} />
                     </div>
                   </td>
                   <td className="px-4 py-3">{t.participantCount}</td>
@@ -497,15 +502,15 @@ export default function AdminPortal() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <UserAvatar username={d.player1Name} avatarUrl={d.player1Avatar} size="sm" />
-                      <UserLabel username={d.player1Name} color={d.player1Color} />
+                      <UserAvatar username={d.player1Name} displayName={d.player1DisplayName} avatarUrl={d.player1Avatar} size="sm" />
+                      <UserLabel username={d.player1Name} displayName={d.player1DisplayName} color={d.player1Color} />
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     {d.player2Id ? (
                       <div className="flex items-center gap-2">
-                        <UserAvatar username={d.player2Name} avatarUrl={d.player2Avatar} size="sm" />
-                        <UserLabel username={d.player2Name} color={d.player2Color} />
+                        <UserAvatar username={d.player2Name} displayName={d.player2DisplayName} avatarUrl={d.player2Avatar} size="sm" />
+                        <UserLabel username={d.player2Name} displayName={d.player2DisplayName} color={d.player2Color} />
                       </div>
                     ) : (
                       <span className="text-zinc-600 italic">Waiting...</span>

@@ -3,14 +3,16 @@ import { Link } from 'react-router-dom'
 
 interface UserLabelProps {
   username?: string | null
+  displayName?: string | null
   color?: string | null
   className?: string
   as?: 'span' | 'div'
   userId?: number
 }
 
-export function UserLabel({ username, color, className, as: Component = 'span', userId }: UserLabelProps) {
-  if (!username) return null
+export function UserLabel({ username, displayName, color, className, as: Component = 'span', userId }: UserLabelProps) {
+  const display = displayName || username
+  if (!display) return null
 
   const hasColor = color && color !== '#ffffff'
 
@@ -27,7 +29,8 @@ export function UserLabel({ username, color, className, as: Component = 'span', 
         filter: `drop-shadow(0 0 2px ${color}80)`
       } : undefined}
     >
-      {username}
+
+      {display}
     </Component>
   )
 
@@ -38,7 +41,8 @@ export function UserLabel({ username, color, className, as: Component = 'span', 
         className={cn("font-medium hover:underline decoration-indigo-500/50 underline-offset-4", className)}
         style={{ color: color || undefined }}
       >
-        {username}
+
+        {display}
       </Link>
     )
   }

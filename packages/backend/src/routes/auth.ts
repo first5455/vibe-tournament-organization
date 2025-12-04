@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm'
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
   .post('/register', async ({ body, set }) => {
-    const { username, password } = body
+    const { username, password, displayName } = body
     
     // Check if user exists
     const existingUser = await db.select().from(users).where(eq(users.username, username)).get()
@@ -25,15 +25,17 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     // Create user
     const result = await db.insert(users).values({
       username,
+      displayName: displayName || username, // Default to username if not provided
       passwordHash,
       securityQuestion: body.securityQuestion,
       securityAnswerHash,
     }).returning().get()
 
-    return { user: { id: result.id, username: result.username, role: result.role, color: result.color, avatarUrl: result.avatarUrl } }
+    return { user: { id: result.id, username: result.username, displayName: result.displayName, role: result.role, color: result.color, avatarUrl: result.avatarUrl } }
   }, {
     body: t.Object({
       username: t.String(),
+      displayName: t.Optional(t.String()),
       password: t.String(),
       securityQuestion: t.Optional(t.String()),
       securityAnswer: t.Optional(t.String())
@@ -98,7 +100,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return { error: 'Invalid credentials' }
     }
 
-    return { user: { id: user.id, username: user.username, role: user.role, color: user.color, avatarUrl: user.avatarUrl } }
+    return { user: { id: user.id, username: user.username, displayName: user.displayName, role: user.role, color: user.color, avatarUrl: user.avatarUrl } }
   }, {
     body: t.Object({
       username: t.String(),
@@ -106,7 +108,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     })
   })
   .put('/profile', async ({ body, set }) => {
-    const { userId, username, password, color, avatarUrl } = body
+    const { userId, username, displayName, password, color, avatarUrl } = body
 
     const user = await db.select().from(users).where(eq(users.id, userId)).get()
     if (!user) {
@@ -123,6 +125,10 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         return { error: 'Username already taken' }
       }
       updates.username = username
+    }
+
+    if (displayName !== undefined) {
+      updates.displayName = displayName
     }
 
     if (password) {
@@ -142,11 +148,12 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     }
 
     const updatedUser = await db.select().from(users).where(eq(users.id, userId)).get()
-    return { user: { id: updatedUser!.id, username: updatedUser!.username, role: updatedUser!.role, color: updatedUser!.color, avatarUrl: updatedUser!.avatarUrl } }
+    return { user: { id: updatedUser!.id, username: updatedUser!.username, displayName: updatedUser!.displayName, role: updatedUser!.role, color: updatedUser!.color, avatarUrl: updatedUser!.avatarUrl } }
   }, {
     body: t.Object({
       userId: t.Number(),
       username: t.Optional(t.String()),
+      displayName: t.Optional(t.String()),
       password: t.Optional(t.String()),
       color: t.Optional(t.String()),
       avatarUrl: t.Optional(t.String())
