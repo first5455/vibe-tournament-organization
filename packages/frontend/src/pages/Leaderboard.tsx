@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
-import { Trophy, Medal } from 'lucide-react'
+import { Trophy, Medal, RefreshCw } from 'lucide-react'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
+import { Button } from '../components/ui/button'
+import { useRefresh } from '../hooks/useRefresh'
 
 interface User {
   id: number
@@ -16,10 +18,22 @@ export default function Leaderboard() {
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
+  const loadLeaderboard = async () => {
+    try {
+      const data = await api('/users/leaderboard')
+      setUsers(data)
+    } catch (err) {
+      console.error('Failed to load leaderboard', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const { handleRefresh, isCoolingDown } = useRefresh(loadLeaderboard)
+
   useEffect(() => {
     loadLeaderboard()
 
-    // WebSocket connection
     // WebSocket connection
     let ws: WebSocket | null = null
     if (import.meta.env.VITE_USE_WEBSOCKETS === 'true') {
@@ -42,25 +56,26 @@ export default function Leaderboard() {
     }
   }, [])
 
-  const loadLeaderboard = async () => {
-    try {
-      const data = await api('/users/leaderboard')
-      setUsers(data)
-    } catch (err) {
-      console.error('Failed to load leaderboard', err)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
     <div className="space-y-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-white flex items-center justify-center gap-3">
-          <Trophy className="h-8 w-8 text-yellow-500" />
-          Global Leaderboard
-        </h1>
-        <p className="mt-2 text-zinc-400">Top players by MMR</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+            <Trophy className="h-8 w-8 text-yellow-500" />
+            Global Leaderboard
+          </h1>
+          <p className="mt-2 text-zinc-400">Top players by MMR</p>
+        </div>
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={handleRefresh}
+          disabled={isCoolingDown}
+          className={`text-zinc-400 hover:text-white ${isCoolingDown ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title={isCoolingDown ? "Please wait..." : "Refresh leaderboard"}
+        >
+          <RefreshCw className={`h-6 w-6 ${isCoolingDown ? 'animate-spin' : ''}`} />
+        </Button>
       </div>
 
       <div className="mx-auto max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">

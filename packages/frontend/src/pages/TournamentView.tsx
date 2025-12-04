@@ -3,9 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { useAuth } from '../lib/auth'
-import { Trophy, Users, Play } from 'lucide-react'
+import { Trophy, Users, Play, RefreshCw } from 'lucide-react'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
+import { useRefresh } from '../hooks/useRefresh'
 
 interface Participant {
   id: number
@@ -51,6 +52,50 @@ export default function TournamentView() {
   const [matches, setMatches] = useState<Match[]>([])
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const loadTournament = async () => {
+    if (!id) return
+    setIsLoading(true)
+    setError('')
+    
+    try {
+      // Fetch tournament details first
+      try {
+        const { tournament } = await api(`/tournaments/${id}`)
+        setTournament(tournament)
+      } catch (e: any) {
+        console.error('Failed to fetch tournament:', e)
+        setError(e.message || 'Failed to load tournament details')
+        setIsLoading(false)
+        return // Stop if tournament details fail
+      }
+
+      // Fetch participants
+      try {
+        const participantsData = await api(`/tournaments/${id}/participants`)
+        setParticipants(participantsData)
+      } catch (e) {
+        console.error('Failed to fetch participants:', e)
+      }
+
+      // Fetch matches
+      try {
+        const matchesData = await api(`/tournaments/${id}/matches`)
+        setMatches(matchesData)
+      } catch (e) {
+        console.error('Failed to fetch matches:', e)
+      }
+
+    } catch (err: any) {
+      console.error('Unexpected error:', err)
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const { handleRefresh, isCoolingDown } = useRefresh(loadTournament)
 
   useEffect(() => {
     loadTournament()
@@ -94,49 +139,6 @@ export default function TournamentView() {
       }
     }
   }, [id])
-
-  const [error, setError] = useState('')
-
-  const loadTournament = async () => {
-    if (!id) return
-    setIsLoading(true)
-    setError('')
-    
-    try {
-      // Fetch tournament details first
-      try {
-        const { tournament } = await api(`/tournaments/${id}`)
-        setTournament(tournament)
-      } catch (e: any) {
-        console.error('Failed to fetch tournament:', e)
-        setError(e.message || 'Failed to load tournament details')
-        setIsLoading(false)
-        return // Stop if tournament details fail
-      }
-
-      // Fetch participants
-      try {
-        const participantsData = await api(`/tournaments/${id}/participants`)
-        setParticipants(participantsData)
-      } catch (e) {
-        console.error('Failed to fetch participants:', e)
-      }
-
-      // Fetch matches
-      try {
-        const matchesData = await api(`/tournaments/${id}/matches`)
-        setMatches(matchesData)
-      } catch (e) {
-        console.error('Failed to fetch matches:', e)
-      }
-
-    } catch (err: any) {
-      console.error('Unexpected error:', err)
-      setError(err.message)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const reportMatch = async (match: Match, s1: number, s2: number) => {
     if (!user?.id) {
@@ -283,6 +285,16 @@ export default function TournamentView() {
               <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-400 capitalize border border-zinc-700">
                 {tournament.type?.replace('_', ' ')}
               </span>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={handleRefresh}
+                disabled={isCoolingDown}
+                className={`text-zinc-400 hover:text-white ${isCoolingDown ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title={isCoolingDown ? "Please wait..." : "Refresh tournament data"}
+              >
+                <RefreshCw className={`h-6 w-6 ${isCoolingDown ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
           )}
           <div className="mt-2 flex flex-wrap items-center gap-4 text-zinc-400">

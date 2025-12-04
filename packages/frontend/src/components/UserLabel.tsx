@@ -1,5 +1,5 @@
 import { cn } from '../lib/utils'
-import { UserProfileDialog } from './UserProfileDialog'
+import { Link } from 'react-router-dom'
 
 interface UserLabelProps {
   username?: string | null
@@ -33,9 +33,13 @@ export function UserLabel({ username, color, className, as: Component = 'span', 
 
   if (userId) {
     return (
-      <UserProfileDialog userId={userId} username={username}>
-        {content}
-      </UserProfileDialog>
+      <Link 
+        to={`/users/${userId}`}
+        className={cn("font-medium hover:underline decoration-indigo-500/50 underline-offset-4", className)}
+        style={{ color: color || undefined }}
+      >
+        {username}
+      </Link>
     )
   }
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { Button } from './ui/button'
-import { Trophy, Users, LogOut, LayoutDashboard, Menu, X, Shield } from 'lucide-react'
+import { Trophy, Users, LogOut, LayoutDashboard, Menu, X, Shield, Swords } from 'lucide-react'
 import { UserLabel } from './UserLabel'
 import { UserAvatar } from './UserAvatar'
 
@@ -34,6 +34,12 @@ export default function Layout() {
                     <Button variant={location.pathname === '/leaderboard' ? 'secondary' : 'ghost'} size="sm">
                       <Users className="mr-2 h-4 w-4" />
                       Leaderboard
+                    </Button>
+                  </Link>
+                  <Link to="/duels">
+                    <Button variant={location.pathname === '/duels' ? 'secondary' : 'ghost'} size="sm">
+                      <Swords className="mr-2 h-4 w-4" />
+                      Duel Room
                     </Button>
                   </Link>
                   {user.role === 'admin' && (
@@ -107,6 +113,12 @@ export default function Layout() {
                       </Button>
                     </Link>
                   )}
+                  <Link to="/duels" onClick={() => setIsMenuOpen(false)}>
+                    <Button variant={location.pathname === '/duels' ? 'secondary' : 'ghost'} className="w-full justify-start">
+                      <Swords className="mr-2 h-4 w-4" />
+                      Duel Room
+                    </Button>
+                  </Link>
                   <div className="my-2 border-t border-white/10" />
                   <div className="px-2 py-2 flex items-center gap-3">
                     <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="sm" />

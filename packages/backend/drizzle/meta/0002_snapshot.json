@@ -1,9 +1,117 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a1e84a8b-8287-487d-a1bc-d771d462228c",
-  "prevId": "0decf95f-3d57-4264-9c9d-b0924c1119de",
+  "id": "5f5b2996-e30e-4889-a84a-53e3171a126c",
+  "prevId": "a1e84a8b-8287-487d-a1bc-d771d462228c",
   "tables": {
+    "duel_rooms": {
+      "name": "duel_rooms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'open'"
+        },
+        "player1_id": {
+          "name": "player1_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "player2_id": {
+          "name": "player2_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "winner_id": {
+          "name": "winner_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "duel_rooms_player1_id_users_id_fk": {
+          "name": "duel_rooms_player1_id_users_id_fk",
+          "tableFrom": "duel_rooms",
+          "tableTo": "users",
+          "columnsFrom": [
+            "player1_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "duel_rooms_player2_id_users_id_fk": {
+          "name": "duel_rooms_player2_id_users_id_fk",
+          "tableFrom": "duel_rooms",
+          "tableTo": "users",
+          "columnsFrom": [
+            "player2_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "duel_rooms_winner_id_users_id_fk": {
+          "name": "duel_rooms_winner_id_users_id_fk",
+          "tableFrom": "duel_rooms",
+          "tableTo": "users",
+          "columnsFrom": [
+            "winner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "matches": {
       "name": "matches",
       "columns": {
@@ -253,6 +361,14 @@
           "autoincrement": false,
           "default": "'pending'"
         },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'swiss'"
+        },
         "total_rounds": {
           "name": "total_rounds",
           "type": "integer",
@@ -380,6 +496,21 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'user'"
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'#ffffff'"
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {

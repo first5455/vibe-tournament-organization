@@ -7,6 +7,7 @@ import { userRoutes } from './routes/users'
 import { tournamentRoutes } from './routes/tournaments'
 import { matchRoutes } from './routes/matches'
 import { adminRoutes } from './routes/admin'
+import { duelRoutes } from './routes/duels'
 
 const app = new Elysia()
   .use(swagger())
@@ -16,6 +17,7 @@ const app = new Elysia()
   .use(tournamentRoutes)
   .use(matchRoutes)
   .use(adminRoutes)
+  .use(duelRoutes)
   .ws('/ws', {
     open(ws) {
       console.log('WS Connected')

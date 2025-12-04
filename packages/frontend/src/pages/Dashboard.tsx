@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
-import { Plus, Calendar, Trophy } from 'lucide-react'
+import { Plus, Calendar, Trophy, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
+import { useRefresh } from '../hooks/useRefresh'
 
 interface Tournament {
   id: number
@@ -46,6 +47,8 @@ export default function Dashboard() {
     }
   }
 
+  const { handleRefresh, isCoolingDown } = useRefresh(loadTournaments)
+
   const createTournament = async () => {
     if (!newName) return
 
@@ -75,10 +78,22 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-white">Tournaments</h1>
           <p className="text-zinc-400">Manage and join tournaments</p>
         </div>
-        <Button onClick={() => setIsCreating(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Tournament
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isCoolingDown}
+            className={`text-zinc-400 hover:text-white ${isCoolingDown ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isCoolingDown ? "Please wait..." : "Refresh list"}
+          >
+            <RefreshCw className={`h-6 w-6 ${isCoolingDown ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button onClick={() => setIsCreating(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Tournament
+          </Button>
+        </div>
       </div>
 
       {isCreating && (
