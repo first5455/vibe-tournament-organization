@@ -130,6 +130,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         createdAt: d.createdAt,
         opponent: opponentName,
         opponentId,
+        player1Id: d.player1Id,
+        player2Id: d.player2Id,
         player1Note: d.player1Note,
         player2Note: d.player2Note,
       }

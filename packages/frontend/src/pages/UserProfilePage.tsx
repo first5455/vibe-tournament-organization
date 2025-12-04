@@ -191,11 +191,21 @@ export default function UserProfilePage() {
                         </div>
                         <span className="text-zinc-500">{new Date(duel.createdAt).toLocaleDateString()}</span>
                       </div>
-                      {/* Display note if it exists for this user */}
-                      {((duel.opponentId === duel.player2Id && duel.player1Note) || (duel.opponentId === duel.player1Id && duel.player2Note)) && (
-                        <div className="mt-2 text-sm text-zinc-500 bg-zinc-950/50 p-2 rounded border border-white/5 flex items-start gap-2">
-                          <span className="text-xs uppercase font-bold text-zinc-600 mt-0.5">Note</span>
-                          <p>{duel.opponentId === duel.player2Id ? duel.player1Note : duel.player2Note}</p>
+                      {/* Display notes if they exist */}
+                      {(duel.player1Note || duel.player2Note) && (
+                        <div className="mt-2 text-sm text-zinc-500 bg-zinc-950/50 p-2 rounded border border-white/5 space-y-1">
+                          {duel.player1Note && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-xs uppercase font-bold text-zinc-600 mt-0.5 shrink-0">P1 Note</span>
+                              <p>{duel.player1Note}</p>
+                            </div>
+                          )}
+                          {duel.player2Note && (
+                            <div className="flex items-start gap-2">
+                              <span className="text-xs uppercase font-bold text-zinc-600 mt-0.5 shrink-0">P2 Note</span>
+                              <p>{duel.player2Note}</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
