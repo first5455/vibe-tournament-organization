@@ -100,10 +100,10 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       result: duelRooms.result,
       winnerId: duelRooms.winnerId,
       createdAt: duelRooms.createdAt,
-      // We need to fetch opponent name. This is tricky in a single query with simple joins.
-      // Let's just fetch the raw data and process it, or do two joins.
       player1Id: duelRooms.player1Id,
       player2Id: duelRooms.player2Id,
+      player1Note: duelRooms.player1Note,
+      player2Note: duelRooms.player2Note,
     })
     .from(duelRooms)
     .where(or(eq(duelRooms.player1Id, id), eq(duelRooms.player2Id, id)))
@@ -111,9 +111,6 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     .all()
 
     // Enrich duel history with opponent names
-    // To avoid complex SQL, let's just fetch all users involved or do it one by one?
-    // Optimization: Fetch all users once or just the ones needed.
-    // For now, let's just do a simple map.
     const enrichedDuels = await Promise.all(userDuels.map(async (d) => {
       const opponentId = d.player1Id === id ? d.player2Id : d.player1Id
       let opponentName = 'Unknown'
@@ -132,7 +129,9 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         winnerId: d.winnerId,
         createdAt: d.createdAt,
         opponent: opponentName,
-        opponentId
+        opponentId,
+        player1Note: d.player1Note,
+        player2Note: d.player2Note,
       }
     }))
 

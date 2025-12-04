@@ -567,16 +567,30 @@ export default function AdminPortal() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <UserAvatar username={d.player1Name} displayName={d.player1DisplayName} avatarUrl={d.player1Avatar} size="sm" />
-                      <UserLabel username={d.player1Name} displayName={d.player1DisplayName} color={d.player1Color} />
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <UserAvatar username={d.player1Name} displayName={d.player1DisplayName} avatarUrl={d.player1Avatar} size="sm" />
+                        <UserLabel username={d.player1Name} displayName={d.player1DisplayName} color={d.player1Color} />
+                      </div>
+                      {d.player1Note && (
+                        <div className="text-xs text-zinc-500 italic ml-8 truncate max-w-[200px]" title={d.player1Note}>
+                          Note: {d.player1Note}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     {d.player2Id ? (
-                      <div className="flex items-center gap-2">
-                        <UserAvatar username={d.player2Name} displayName={d.player2DisplayName} avatarUrl={d.player2Avatar} size="sm" />
-                        <UserLabel username={d.player2Name} displayName={d.player2DisplayName} color={d.player2Color} />
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <UserAvatar username={d.player2Name} displayName={d.player2DisplayName} avatarUrl={d.player2Avatar} size="sm" />
+                          <UserLabel username={d.player2Name} displayName={d.player2DisplayName} color={d.player2Color} />
+                        </div>
+                        {d.player2Note && (
+                          <div className="text-xs text-zinc-500 italic ml-8 truncate max-w-[200px]" title={d.player2Note}>
+                            Note: {d.player2Note}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <span className="text-zinc-600 italic">Waiting...</span>
