@@ -230,7 +230,7 @@ export default function AdminPortal() {
               }
             }}
           >
-            Delete All Data
+            Delete All History Data
           </Button>
           <Button 
             variant="secondary" 
@@ -252,22 +252,25 @@ export default function AdminPortal() {
         </div>
       </div>
 
-      <div className="flex gap-2 border-b border-zinc-800 pb-1">
+      <div className="flex gap-2 border-b border-zinc-800 pb-1 overflow-x-auto no-scrollbar justify-center">
         <Button 
           variant={activeTab === 'users' ? 'secondary' : 'ghost'} 
           onClick={() => setActiveTab('users')}
+          className="whitespace-nowrap"
         >
           Users
         </Button>
         <Button 
           variant={activeTab === 'tournaments' ? 'secondary' : 'ghost'} 
           onClick={() => setActiveTab('tournaments')}
+          className="whitespace-nowrap"
         >
           Tournaments
         </Button>
         <Button 
           variant={activeTab === 'duels' ? 'secondary' : 'ghost'} 
           onClick={() => setActiveTab('duels')}
+          className="whitespace-nowrap"
         >
           Duel Rooms
         </Button>
@@ -280,8 +283,9 @@ export default function AdminPortal() {
       )}
 
       {activeTab === 'users' && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
-          <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
+        <div className="w-full">
+          <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
+            <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
             <thead className="bg-zinc-900 text-zinc-200">
               <tr>
                 <th className="px-4 py-3 font-medium">ID</th>
@@ -391,11 +395,13 @@ export default function AdminPortal() {
             </tbody>
           </table>
         </div>
+      </div>
       )}
 
       {activeTab === 'tournaments' && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
-          <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
+        <div className="w-full">
+          <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
+            <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
             <thead className="bg-zinc-900 text-zinc-200">
               <tr>
                 <th className="px-4 py-3 font-medium">ID</th>
@@ -453,11 +459,13 @@ export default function AdminPortal() {
             </tbody>
           </table>
         </div>
+      </div>
       )}
 
       {activeTab === 'duels' && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-x-auto">
-          <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
+        <div className="w-full">
+          <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
+            <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
             <thead className="bg-zinc-900 text-zinc-200">
               <tr>
                 <th className="px-4 py-3 font-medium">ID</th>
@@ -524,6 +532,7 @@ export default function AdminPortal() {
             </tbody>
           </table>
         </div>
+      </div>
       )}
     </div>
   )

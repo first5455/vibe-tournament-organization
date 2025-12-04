@@ -117,7 +117,7 @@ export default function TournamentView() {
           try {
             const data = JSON.parse(event.data)
             if (data.type === 'UPDATE_TOURNAMENT') {
-              console.log('Tournament updated, reloading...')
+
               loadTournament()
             }
           } catch (e) {
@@ -234,7 +234,7 @@ export default function TournamentView() {
     if (!guestName) return
     try {
       if (!user?.id) throw new Error('User not authenticated')
-      console.log('Sending guest request:', { name: guestName, createdBy: user.id })
+
       
       await api(`/tournaments/${id}/guests`, {
         method: 'POST',
