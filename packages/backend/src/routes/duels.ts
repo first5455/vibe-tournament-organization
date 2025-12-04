@@ -34,6 +34,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       player2DisplayName: p2.displayName,
       player2Avatar: p2.avatarUrl,
       player2Color: p2.color,
+      player1Note: duelRooms.player1Note,
+      player2Note: duelRooms.player2Note,
     })
     .from(duelRooms)
     .leftJoin(users, eq(duelRooms.player1Id, users.id))
@@ -286,5 +288,142 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       player1Score: t.Number(),
       player2Score: t.Number(),
       reportedBy: t.Number()
+    })
+  })
+  .post('/:id/note', async ({ params, body, set }) => {
+    const id = parseInt(params.id)
+    const { targetPlayerId, note, userId } = body
+
+    const duel = await db.select().from(duelRooms).where(eq(duelRooms.id, id)).get()
+    if (!duel) {
+      set.status = 404
+      return { error: 'Duel not found' }
+    }
+
+    // Check permissions: User must be admin or the target player
+    const requester = await db.select().from(users).where(eq(users.id, userId)).get()
+    if (!requester) {
+      set.status = 403
+      return { error: 'Unauthorized' }
+    }
+
+    const isAdmin = requester.role === 'admin'
+    const isTargetPlayer = targetPlayerId === userId
+
+    if (!isAdmin && !isTargetPlayer) {
+      set.status = 403
+      return { error: 'Unauthorized' }
+    }
+
+    // Determine which note to update
+    let updateData: any = {}
+    if (duel.player1Id === targetPlayerId) {
+      updateData.player1Note = note
+    } else if (duel.player2Id === targetPlayerId) {
+      updateData.player2Note = note
+    } else {
+      set.status = 400
+      return { error: 'Target player is not in this duel' }
+    }
+
+    await db.update(duelRooms)
+      .set(updateData)
+      .where(eq(duelRooms.id, id))
+      .run()
+
+    return { success: true }
+  }, {
+    params: t.Object({ id: t.String() }),
+    body: t.Object({
+      targetPlayerId: t.Number(),
+      note: t.String(),
+      userId: t.Number()
+    })
+  })
+  .put('/:id/result', async ({ params, body, set }) => {
+    const id = parseInt(params.id)
+    const { player1Score, player2Score, userId } = body
+
+    const duel = await db.select().from(duelRooms).where(eq(duelRooms.id, id)).get()
+    if (!duel) {
+      set.status = 404
+      return { error: 'Duel not found' }
+    }
+
+    const requester = await db.select().from(users).where(eq(users.id, userId)).get()
+    if (!requester || requester.role !== 'admin') {
+      set.status = 403
+      return { error: 'Unauthorized' }
+    }
+
+    if (duel.status !== 'completed') {
+      set.status = 400
+      return { error: 'Duel is not completed' }
+    }
+
+    const winnerId = player1Score > player2Score ? duel.player1Id : (player2Score > player1Score ? duel.player2Id! : null)
+
+    await db.update(duelRooms)
+      .set({ 
+        result: `${player1Score}-${player2Score}`,
+        winnerId
+      })
+      .where(eq(duelRooms.id, id))
+      .run()
+
+    return { success: true }
+  }, {
+    params: t.Object({ id: t.String() }),
+    body: t.Object({
+      player1Score: t.Number(),
+      player2Score: t.Number(),
+      userId: t.Number()
+    })
+  })
+  .put('/:id/admin-update', async ({ params, body, set }) => {
+    const id = parseInt(params.id)
+    const { player1Score, player2Score, player1Note, player2Note, userId } = body
+
+    const duel = await db.select().from(duelRooms).where(eq(duelRooms.id, id)).get()
+    if (!duel) {
+      set.status = 404
+      return { error: 'Duel not found' }
+    }
+
+    const requester = await db.select().from(users).where(eq(users.id, userId)).get()
+    if (!requester || requester.role !== 'admin') {
+      set.status = 403
+      return { error: 'Unauthorized' }
+    }
+
+    let updateData: any = {}
+    
+    // Update notes if provided
+    if (player1Note !== undefined) updateData.player1Note = player1Note
+    if (player2Note !== undefined) updateData.player2Note = player2Note
+
+    // Update result if scores provided and duel is completed
+    if (player1Score !== undefined && player2Score !== undefined) {
+      if (duel.status === 'completed') {
+        const winnerId = player1Score > player2Score ? duel.player1Id : (player2Score > player1Score ? duel.player2Id! : null)
+        updateData.result = `${player1Score}-${player2Score}`
+        updateData.winnerId = winnerId
+      }
+    }
+
+    await db.update(duelRooms)
+      .set(updateData)
+      .where(eq(duelRooms.id, id))
+      .run()
+
+    return { success: true }
+  }, {
+    params: t.Object({ id: t.String() }),
+    body: t.Object({
+      player1Score: t.Optional(t.Number()),
+      player2Score: t.Optional(t.Number()),
+      player1Note: t.Optional(t.String()),
+      player2Note: t.Optional(t.String()),
+      userId: t.Number()
     })
   })
