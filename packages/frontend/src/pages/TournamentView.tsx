@@ -263,7 +263,7 @@ export default function TournamentView() {
 
   if (!tournament) return <div className="p-8 text-center text-zinc-500">Tournament not found</div>
 
-  const isAdmin = user?.id === tournament.createdBy
+  const isAdmin = user?.id === tournament.createdBy || user?.role === 'admin'
 
   return (
     <div className="space-y-8">

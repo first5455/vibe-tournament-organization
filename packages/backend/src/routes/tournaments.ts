@@ -210,7 +210,13 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       return { error: 'Tournament not found' }
     }
 
-    if (tournament.createdBy !== createdBy) {
+    const requester = await db.select().from(users).where(eq(users.id, createdBy)).get()
+    if (!requester) {
+      set.status = 403
+      return { error: 'Unauthorized' }
+    }
+
+    if (tournament.createdBy !== createdBy && requester.role !== 'admin') {
       set.status = 403
       return { error: 'Unauthorized' }
     }

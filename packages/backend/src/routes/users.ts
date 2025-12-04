@@ -220,11 +220,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       return { error: 'Forbidden' }
     }
 
-    // Prevent deleting yourself
-    if (requester.id === parseInt(params.id)) {
-      set.status = 400
-      return { error: 'Cannot delete your own account' }
-    }
+
 
     await db.delete(users).where(eq(users.id, parseInt(params.id))).run()
     return { success: true }

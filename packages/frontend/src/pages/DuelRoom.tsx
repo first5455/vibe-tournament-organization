@@ -134,6 +134,7 @@ export default function DuelRoom() {
 
   const isPlayer1 = user?.id === duel.player1?.id
   const isPlayer2 = user?.id === duel.player2?.id
+  const isAdmin = user?.role === 'admin'
   const isParticipant = isPlayer1 || isPlayer2
   const canJoin = user && !isParticipant && duel.status === 'open' && !duel.player2
 
@@ -169,10 +170,10 @@ export default function DuelRoom() {
         </div>
         
         <div className="flex gap-2">
-          {isPlayer1 && (duel.status === 'open' || duel.status === 'ready') && (
+          {(isPlayer1 || isAdmin) && (duel.status === 'open' || duel.status === 'ready') && (
             <Button variant="destructive" onClick={handleDelete}>Delete Room</Button>
           )}
-          {isPlayer1 && duel.status === 'ready' && (
+          {(isPlayer1 || isAdmin) && duel.status === 'ready' && (
             <Button variant="primary" onClick={handleStart} className="bg-green-600 hover:bg-green-700">Start Match</Button>
           )}
           {isPlayer2 && duel.status === 'ready' && (
@@ -192,7 +193,7 @@ export default function DuelRoom() {
             <UserLabel username={duel.player1?.username} color={duel.player1?.color} userId={duel.player1?.id} className="text-xl" />
             <div className="text-zinc-500 text-sm mt-1">MMR: {duel.player1?.mmr}</div>
           </div>
-          {duel.status === 'active' && isParticipant && (
+          {duel.status === 'active' && (isParticipant || isAdmin) && (
             <Button 
               variant="outline" 
               className="w-full mt-4 border-green-500/20 hover:bg-green-500/10 hover:text-green-400"
@@ -226,7 +227,7 @@ export default function DuelRoom() {
                 <UserLabel username={duel.player2.username} color={duel.player2.color} userId={duel.player2.id} className="text-xl" />
                 <div className="text-zinc-500 text-sm mt-1">MMR: {duel.player2.mmr}</div>
               </div>
-              {duel.status === 'active' && isParticipant && (
+              {duel.status === 'active' && (isParticipant || isAdmin) && (
                 <Button 
                   variant="outline" 
                   className="w-full mt-4 border-green-500/20 hover:bg-green-500/10 hover:text-green-400"

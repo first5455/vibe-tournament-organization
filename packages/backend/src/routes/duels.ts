@@ -1,11 +1,23 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { duelRooms, users } from '../db/schema'
-import { eq, and, or, desc } from 'drizzle-orm'
+import { eq, and, or, desc, aliasedTable } from 'drizzle-orm'
 
 export const duelRoutes = new Elysia({ prefix: '/duels' })
-  .get('/', async () => {
-    return await db.select({
+  .get('/', async ({ query }) => {
+    const { admin, requesterId } = query
+    
+    let showAll = false
+    if (admin === 'true' && requesterId) {
+      const requester = await db.select().from(users).where(eq(users.id, parseInt(requesterId))).get()
+      if (requester && requester.role === 'admin') {
+        showAll = true
+      }
+    }
+
+    const p2 = aliasedTable(users, 'p2')
+
+    const queryBuilder = db.select({
       id: duelRooms.id,
       name: duelRooms.name,
       status: duelRooms.status,
@@ -16,12 +28,27 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       createdAt: duelRooms.createdAt,
       player1Name: users.username,
       player1Avatar: users.avatarUrl,
+      player1Color: users.color,
+      player2Name: p2.username,
+      player2Avatar: p2.avatarUrl,
+      player2Color: p2.color,
     })
     .from(duelRooms)
     .leftJoin(users, eq(duelRooms.player1Id, users.id))
-    .where(or(eq(duelRooms.status, 'open'), eq(duelRooms.status, 'ready'), eq(duelRooms.status, 'active')))
+    .leftJoin(p2, eq(duelRooms.player2Id, p2.id))
     .orderBy(desc(duelRooms.createdAt))
-    .all()
+
+    if (!showAll) {
+      // @ts-ignore
+      queryBuilder.where(or(eq(duelRooms.status, 'open'), eq(duelRooms.status, 'ready'), eq(duelRooms.status, 'active')))
+    }
+
+    return await queryBuilder.all()
+  }, {
+    query: t.Object({
+      admin: t.Optional(t.String()),
+      requesterId: t.Optional(t.String())
+    })
   })
   .post('/', async ({ body, set }) => {
     const { name, createdBy } = body
@@ -165,48 +192,26 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       set.status = 404
       return { error: 'Duel not found' }
     }
-    if (duel.player1Id !== userId) {
+
+    const requester = await db.select().from(users).where(eq(users.id, userId)).get()
+    if (!requester) {
       set.status = 403
       return { error: 'Unauthorized' }
     }
 
-    // If active or completed, maybe we shouldn't delete?
-    // User said "after match complete then delete room but user can look for history"
-    // So we can delete the room but keep the history? 
-    // Actually, if we delete the row, we lose history unless we have a separate history table.
-    // But our history query queries `duelRooms`.
-    // So "delete" for completed rooms should probably just be "hide from dashboard" which is already handled by status check.
-    // But if they want to explicitly delete it, maybe we soft delete?
-    // For now, let's just delete the row. If they want history, they shouldn't delete it?
-    // Wait, "user can look for history for match".
-    // If I delete the row, history is gone.
-    // Maybe I should add a `deleted` flag?
-    // Or maybe "delete room" just means "close it" so it doesn't show up?
-    // If status is 'completed', it already doesn't show up in the main list (filtered by open/ready/active).
-    // So maybe DELETE is only for cancelling open/ready rooms?
-    
-    if (duel.status === 'active') {
+    const isAdmin = requester.role === 'admin'
+
+    if (duel.player1Id !== userId && !isAdmin) {
+      set.status = 403
+      return { error: 'Unauthorized' }
+    }
+
+    if (duel.status === 'active' && !isAdmin) {
        set.status = 400
        return { error: 'Cannot delete active duel' }
     }
 
-    if (duel.status === 'completed') {
-       // If completed, we probably shouldn't delete the record if we want history.
-       // But the user explicitly said "delete room but user can look for history".
-       // This implies a soft delete or moving to archive.
-       // Let's just NOT delete if completed, maybe just return success?
-       // Or maybe we implement soft delete.
-       // Let's try to just delete if it's open/ready (cancelling).
-       // If completed, we'll tell them it's already done?
-       // Re-reading: "after match complete then delete room"
-       // This might mean the room *automatically* closes/deletes?
-       // "but user can look for history"
-       // I'll assume standard behavior: Completed rooms are preserved in DB for history but not shown in lobby.
-       // The "Delete" button for owner might be to CANCEL a pending room.
-       
-       // If they really want to delete a completed room record, they lose history.
-       // I will restrict DELETE to open/ready rooms for now to be safe.
-       
+    if (duel.status === 'completed' && !isAdmin) {
        set.status = 400
        return { error: 'Cannot delete completed duel (preserved for history)' }
     }
