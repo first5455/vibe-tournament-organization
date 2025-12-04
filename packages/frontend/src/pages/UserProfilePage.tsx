@@ -11,6 +11,7 @@ import { ProfileSettingsDialog } from '../components/ProfileSettingsDialog'
 interface UserProfile {
   id: number
   username: string
+  displayName?: string
   mmr: number
   color?: string
   avatarUrl?: string
@@ -86,10 +87,10 @@ export default function UserProfilePage() {
           </div>
         )}
 
-        <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="lg" className="text-4xl" />
+        <UserAvatar username={user.username} displayName={user.displayName} avatarUrl={user.avatarUrl} size="lg" className="text-4xl" />
         <div className="text-center md:text-left space-y-2">
           <h1 className="text-4xl font-bold text-white">
-            <UserLabel username={user.username} color={user.color} userId={user.id} />
+            <UserLabel username={user.username} displayName={user.displayName} color={user.color} userId={user.id} />
           </h1>
           <div className="flex items-center justify-center md:justify-start gap-4 text-zinc-400">
             <div className="flex items-center gap-2 bg-zinc-800/50 px-3 py-1 rounded-full">

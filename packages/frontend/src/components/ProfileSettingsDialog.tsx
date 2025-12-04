@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom'
 interface User {
   id: number
   username: string
+  displayName?: string
   mmr: number
   color?: string
   avatarUrl?: string
@@ -23,13 +24,14 @@ interface ProfileSettingsDialogProps {
 }
 
 export function ProfileSettingsDialog({ children, user, onUpdate }: ProfileSettingsDialogProps) {
-  const { user: currentUser, logout } = useAuth()
+  const { user: currentUser, logout, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   
   const [formData, setFormData] = useState({
     username: '',
+    displayName: '',
     avatarUrl: '',
     color: '',
     password: ''
@@ -39,6 +41,7 @@ export function ProfileSettingsDialog({ children, user, onUpdate }: ProfileSetti
     if (open) {
       setFormData({
         username: user.username,
+        displayName: user.displayName || '',
         avatarUrl: user.avatarUrl || '',
         color: user.color || '#ffffff',
         password: ''
@@ -53,6 +56,7 @@ export function ProfileSettingsDialog({ children, user, onUpdate }: ProfileSetti
       const body: any = {
         requesterId: currentUser.id,
         username: formData.username,
+        displayName: formData.displayName,
         avatarUrl: formData.avatarUrl,
         color: formData.color,
       }
@@ -65,6 +69,10 @@ export function ProfileSettingsDialog({ children, user, onUpdate }: ProfileSetti
         method: 'PUT',
         body: JSON.stringify(body)
       })
+      
+      if (currentUser.id === user.id) {
+        await refreshUser()
+      }
       
       onUpdate()
       setOpen(false)
@@ -118,7 +126,7 @@ export function ProfileSettingsDialog({ children, user, onUpdate }: ProfileSetti
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-400">Preview</label>
             <div className="flex items-center gap-4">
-              <UserAvatar username={formData.username} avatarUrl={formData.avatarUrl} size="lg" />
+              <UserAvatar username={formData.username} displayName={formData.displayName} avatarUrl={formData.avatarUrl} size="lg" />
             </div>
           </div>
 
@@ -128,6 +136,16 @@ export function ProfileSettingsDialog({ children, user, onUpdate }: ProfileSetti
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               className="bg-zinc-900 border-zinc-800"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-400">Display Name</label>
+            <Input 
+              value={formData.displayName}
+              onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+              className="bg-zinc-900 border-zinc-800"
+              placeholder={formData.username}
             />
           </div>
 

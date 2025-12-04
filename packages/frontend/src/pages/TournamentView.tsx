@@ -13,6 +13,7 @@ interface Participant {
   userId: number | null
   guestName: string | null
   username?: string | null
+  displayName?: string | null
   score: number
   dropped: boolean
   note?: string | null
@@ -41,6 +42,7 @@ interface Tournament {
   endDate?: string
   type?: 'swiss' | 'round_robin'
   createdByName?: string | null
+  createdByDisplayName?: string | null
   createdByColor?: string | null
   createdByAvatarUrl?: string | null
 }
@@ -325,9 +327,9 @@ export default function TournamentView() {
             )}
             {tournament.createdByName && (
               <span className="text-xs text-zinc-500 border-l border-zinc-700 pl-4 ml-2 flex items-center gap-2">
-                <UserAvatar username={tournament.createdByName} avatarUrl={tournament.createdByAvatarUrl} size="sm" className="h-5 w-5" />
+                <UserAvatar username={tournament.createdByName} displayName={tournament.createdByDisplayName || undefined} avatarUrl={tournament.createdByAvatarUrl} size="sm" className="h-5 w-5" />
                 <span className="flex items-center gap-1">
-                  Created by: <UserLabel username={tournament.createdByName} color={tournament.createdByColor} className="text-zinc-300" userId={tournament.createdBy} />
+                  Created by: <UserLabel username={tournament.createdByName} displayName={tournament.createdByDisplayName || undefined} color={tournament.createdByColor} className="text-zinc-300" userId={tournament.createdBy} />
                 </span>
               </span>
             )}
@@ -441,8 +443,8 @@ export default function TournamentView() {
                 {participants.map(p => (
                   <th key={p.id} className="p-2 border border-zinc-800 bg-zinc-950/50 text-zinc-300 font-medium min-w-[100px]">
                     <div className="flex items-center gap-2 justify-center">
-                      <UserAvatar username={p.username || p.guestName || `User ${p.userId}`} avatarUrl={p.userAvatarUrl} size="sm" className="h-5 w-5" />
-                      <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} userId={p.userId || undefined} />
+                      <UserAvatar username={p.username || p.guestName || `User ${p.userId}`} displayName={p.displayName || undefined} avatarUrl={p.userAvatarUrl} size="sm" className="h-5 w-5" />
+                      <UserLabel username={p.username || p.guestName || `User ${p.userId}`} displayName={p.displayName || undefined} color={p.userColor} userId={p.userId || undefined} />
                     </div>
                   </th>
                 ))}
@@ -453,8 +455,8 @@ export default function TournamentView() {
                 <tr key={p1.id}>
                   <td className="p-2 border border-zinc-800 bg-zinc-950/50 text-zinc-300 font-medium">
                     <div className="flex items-center gap-2">
-                      <UserAvatar username={p1.username || p1.guestName || `User ${p1.userId}`} avatarUrl={p1.userAvatarUrl} size="sm" className="h-5 w-5" />
-                      <UserLabel username={p1.username || p1.guestName || `User ${p1.userId}`} color={p1.userColor} userId={p1.userId || undefined} />
+                      <UserAvatar username={p1.username || p1.guestName || `User ${p1.userId}`} displayName={p1.displayName || undefined} avatarUrl={p1.userAvatarUrl} size="sm" className="h-5 w-5" />
+                      <UserLabel username={p1.username || p1.guestName || `User ${p1.userId}`} displayName={p1.displayName || undefined} color={p1.userColor} userId={p1.userId || undefined} />
                     </div>
                   </td>
                   {participants.map((p2, j) => {
@@ -527,11 +529,13 @@ export default function TournamentView() {
                           <div className={`flex items-center gap-2 ${match.winnerId === match.player1Id ? 'font-bold' : ''}`}>
                             <UserAvatar 
                               username={p1?.username || p1?.guestName || (p1?.userId ? `User ${p1.userId}` : 'Unknown')} 
+                              displayName={p1?.displayName || undefined}
                               avatarUrl={p1?.userAvatarUrl}
                               size="sm"
                             />
                             <UserLabel 
                               username={p1?.username || p1?.guestName || (p1?.userId ? `User ${p1.userId}` : 'Unknown')} 
+                              displayName={p1?.displayName || undefined}
                               color={p1?.userColor}
                               userId={p1?.userId || undefined}
                             />
@@ -547,11 +551,13 @@ export default function TournamentView() {
                               <>
                                 <UserAvatar 
                                   username={p2?.username || p2?.guestName || (p2?.userId ? `User ${p2.userId}` : 'Unknown')} 
+                                  displayName={p2?.displayName || undefined}
                                   avatarUrl={p2?.userAvatarUrl}
                                   size="sm"
                                 />
                                 <UserLabel 
                                   username={p2?.username || p2?.guestName || (p2?.userId ? `User ${p2.userId}` : 'Unknown')} 
+                                  displayName={p2?.displayName || undefined}
                                   color={p2?.userColor}
                                   userId={p2?.userId || undefined}
                                 />
@@ -647,9 +653,9 @@ export default function TournamentView() {
                   <td className="px-4 py-3 font-mono">{index + 1}</td>
                   <td className="px-4 py-3 text-white font-medium">
                     <div className="flex items-center gap-2">
-                      <UserAvatar username={p.username || p.guestName || `User ${p.userId}`} avatarUrl={p.userAvatarUrl} size="sm" />
+                      <UserAvatar username={p.username || p.guestName || `User ${p.userId}`} displayName={p.displayName || undefined} avatarUrl={p.userAvatarUrl} size="sm" />
                       <div>
-                        <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} userId={p.userId || undefined} />
+                        <UserLabel username={p.username || p.guestName || `User ${p.userId}`} displayName={p.displayName || undefined} color={p.userColor} userId={p.userId || undefined} />
                         {p.dropped && <span className="ml-2 text-xs text-red-500">(Dropped)</span>}
                       </div>
                     </div>
@@ -726,7 +732,8 @@ export default function TournamentView() {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <label className="mb-2 block text-sm font-medium text-zinc-400">
-                    {participants.find(p => p.id === reportingMatch.player1Id)?.username || 
+                    {participants.find(p => p.id === reportingMatch.player1Id)?.displayName || 
+                     participants.find(p => p.id === reportingMatch.player1Id)?.username || 
                      participants.find(p => p.id === reportingMatch.player1Id)?.guestName || 
                      'Player 1'}
                   </label>
@@ -742,7 +749,8 @@ export default function TournamentView() {
                 <div className="pt-6 text-zinc-500 font-bold">-</div>
                 <div className="flex-1">
                   <label className="mb-2 block text-sm font-medium text-zinc-400">
-                    {participants.find(p => p.id === reportingMatch.player2Id)?.username || 
+                    {participants.find(p => p.id === reportingMatch.player2Id)?.displayName || 
+                     participants.find(p => p.id === reportingMatch.player2Id)?.username || 
                      participants.find(p => p.id === reportingMatch.player2Id)?.guestName || 
                      'Player 2'}
                   </label>
