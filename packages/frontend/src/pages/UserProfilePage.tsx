@@ -196,13 +196,17 @@ export default function UserProfilePage() {
                         <div className="mt-2 text-sm text-zinc-500 bg-zinc-950/50 p-2 rounded border border-white/5 space-y-1">
                           {duel.player1Note && (
                             <div className="flex items-start gap-2">
-                              <span className="text-xs uppercase font-bold text-zinc-600 mt-0.5 shrink-0">P1 Note</span>
+                              <span className="text-xs uppercase font-bold text-zinc-600 mt-0.5 shrink-0">
+                                {user?.id === duel.player1Id ? (user?.displayName || user?.username) : duel.opponent}:
+                              </span>
                               <p>{duel.player1Note}</p>
                             </div>
                           )}
                           {duel.player2Note && (
                             <div className="flex items-start gap-2">
-                              <span className="text-xs uppercase font-bold text-zinc-600 mt-0.5 shrink-0">P2 Note</span>
+                              <span className="text-xs uppercase font-bold text-zinc-600 mt-0.5 shrink-0">
+                                {user?.id === duel.player2Id ? (user?.displayName || user?.username) : duel.opponent}:
+                              </span>
                               <p>{duel.player2Note}</p>
                             </div>
                           )}
