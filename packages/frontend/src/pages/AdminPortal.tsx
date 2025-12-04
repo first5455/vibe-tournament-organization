@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useNavigate, Link } from 'react-router-dom'
-import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2 } from 'lucide-react'
+import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +36,14 @@ export default function AdminPortal() {
   const [error, setError] = useState('')
   const [editingColorId, setEditingColorId] = useState<number | null>(null)
   const [tempColor, setTempColor] = useState('')
+  const [editDuelOpen, setEditDuelOpen] = useState(false)
+  const [editingDuel, setEditingDuel] = useState<any>(null)
+  const [editDuelForm, setEditDuelForm] = useState({
+    player1Score: 0,
+    player2Score: 0,
+    player1Note: '',
+    player2Note: ''
+  })
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -217,6 +225,38 @@ export default function AdminPortal() {
       if (user?.id === targetUser.id) {
         refreshUser()
       }
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
+  const openEditDuel = (duel: any) => {
+    setEditingDuel(duel)
+    const [s1, s2] = duel.result ? duel.result.split('-') : ['0', '0']
+    setEditDuelForm({
+      player1Score: parseInt(s1),
+      player2Score: parseInt(s2),
+      player1Note: duel.player1Note || '',
+      player2Note: duel.player2Note || ''
+    })
+    setEditDuelOpen(true)
+  }
+
+  const handleSaveDuel = async () => {
+    if (!editingDuel) return
+    try {
+      await api(`/duels/${editingDuel.id}/admin-update`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          userId: user?.id,
+          player1Score: editingDuel.status === 'completed' ? editDuelForm.player1Score : undefined,
+          player2Score: editingDuel.status === 'completed' ? editDuelForm.player2Score : undefined,
+          player1Note: editDuelForm.player1Note,
+          player2Note: editDuelForm.player2Note
+        })
+      })
+      setEditDuelOpen(false)
+      loadData()
     } catch (err: any) {
       alert(err.message)
     }
@@ -529,7 +569,15 @@ export default function AdminPortal() {
                     )}
                   </td>
                   <td className="px-4 py-3">{d.result || '-'}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-zinc-400 hover:text-white"
+                      onClick={() => openEditDuel(d)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -550,6 +598,61 @@ export default function AdminPortal() {
           </table>
         </div>
       </div>
+      )}
+
+      {/* Edit Duel Dialog */}
+      {editDuelOpen && editingDuel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg w-full max-w-md space-y-4">
+            <h3 className="text-lg font-bold text-white">Edit Duel: {editingDuel.name}</h3>
+            
+            {editingDuel.status === 'completed' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">Score ({editingDuel.player1Name} vs {editingDuel.player2Name})</label>
+                <div className="flex items-center gap-4">
+                  <input 
+                    type="number" 
+                    className="w-20 bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
+                    value={editDuelForm.player1Score}
+                    onChange={e => setEditDuelForm({...editDuelForm, player1Score: parseInt(e.target.value)})}
+                  />
+                  <span className="text-zinc-500">-</span>
+                  <input 
+                    type="number" 
+                    className="w-20 bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
+                    value={editDuelForm.player2Score}
+                    onChange={e => setEditDuelForm({...editDuelForm, player2Score: parseInt(e.target.value)})}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Note for {editingDuel.player1Name}</label>
+              <textarea 
+                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white min-h-[80px]"
+                value={editDuelForm.player1Note}
+                onChange={e => setEditDuelForm({...editDuelForm, player1Note: e.target.value})}
+              />
+            </div>
+
+            {editingDuel.player2Name && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">Note for {editingDuel.player2Name}</label>
+                <textarea 
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white min-h-[80px]"
+                  value={editDuelForm.player2Note}
+                  onChange={e => setEditDuelForm({...editDuelForm, player2Note: e.target.value})}
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="ghost" onClick={() => setEditDuelOpen(false)}>Cancel</Button>
+              <Button onClick={handleSaveDuel}>Save Changes</Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

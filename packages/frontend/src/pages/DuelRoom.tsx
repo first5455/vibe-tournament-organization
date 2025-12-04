@@ -5,8 +5,9 @@ import { useAuth } from '../lib/auth'
 import { Button } from '../components/ui/button'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
-import { Swords, RefreshCw } from 'lucide-react'
+import { Swords, RefreshCw, Edit2 } from 'lucide-react'
 import { useRefresh } from '../hooks/useRefresh'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 
 interface Player {
   id: number
@@ -27,6 +28,8 @@ interface Duel {
   result?: string
   player1: Player
   player2?: Player
+  player1Note?: string
+  player2Note?: string
   createdAt: string
 }
 
@@ -130,6 +133,64 @@ export default function DuelRoom() {
     }
   }
 
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false)
+  const [editingPlayerId, setEditingPlayerId] = useState<number | null>(null)
+  const [noteContent, setNoteContent] = useState('')
+
+  const openNoteDialog = (playerId: number, currentNote?: string) => {
+    setEditingPlayerId(playerId)
+    setNoteContent(currentNote || '')
+    setNoteDialogOpen(true)
+  }
+
+  const handleSaveNote = async () => {
+    if (!user || !editingPlayerId) return
+    try {
+      await api(`/duels/${id}/note`, {
+        method: 'POST',
+        body: JSON.stringify({
+          targetPlayerId: editingPlayerId,
+          note: noteContent,
+          userId: user.id
+        })
+      })
+      setNoteDialogOpen(false)
+      fetchDuel()
+    } catch (error) {
+      console.error('Failed to save note:', error)
+    }
+  }
+
+  const [editResultOpen, setEditResultOpen] = useState(false)
+  const [editScore1, setEditScore1] = useState('0')
+  const [editScore2, setEditScore2] = useState('0')
+
+  const handleOpenEditResult = () => {
+    if (!duel?.result) return
+    const [s1, s2] = duel.result.split('-')
+    setEditScore1(s1)
+    setEditScore2(s2)
+    setEditResultOpen(true)
+  }
+
+  const handleSaveResult = async () => {
+    if (!user) return
+    try {
+      await api(`/duels/${id}/result`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          player1Score: parseInt(editScore1),
+          player2Score: parseInt(editScore2),
+          userId: user.id
+        })
+      })
+      setEditResultOpen(false)
+      fetchDuel()
+    } catch (error) {
+      console.error('Failed to update result:', error)
+    }
+  }
+
   if (loading) return <div className="text-center p-8 text-zinc-500">Loading...</div>
   if (!duel) return <div className="text-center p-8 text-red-400">Duel not found</div>
 
@@ -183,6 +244,9 @@ export default function DuelRoom() {
           {canJoin && (
             <Button onClick={handleJoin} className="bg-indigo-600 hover:bg-indigo-700">Join Duel</Button>
           )}
+          {isAdmin && duel.status === 'completed' && (
+            <Button variant="outline" onClick={handleOpenEditResult}>Edit Result</Button>
+          )}
         </div>
       </div>
 
@@ -206,6 +270,24 @@ export default function DuelRoom() {
           {duel.winnerId === duel.player1Id && (
             <div className="mt-4 text-green-400 font-bold text-lg">WINNER</div>
           )}
+          
+          {/* Note Section */}
+          <div className="w-full mt-4 pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Note</span>
+              {(isPlayer1 || isAdmin) && (
+                <button 
+                  onClick={() => openNoteDialog(duel.player1Id, duel.player1Note)}
+                  className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  <Edit2 className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+            <div className="text-sm text-zinc-400 bg-black/20 p-3 rounded-md min-h-[60px] whitespace-pre-wrap">
+              {duel.player1Note || <span className="text-zinc-600 italic">No notes</span>}
+            </div>
+          </div>
         </div>
 
         {/* VS */}
@@ -240,6 +322,24 @@ export default function DuelRoom() {
               {duel.winnerId === duel.player2Id && (
                 <div className="mt-4 text-green-400 font-bold text-lg">WINNER</div>
               )}
+
+              {/* Note Section */}
+              <div className="w-full mt-4 pt-4 border-t border-white/5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Note</span>
+                  {(isPlayer2 || isAdmin) && (
+                    <button 
+                      onClick={() => openNoteDialog(duel.player2Id!, duel.player2Note)}
+                      className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                <div className="text-sm text-zinc-400 bg-black/20 p-3 rounded-md min-h-[60px] whitespace-pre-wrap">
+                  {duel.player2Note || <span className="text-zinc-600 italic">No notes</span>}
+                </div>
+              </div>
             </>
           ) : (
             <div className="text-zinc-600 flex flex-col items-center gap-2">
@@ -249,6 +349,61 @@ export default function DuelRoom() {
           )}
         </div>
       </div>
+
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Player Note</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <textarea
+              className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Enter note about this player..."
+              value={noteContent}
+              onChange={(e) => setNoteContent(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setNoteDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveNote}>Save Note</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editResultOpen} onOpenChange={setEditResultOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Match Result</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 flex items-center justify-center gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-sm font-medium">{duel.player1?.username}</span>
+              <input
+                type="number"
+                min="0"
+                className="w-16 p-2 rounded bg-zinc-800 border border-zinc-700 text-center"
+                value={editScore1}
+                onChange={(e) => setEditScore1(e.target.value)}
+              />
+            </div>
+            <span className="text-xl font-bold text-zinc-500">-</span>
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-sm font-medium">{duel.player2?.username}</span>
+              <input
+                type="number"
+                min="0"
+                className="w-16 p-2 rounded bg-zinc-800 border border-zinc-700 text-center"
+                value={editScore2}
+                onChange={(e) => setEditScore2(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditResultOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveResult}>Save Result</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
