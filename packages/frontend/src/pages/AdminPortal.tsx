@@ -42,7 +42,10 @@ export default function AdminPortal() {
     player1Score: 0,
     player2Score: 0,
     player1Note: '',
-    player2Note: ''
+    player2Note: '',
+    player1Id: 0,
+    player2Id: 0 as number | null,
+    status: 'open'
   })
   const navigate = useNavigate()
 
@@ -237,22 +240,33 @@ export default function AdminPortal() {
       player1Score: parseInt(s1),
       player2Score: parseInt(s2),
       player1Note: duel.player1Note || '',
-      player2Note: duel.player2Note || ''
+      player2Note: duel.player2Note || '',
+      player1Id: duel.player1Id,
+      player2Id: duel.player2Id,
+      status: duel.status
     })
     setEditDuelOpen(true)
   }
 
   const handleSaveDuel = async () => {
     if (!editingDuel) return
+    console.log('Saving duel with user:', user)
     try {
+      if (!user?.id) {
+        alert('User ID missing')
+        return
+      }
       await api(`/duels/${editingDuel.id}/admin-update`, {
         method: 'PUT',
         body: JSON.stringify({
           userId: user?.id,
-          player1Score: editingDuel.status === 'completed' ? editDuelForm.player1Score : undefined,
-          player2Score: editingDuel.status === 'completed' ? editDuelForm.player2Score : undefined,
+          player1Score: editDuelForm.status === 'completed' ? editDuelForm.player1Score : undefined,
+          player2Score: editDuelForm.status === 'completed' ? editDuelForm.player2Score : undefined,
           player1Note: editDuelForm.player1Note,
-          player2Note: editDuelForm.player2Note
+          player2Note: editDuelForm.player2Note,
+          player1Id: editDuelForm.player1Id,
+          player2Id: editDuelForm.player2Id || null,
+          status: editDuelForm.status
         })
       })
       setEditDuelOpen(false)
@@ -603,12 +617,49 @@ export default function AdminPortal() {
       {/* Edit Duel Dialog */}
       {editDuelOpen && editingDuel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg w-full max-w-md space-y-4">
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold text-white">Edit Duel: {editingDuel.name}</h3>
             
-            {editingDuel.status === 'completed' && (
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Score ({editingDuel.player1Name} vs {editingDuel.player2Name})</label>
+                <label className="text-sm font-medium text-zinc-400">Status</label>
+                <select 
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
+                  value={editDuelForm.status}
+                  onChange={e => setEditDuelForm({...editDuelForm, status: e.target.value})}
+                >
+                  <option value="open">Open</option>
+                  <option value="ready">Ready</option>
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Player 1 ID</label>
+              <input 
+                type="number" 
+                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
+                value={editDuelForm.player1Id}
+                onChange={e => setEditDuelForm({...editDuelForm, player1Id: parseInt(e.target.value)})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Player 2 ID (Optional)</label>
+              <input 
+                type="number" 
+                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
+                value={editDuelForm.player2Id || ''}
+                onChange={e => setEditDuelForm({...editDuelForm, player2Id: e.target.value ? parseInt(e.target.value) : null})}
+                placeholder="Empty for open slot"
+              />
+            </div>
+
+            {editDuelForm.status === 'completed' && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">Score</label>
                 <div className="flex items-center gap-4">
                   <input 
                     type="number" 
@@ -628,24 +679,22 @@ export default function AdminPortal() {
             )}
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Note for {editingDuel.player1Name}</label>
+              <label className="text-sm font-medium text-zinc-400">Note for Player 1</label>
               <textarea 
-                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white min-h-[80px]"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white min-h-[60px]"
                 value={editDuelForm.player1Note}
                 onChange={e => setEditDuelForm({...editDuelForm, player1Note: e.target.value})}
               />
             </div>
 
-            {editingDuel.player2Name && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Note for {editingDuel.player2Name}</label>
-                <textarea 
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white min-h-[80px]"
-                  value={editDuelForm.player2Note}
-                  onChange={e => setEditDuelForm({...editDuelForm, player2Note: e.target.value})}
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Note for Player 2</label>
+              <textarea 
+                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white min-h-[60px]"
+                value={editDuelForm.player2Note}
+                onChange={e => setEditDuelForm({...editDuelForm, player2Note: e.target.value})}
+              />
+            </div>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="ghost" onClick={() => setEditDuelOpen(false)}>Cancel</Button>

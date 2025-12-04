@@ -382,7 +382,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
   })
   .put('/:id/admin-update', async ({ params, body, set }) => {
     const id = parseInt(params.id)
-    const { player1Score, player2Score, player1Note, player2Note, userId } = body
+    const { player1Score, player2Score, player1Note, player2Note, userId, player1Id, player2Id, status } = body
 
     const duel = await db.select().from(duelRooms).where(eq(duelRooms.id, id)).get()
     if (!duel) {
@@ -391,9 +391,11 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     }
 
     const requester = await db.select().from(users).where(eq(users.id, userId)).get()
+    console.log('Admin Update Request:', { userId, requester })
     if (!requester || requester.role !== 'admin') {
+      console.log('Unauthorized: Requester role is', requester?.role)
       set.status = 403
-      return { error: 'Unauthorized' }
+      return { error: `Unauthorized: User ${userId} role is ${requester?.role}` }
     }
 
     let updateData: any = {}
@@ -402,12 +404,26 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     if (player1Note !== undefined) updateData.player1Note = player1Note
     if (player2Note !== undefined) updateData.player2Note = player2Note
 
-    // Update result if scores provided and duel is completed
+    // Update participants if provided
+    if (player1Id !== undefined) updateData.player1Id = player1Id
+    if (player2Id !== undefined) updateData.player2Id = player2Id
+
+    // Update status if provided
+    if (status !== undefined) updateData.status = status
+
+    // Update result if scores provided and duel is completed (or being set to completed)
     if (player1Score !== undefined && player2Score !== undefined) {
-      if (duel.status === 'completed') {
-        const winnerId = player1Score > player2Score ? duel.player1Id : (player2Score > player1Score ? duel.player2Id! : null)
-        updateData.result = `${player1Score}-${player2Score}`
-        updateData.winnerId = winnerId
+      const currentStatus = status || duel.status
+      if (currentStatus === 'completed') {
+        const p1 = player1Id || duel.player1Id
+        const p2 = player2Id || duel.player2Id
+        
+        // Ensure p2 exists for a result
+        if (p2) {
+          const winnerId = player1Score > player2Score ? p1 : (player2Score > player1Score ? p2 : null)
+          updateData.result = `${player1Score}-${player2Score}`
+          updateData.winnerId = winnerId
+        }
       }
     }
 
@@ -424,6 +440,9 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       player2Score: t.Optional(t.Number()),
       player1Note: t.Optional(t.String()),
       player2Note: t.Optional(t.String()),
+      player1Id: t.Optional(t.Number()),
+      player2Id: t.Optional(t.Nullable(t.Number())),
+      status: t.Optional(t.String()),
       userId: t.Number()
     })
   })
