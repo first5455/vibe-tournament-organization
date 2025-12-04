@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, tournaments, matches, participants } from '../db/schema'
-import { eq } from 'drizzle-orm'
+import { users, tournaments, matches, participants, duelRooms } from '../db/schema'
+import { eq, and, like } from 'drizzle-orm'
 
 export const adminRoutes = new Elysia({ prefix: '/admin' })
   .guard({
@@ -24,8 +24,17 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
       await db.delete(matches).run()
       await db.delete(participants).run()
       await db.delete(tournaments).run()
+      await db.delete(duelRooms).run()
+
+      // Hard delete soft-deleted users
+      await db.delete(users)
+        .where(and(
+          like(users.username, 'Deleted User %'), 
+          eq(users.passwordHash, 'deleted')
+        ))
+        .run()
       
-      return { success: true, message: 'All tournament data deleted' }
+      return { success: true, message: 'All tournament data and deleted users cleaned up' }
     } catch (e: any) {
       console.error('Failed to delete data:', e)
       set.status = 500

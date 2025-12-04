@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, participants, tournaments, duelRooms } from '../db/schema'
+import { users, participants, tournaments, duelRooms, matches } from '../db/schema'
 import { eq, desc, sql, or } from 'drizzle-orm'
 
 export const userRoutes = new Elysia({ prefix: '/users' })
@@ -221,8 +221,23 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     }
 
 
+    const userId = parseInt(params.id)
 
-    await db.delete(users).where(eq(users.id, parseInt(params.id))).run()
+    // Soft delete: Anonymize the user to preserve history
+    await db.update(users)
+      .set({
+        username: `Deleted User ${userId}`,
+        passwordHash: 'deleted', // Invalidate login
+        avatarUrl: null,
+        color: '#3f3f46', // Zinc-700 (neutral color)
+        role: 'user',
+        securityQuestion: null,
+        securityAnswerHash: null,
+        // We keep MMR and CreatedAt for historical context
+      })
+      .where(eq(users.id, userId))
+      .run()
+
     return { success: true }
   }, {
     params: t.Object({
