@@ -339,7 +339,12 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
 
     // Update status to active, current round to 1, and set total rounds
     await db.update(tournaments)
-      .set({ status: 'active', currentRound: 1, totalRounds })
+      .set({ 
+        status: 'active', 
+        currentRound: 1, 
+        totalRounds,
+        startDate: new Date().toISOString()
+      })
       .where(eq(tournaments.id, tournamentId))
       .run()
 
@@ -535,7 +540,10 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     }
 
     await db.update(tournaments)
-      .set({ status: 'completed' })
+      .set({ 
+        status: 'completed',
+        endDate: new Date().toISOString()
+      })
       .where(eq(tournaments.id, tournamentId))
       .run()
 

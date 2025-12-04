@@ -28,3 +28,7 @@ export async function api(path: string, options: RequestInit = {}) {
 
   return response.json()
 }
+
+export async function getUserHistory(userId: number) {
+  return api(`/users/${userId}/history`)
+}

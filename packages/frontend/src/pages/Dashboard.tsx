@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
-import { Plus, Calendar, Trophy } from 'lucide-react'
+import { Plus, Calendar, Trophy, RefreshCw } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
+import { useRefresh } from '../hooks/useRefresh'
 
 interface Tournament {
   id: number
@@ -19,6 +20,8 @@ interface Tournament {
   createdByName?: string | null
   createdByColor?: string | null
   createdByAvatarUrl?: string | null
+  startDate?: string
+  endDate?: string
 }
 
 export default function Dashboard() {
@@ -43,6 +46,8 @@ export default function Dashboard() {
       setIsLoading(false)
     }
   }
+
+  const { handleRefresh, isCoolingDown } = useRefresh(loadTournaments)
 
   const createTournament = async () => {
     if (!newName) return
@@ -73,10 +78,22 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-white">Tournaments</h1>
           <p className="text-zinc-400">Manage and join tournaments</p>
         </div>
-        <Button onClick={() => setIsCreating(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create Tournament
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={handleRefresh}
+            disabled={isCoolingDown}
+            className={`text-zinc-400 hover:text-white ${isCoolingDown ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isCoolingDown ? "Please wait..." : "Refresh list"}
+          >
+            <RefreshCw className={`h-6 w-6 ${isCoolingDown ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button onClick={() => setIsCreating(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Tournament
+          </Button>
+        </div>
       </div>
 
       {isCreating && (
@@ -185,7 +202,18 @@ export default function Dashboard() {
               <div className="mt-4 flex items-center gap-4 text-sm text-zinc-500">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  <span>{new Date(tournament.createdAt).toLocaleDateString('en-GB')}</span>
+                  {tournament.status === 'pending' ? (
+                    <span>Created: {new Date(tournament.createdAt).toLocaleDateString('en-GB')}</span>
+                  ) : (
+                    <div className="flex flex-col gap-0.5">
+                      {tournament.startDate && (
+                        <span>Started: {new Date(tournament.startDate).toLocaleDateString('en-GB')}</span>
+                      )}
+                      {tournament.endDate && (
+                        <span>Ended: {new Date(tournament.endDate).toLocaleDateString('en-GB')}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <Trophy className="h-4 w-4" />

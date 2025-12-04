@@ -8,7 +8,10 @@ import Dashboard from './pages/Dashboard'
 import TournamentView from './pages/TournamentView'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
+import UserProfilePage from './pages/UserProfilePage'
 import AdminPortal from './pages/AdminPortal'
+import DuelDashboard from './pages/DuelDashboard'
+import DuelRoom from './pages/DuelRoom'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -58,10 +61,25 @@ function App() {
                 <Profile />
               </ProtectedRoute>
             } />
+            <Route path="/users/:id" element={
+              <ProtectedRoute>
+                <UserProfilePage />
+              </ProtectedRoute>
+            } />
             <Route path="/admin" element={
               <AdminRoute>
                 <AdminPortal />
               </AdminRoute>
+            } />
+            <Route path="/duels" element={
+              <ProtectedRoute>
+                <DuelDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/duels/:id" element={
+              <ProtectedRoute>
+                <DuelRoom />
+              </ProtectedRoute>
             } />
             
             {/* Add other protected routes here */}

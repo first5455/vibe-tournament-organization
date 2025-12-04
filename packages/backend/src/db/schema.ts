@@ -49,3 +49,14 @@ export const matches = sqliteTable('matches', {
   isBye: integer('is_bye', { mode: 'boolean' }).default(false).notNull(),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 })
+
+export const duelRooms = sqliteTable('duel_rooms', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  status: text('status', { enum: ['open', 'ready', 'active', 'completed'] }).default('open').notNull(),
+  player1Id: integer('player1_id').references(() => users.id).notNull(),
+  player2Id: integer('player2_id').references(() => users.id),
+  winnerId: integer('winner_id').references(() => users.id),
+  result: text('result'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+})

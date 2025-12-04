@@ -5,7 +5,15 @@ import { Button } from '../components/ui/button'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useNavigate } from 'react-router-dom'
-import { Check, X } from 'lucide-react'
+import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu'
 
 interface User {
   id: number
@@ -211,7 +219,7 @@ export default function AdminPortal() {
         </div>
       )}
 
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/50">
         <table className="w-full text-left text-sm text-zinc-400">
           <thead className="bg-zinc-900 text-zinc-200">
             <tr>
@@ -225,7 +233,7 @@ export default function AdminPortal() {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-800">
-            {users.map((u) => (
+            {users.map((u, index) => (
               <tr key={u.id} className="hover:bg-zinc-900/80">
                 <td className="px-4 py-3 font-mono">{u.id}</td>
                 <td className="px-4 py-3">
@@ -241,100 +249,79 @@ export default function AdminPortal() {
                 </td>
                 <td className="px-4 py-3 font-mono">{u.mmr}</td>
                 <td className="px-4 py-3">{new Date(u.createdAt).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-right space-x-2">
-                  <div className="flex gap-2 justify-end items-center">
-                    <div className="w-24 flex justify-end">
-                      {u.id !== user?.id && (
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          className="w-full"
-                          onClick={() => toggleRole(u)}
-                        >
-                          {u.role === 'admin' ? 'Demote' : 'Promote'}
+                <td className="px-4 py-3 text-right">
+                  {editingColorId === u.id ? (
+                    <div className="flex items-center justify-end gap-1">
+                      <input 
+                        type="color" 
+                        value={tempColor}
+                        onChange={(e) => setTempColor(e.target.value)}
+                        className="h-8 w-8 bg-transparent cursor-pointer rounded border border-zinc-700"
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-green-400 hover:text-green-300 hover:bg-green-500/10"
+                        onClick={() => saveColor(u)}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-zinc-400 hover:text-zinc-300"
+                        onClick={cancelEditColor}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white">
+                          <MoreVertical className="h-4 w-4" />
                         </Button>
-                      )}
-                    </div>
-                    <div className="w-32">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="w-full"
-                        onClick={() => changePassword(u)}
-                      >
-                        Reset Password
-                      </Button>
-                    </div>
-                    <div className="w-28">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="w-full"
-                        onClick={() => editMMR(u)}
-                      >
-                        Edit MMR
-                      </Button>
-                    </div>
-                    <div className="w-36 flex items-center justify-end gap-1">
-                      {editingColorId === u.id ? (
-                        <>
-                          <input 
-                            type="color" 
-                            value={tempColor}
-                            onChange={(e) => setTempColor(e.target.value)}
-                            className="h-8 w-8 bg-transparent cursor-pointer rounded border border-zinc-700"
-                          />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-green-400 hover:text-green-300 hover:bg-green-500/10"
-                            onClick={() => saveColor(u)}
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-zinc-400 hover:text-zinc-300"
-                            onClick={cancelEditColor}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="w-full"
-                          onClick={() => startEditColor(u)}
-                        >
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" side={index >= users.length - 3 ? 'top' : 'bottom'}>
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {u.id !== user?.id && (
+                          <DropdownMenuItem onClick={() => toggleRole(u)}>
+                            <Shield className="mr-2 h-4 w-4" />
+                            {u.role === 'admin' ? 'Demote to User' : 'Promote to Admin'}
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => changePassword(u)}>
+                          <Key className="mr-2 h-4 w-4" />
+                          Reset Password
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => editMMR(u)}>
+                          <Trophy className="mr-2 h-4 w-4" />
+                          Edit MMR
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => startEditColor(u)}>
+                          <Palette className="mr-2 h-4 w-4" />
                           Edit Color
-                        </Button>
-                      )}
-                    </div>
-                    <div className="w-28">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="w-full"
-                        onClick={() => editAvatar(u)}
-                      >
-                        Edit Avatar
-                      </Button>
-                    </div>
-                    <div className="w-20 flex justify-end">
-                      {u.id !== user?.id && (
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          onClick={() => deleteUser(u.id)}
-                        >
-                          Delete
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => editAvatar(u)}>
+                          <ImageIcon className="mr-2 h-4 w-4" />
+                          Edit Avatar
+                        </DropdownMenuItem>
+                        {u.id !== user?.id && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              variant="destructive"
+                              onClick={() => deleteUser(u.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </td>
               </tr>
             ))}
