@@ -27,7 +27,7 @@ interface User {
 }
 
 export default function AdminPortal() {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [tournaments, setTournaments] = useState<any[]>([])
@@ -119,6 +119,9 @@ export default function AdminPortal() {
         })
       })
       loadData()
+      if (user?.id === targetUser.id) {
+        refreshUser()
+      }
     } catch (err: any) {
       alert(err.message)
     }
@@ -161,6 +164,9 @@ export default function AdminPortal() {
         })
       })
       loadData()
+      if (user?.id === targetUser.id) {
+        refreshUser()
+      }
     } catch (err: any) {
       alert(err.message)
     }
@@ -186,6 +192,9 @@ export default function AdminPortal() {
         })
       })
       loadData()
+      if (user?.id === targetUser.id) {
+        refreshUser()
+      }
       setEditingColorId(null)
     } catch (err: any) {
       alert(err.message)
@@ -205,6 +214,9 @@ export default function AdminPortal() {
         })
       })
       loadData()
+      if (user?.id === targetUser.id) {
+        refreshUser()
+      }
     } catch (err: any) {
       alert(err.message)
     }
