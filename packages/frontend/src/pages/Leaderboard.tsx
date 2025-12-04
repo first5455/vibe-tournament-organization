@@ -92,7 +92,7 @@ export default function Leaderboard() {
                     <div className="flex items-center gap-3">
                       <UserAvatar username={user.username} avatarUrl={user.avatarUrl} size="sm" />
                       <div className="truncate max-w-[120px] sm:max-w-none">
-                        <UserLabel username={user.username} color={user.color} />
+                        <UserLabel username={user.username} color={user.color} userId={user.id} />
                       </div>
                     </div>
                   </td>

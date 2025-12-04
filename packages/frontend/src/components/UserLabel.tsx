@@ -1,18 +1,20 @@
 import { cn } from '../lib/utils'
+import { UserProfileDialog } from './UserProfileDialog'
 
 interface UserLabelProps {
   username?: string | null
   color?: string | null
   className?: string
   as?: 'span' | 'div'
+  userId?: number
 }
 
-export function UserLabel({ username, color, className, as: Component = 'span' }: UserLabelProps) {
+export function UserLabel({ username, color, className, as: Component = 'span', userId }: UserLabelProps) {
   if (!username) return null
 
   const hasColor = color && color !== '#ffffff'
 
-  return (
+  const content = (
     <Component
       className={cn(
         "font-medium transition-all duration-300",
@@ -28,4 +30,14 @@ export function UserLabel({ username, color, className, as: Component = 'span' }
       {username}
     </Component>
   )
+
+  if (userId) {
+    return (
+      <UserProfileDialog userId={userId} username={username}>
+        {content}
+      </UserProfileDialog>
+    )
+  }
+
+  return content
 }

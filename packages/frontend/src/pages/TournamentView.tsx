@@ -315,7 +315,7 @@ export default function TournamentView() {
               <span className="text-xs text-zinc-500 border-l border-zinc-700 pl-4 ml-2 flex items-center gap-2">
                 <UserAvatar username={tournament.createdByName} avatarUrl={tournament.createdByAvatarUrl} size="sm" className="h-5 w-5" />
                 <span className="flex items-center gap-1">
-                  Created by: <UserLabel username={tournament.createdByName} color={tournament.createdByColor} className="text-zinc-300" />
+                  Created by: <UserLabel username={tournament.createdByName} color={tournament.createdByColor} className="text-zinc-300" userId={tournament.createdBy} />
                 </span>
               </span>
             )}
@@ -430,7 +430,7 @@ export default function TournamentView() {
                   <th key={p.id} className="p-2 border border-zinc-800 bg-zinc-950/50 text-zinc-300 font-medium min-w-[100px]">
                     <div className="flex items-center gap-2 justify-center">
                       <UserAvatar username={p.username || p.guestName || `User ${p.userId}`} avatarUrl={p.userAvatarUrl} size="sm" className="h-5 w-5" />
-                      <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} />
+                      <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} userId={p.userId || undefined} />
                     </div>
                   </th>
                 ))}
@@ -442,7 +442,7 @@ export default function TournamentView() {
                   <td className="p-2 border border-zinc-800 bg-zinc-950/50 text-zinc-300 font-medium">
                     <div className="flex items-center gap-2">
                       <UserAvatar username={p1.username || p1.guestName || `User ${p1.userId}`} avatarUrl={p1.userAvatarUrl} size="sm" className="h-5 w-5" />
-                      <UserLabel username={p1.username || p1.guestName || `User ${p1.userId}`} color={p1.userColor} />
+                      <UserLabel username={p1.username || p1.guestName || `User ${p1.userId}`} color={p1.userColor} userId={p1.userId || undefined} />
                     </div>
                   </td>
                   {participants.map((p2, j) => {
@@ -512,7 +512,7 @@ export default function TournamentView() {
                     return (
                       <div key={match.id} className={`border rounded-lg p-4 flex items-center justify-between ${isCurrentRound ? 'border-zinc-800 bg-zinc-900/30' : 'border-zinc-900 bg-zinc-950/50'}`}>
                         <div className="flex flex-col gap-2">
-                          <div className={`flex items-center gap-2 ${match.winnerId === match.player1Id ? 'text-green-400 font-bold' : 'text-zinc-300'}`}>
+                          <div className={`flex items-center gap-2 ${match.winnerId === match.player1Id ? 'font-bold' : ''}`}>
                             <UserAvatar 
                               username={p1?.username || p1?.guestName || (p1?.userId ? `User ${p1.userId}` : 'Unknown')} 
                               avatarUrl={p1?.userAvatarUrl}
@@ -520,11 +520,17 @@ export default function TournamentView() {
                             />
                             <UserLabel 
                               username={p1?.username || p1?.guestName || (p1?.userId ? `User ${p1.userId}` : 'Unknown')} 
-                              color={match.winnerId !== match.player1Id ? p1?.userColor : undefined}
+                              color={p1?.userColor}
+                              userId={p1?.userId || undefined}
                             />
+                            {match.result && (
+                              <span className={`text-xs px-1.5 py-0.5 rounded ${match.winnerId === match.player1Id ? 'bg-green-900/30 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
+                                {match.winnerId === match.player1Id ? 'Win' : 'Lose'}
+                              </span>
+                            )}
                           </div>
                           <div className="text-zinc-600 text-xs">vs</div>
-                          <div className={`flex items-center gap-2 ${match.winnerId === match.player2Id ? 'text-green-400 font-bold' : 'text-zinc-300'}`}>
+                          <div className={`flex items-center gap-2 ${match.winnerId === match.player2Id ? 'font-bold' : ''}`}>
                             {match.isBye ? <span className="italic text-zinc-500">Bye</span> : (
                               <>
                                 <UserAvatar 
@@ -534,8 +540,14 @@ export default function TournamentView() {
                                 />
                                 <UserLabel 
                                   username={p2?.username || p2?.guestName || (p2?.userId ? `User ${p2.userId}` : 'Unknown')} 
-                                  color={match.winnerId !== match.player2Id ? p2?.userColor : undefined}
+                                  color={p2?.userColor}
+                                  userId={p2?.userId || undefined}
                                 />
+                                {match.result && (
+                                  <span className={`text-xs px-1.5 py-0.5 rounded ${match.winnerId === match.player2Id ? 'bg-green-900/30 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
+                                    {match.winnerId === match.player2Id ? 'Win' : 'Lose'}
+                                  </span>
+                                )}
                               </>
                             )}
                           </div>
@@ -625,7 +637,7 @@ export default function TournamentView() {
                     <div className="flex items-center gap-2">
                       <UserAvatar username={p.username || p.guestName || `User ${p.userId}`} avatarUrl={p.userAvatarUrl} size="sm" />
                       <div>
-                        <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} />
+                        <UserLabel username={p.username || p.guestName || `User ${p.userId}`} color={p.userColor} userId={p.userId || undefined} />
                         {p.dropped && <span className="ml-2 text-xs text-red-500">(Dropped)</span>}
                       </div>
                     </div>

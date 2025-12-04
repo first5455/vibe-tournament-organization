@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users } from '../db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { users, participants, tournaments } from '../db/schema'
+import { eq, desc, sql } from 'drizzle-orm'
 
 export const userRoutes = new Elysia({ prefix: '/users' })
   .get('/leaderboard', async () => {
@@ -36,6 +36,63 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     }
 
     return { user }
+  }, {
+    params: t.Object({
+      id: t.String()
+    })
+  })
+  .get('/:id/history', async ({ params, set }) => {
+    // Fetch all participations for this user
+    const userParticipations = await db.select({
+      tournamentId: participants.tournamentId,
+      score: participants.score,
+      note: participants.note,
+      dropped: participants.dropped,
+      tournamentName: tournaments.name,
+      tournamentStartDate: sql<string>`COALESCE(${tournaments.startDate}, ${tournaments.createdAt})`,
+      tournamentStatus: tournaments.status,
+    })
+    .from(participants)
+    .innerJoin(tournaments, eq(participants.tournamentId, tournaments.id))
+    .where(eq(participants.userId, parseInt(params.id)))
+    .orderBy(desc(tournaments.startDate))
+    .all()
+
+    const history = await Promise.all(userParticipations.map(async (p) => {
+      // For each tournament, calculate rank
+      // This is a bit expensive, but simplest for now. 
+      // Optimization: Store rank in participants table or calculate only when needed.
+      
+      const allParticipants = await db.select({
+        userId: participants.userId,
+        score: participants.score,
+        tieBreakers: participants.tieBreakers,
+      })
+      .from(participants)
+      .where(eq(participants.tournamentId, p.tournamentId))
+      .all()
+
+      // Sort participants to find rank
+      allParticipants.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score
+        // @ts-ignore
+        return (b.tieBreakers?.buchholz || 0) - (a.tieBreakers?.buchholz || 0)
+      })
+
+      const rank = allParticipants.findIndex(ap => ap.userId === parseInt(params.id)) + 1
+
+      return {
+        tournamentName: p.tournamentName,
+        tournamentDate: p.tournamentStartDate,
+        status: p.tournamentStatus,
+        score: p.score,
+        rank,
+        totalParticipants: allParticipants.length,
+        note: p.note,
+      }
+    }))
+
+    return { history }
   }, {
     params: t.Object({
       id: t.String()

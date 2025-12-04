@@ -19,6 +19,8 @@ interface Tournament {
   createdByName?: string | null
   createdByColor?: string | null
   createdByAvatarUrl?: string | null
+  startDate?: string
+  endDate?: string
 }
 
 export default function Dashboard() {
@@ -185,7 +187,18 @@ export default function Dashboard() {
               <div className="mt-4 flex items-center gap-4 text-sm text-zinc-500">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  <span>{new Date(tournament.createdAt).toLocaleDateString('en-GB')}</span>
+                  {tournament.status === 'pending' ? (
+                    <span>Created: {new Date(tournament.createdAt).toLocaleDateString('en-GB')}</span>
+                  ) : (
+                    <div className="flex flex-col gap-0.5">
+                      {tournament.startDate && (
+                        <span>Started: {new Date(tournament.startDate).toLocaleDateString('en-GB')}</span>
+                      )}
+                      {tournament.endDate && (
+                        <span>Ended: {new Date(tournament.endDate).toLocaleDateString('en-GB')}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <Trophy className="h-4 w-4" />
