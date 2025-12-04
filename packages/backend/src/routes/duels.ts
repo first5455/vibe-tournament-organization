@@ -172,7 +172,10 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       set.status = 400
       return { error: 'Duel is not ready' }
     }
-    if (duel.player1Id !== userId) {
+    const requester = await db.select().from(users).where(eq(users.id, userId)).get()
+    const isAdmin = requester?.role === 'admin'
+
+    if (duel.player1Id !== userId && !isAdmin) {
       set.status = 403
       return { error: 'Unauthorized' }
     }
