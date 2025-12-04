@@ -191,6 +191,47 @@ export default function DuelRoom() {
     }
   }
 
+  const [addPlayerOpen, setAddPlayerOpen] = useState(false)
+  const [addPlayerId, setAddPlayerId] = useState('')
+
+  const handleAddPlayer = async () => {
+    if (!user || !addPlayerId) return
+    try {
+      await api(`/duels/${id}/admin-update`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          userId: user.id,
+          player2Id: parseInt(addPlayerId),
+          status: 'ready'
+        })
+      })
+      setAddPlayerOpen(false)
+      fetchDuel()
+    } catch (error: any) {
+      alert('Failed to add player: ' + error.message)
+    }
+  }
+
+  const handleRematch = async () => {
+    if (!user || !duel) return
+    try {
+      const { duel: newDuel } = await api('/duels', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: `${duel.name} (Rematch)`,
+          createdBy: user.id,
+          player1Id: duel.player1Id,
+          player2Id: duel.player2Id,
+          player1Note: duel.player1Note,
+          player2Note: duel.player2Note
+        })
+      })
+      navigate(`/duels/${newDuel.id}`)
+    } catch (error: any) {
+      alert('Failed to create rematch: ' + error.message)
+    }
+  }
+
   if (loading) return <div className="text-center p-8 text-zinc-500">Loading...</div>
   if (!duel) return <div className="text-center p-8 text-red-400">Duel not found</div>
 
@@ -247,6 +288,9 @@ export default function DuelRoom() {
           {isAdmin && duel.status === 'completed' && (
             <Button variant="outline" onClick={handleOpenEditResult}>Edit Result</Button>
           )}
+          {(isParticipant || isAdmin) && duel.status === 'completed' && (
+            <Button className="bg-orange-600 hover:bg-orange-700" onClick={handleRematch}>Rematch</Button>
+          )}
         </div>
       </div>
 
@@ -302,7 +346,7 @@ export default function DuelRoom() {
         </div>
 
         {/* Player 2 */}
-        <div className={`bg-zinc-900/50 rounded-xl p-8 border ${duel.winnerId === duel.player2Id ? 'border-green-500/50 bg-green-900/10' : 'border-white/5'} flex flex-col items-center gap-4 min-h-[300px] justify-center`}>
+        <div className={`bg-zinc-900/50 rounded-xl p-8 border ${duel.winnerId === duel.player2Id ? 'border-green-500/50 bg-green-900/10' : 'border-white/5'} flex flex-col items-center gap-4`}>
           {duel.player2 ? (
             <>
               <UserAvatar username={duel.player2.username} displayName={duel.player2.displayName} avatarUrl={duel.player2.avatarUrl} size="lg" />
@@ -330,21 +374,25 @@ export default function DuelRoom() {
                   {(isPlayer2 || isAdmin) && (
                     <button 
                       onClick={() => openNoteDialog(duel.player2Id!, duel.player2Note)}
-                      className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                      className="text-zinc-500 hover:text-white transition-colors"
                     >
                       <Edit2 className="w-3 h-3" />
                     </button>
                   )}
                 </div>
-                <div className="text-sm text-zinc-400 bg-black/20 p-3 rounded-md min-h-[60px] whitespace-pre-wrap">
-                  {duel.player2Note || <span className="text-zinc-600 italic">No notes</span>}
-                </div>
+                <p className="text-sm text-zinc-400 italic">
+                  {duel.player2Note || "No notes"}
+                </p>
               </div>
             </>
           ) : (
-            <div className="text-zinc-600 flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-full bg-zinc-800/50 flex items-center justify-center">?</div>
-              <span>Empty Slot</span>
+            <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-zinc-500 gap-4">
+              <div>Waiting for player...</div>
+              {isAdmin && (
+                <Button variant="outline" size="sm" onClick={() => setAddPlayerOpen(true)}>
+                  Add Player
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -401,6 +449,30 @@ export default function DuelRoom() {
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setEditResultOpen(false)}>Cancel</Button>
             <Button onClick={handleSaveResult}>Save Result</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addPlayerOpen} onOpenChange={setAddPlayerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Player to Duel</DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">User ID</label>
+              <input 
+                type="number" 
+                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
+                value={addPlayerId}
+                onChange={e => setAddPlayerId(e.target.value)}
+                placeholder="Enter User ID"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setAddPlayerOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddPlayer}>Add Player</Button>
           </div>
         </DialogContent>
       </Dialog>

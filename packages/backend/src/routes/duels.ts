@@ -55,13 +55,16 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     })
   })
   .post('/', async ({ body, set }) => {
-    const { name, createdBy } = body
+    const { name, createdBy, player1Id, player2Id, player1Note, player2Note } = body
     
     try {
       const result = await db.insert(duelRooms).values({
         name,
-        player1Id: createdBy,
-        status: 'open',
+        player1Id: player1Id || createdBy,
+        player2Id: player2Id || null,
+        status: player2Id ? 'ready' : 'open',
+        player1Note,
+        player2Note,
       }).returning().get()
       
       return { duel: result }
@@ -73,7 +76,11 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
   }, {
     body: t.Object({
       name: t.String(),
-      createdBy: t.Number()
+      createdBy: t.Number(),
+      player1Id: t.Optional(t.Number()),
+      player2Id: t.Optional(t.Number()),
+      player1Note: t.Optional(t.String()),
+      player2Note: t.Optional(t.String())
     })
   })
   .get('/:id', async ({ params, set }) => {
