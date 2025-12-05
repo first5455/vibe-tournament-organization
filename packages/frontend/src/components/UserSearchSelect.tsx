@@ -43,7 +43,6 @@ export function UserSearchSelect({ onSelect, placeholder = "Search user..." }: U
       try {
         const data = await api(`/users/search?q=${encodeURIComponent(query)}`)
         setResults(data)
-        setIsOpen(true)
       } catch (error) {
         console.error('Search failed', error)
       } finally {
@@ -57,7 +56,7 @@ export function UserSearchSelect({ onSelect, placeholder = "Search user..." }: U
 
   const handleSelect = (user: User) => {
     onSelect(user)
-    setQuery('')
+    setQuery(user.displayName || user.username)
     setIsOpen(false)
   }
 
@@ -70,7 +69,10 @@ export function UserSearchSelect({ onSelect, placeholder = "Search user..." }: U
           className="w-full rounded-md border border-zinc-700 bg-zinc-800 py-2 pl-9 pr-4 text-sm text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           placeholder={placeholder}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            if (e.target.value.length >= 2) setIsOpen(true)
+          }}
           onFocus={() => query.length >= 2 && setIsOpen(true)}
         />
       </div>
