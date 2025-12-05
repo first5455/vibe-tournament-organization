@@ -47,6 +47,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(parsedUser)
           // Auto-refresh: Extend session if valid
           localStorage.setItem('sessionExpiry', (new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toString())
+          
+          // Refresh user data from server to ensure it's up to date
+          api(`/users/${parsedUser.id}`)
+            .then(res => {
+              if (res.user) {
+                const updated = res.user
+                localStorage.setItem('user', JSON.stringify(updated))
+                setUser(updated)
+              }
+            })
+            .catch(err => console.error('Failed to refresh user on load:', err))
         } else {
           // Invalid user data, clear it
           localStorage.removeItem('token')

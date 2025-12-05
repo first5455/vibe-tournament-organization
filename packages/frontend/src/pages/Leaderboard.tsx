@@ -5,6 +5,7 @@ import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { Button } from '../components/ui/button'
 import { useRefresh } from '../hooks/useRefresh'
+import { useFocusRevalidate } from '../hooks/useFocusRevalidate'
 
 interface User {
   id: number
@@ -56,6 +57,8 @@ export default function Leaderboard() {
       if (ws) ws.close()
     }
   }, [])
+
+  useFocusRevalidate(loadLeaderboard, 30000)
 
   return (
     <div className="space-y-8">

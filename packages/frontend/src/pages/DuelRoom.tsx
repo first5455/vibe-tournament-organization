@@ -7,6 +7,7 @@ import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
 import { Swords, RefreshCw, Edit2 } from 'lucide-react'
 import { useRefresh } from '../hooks/useRefresh'
+import { useFocusRevalidate } from '../hooks/useFocusRevalidate'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { UserSearchSelect } from '../components/UserSearchSelect'
 
@@ -57,6 +58,8 @@ export default function DuelRoom() {
   useEffect(() => {
     fetchDuel()
   }, [id])
+
+  useFocusRevalidate(fetchDuel, 10000)
 
   const handleJoin = async () => {
     if (!user) return
