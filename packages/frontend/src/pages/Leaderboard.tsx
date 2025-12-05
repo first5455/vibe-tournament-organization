@@ -83,42 +83,44 @@ export default function Leaderboard() {
         {isLoading ? (
           <div className="p-8 text-center text-zinc-500">Loading rankings...</div>
         ) : (
-          <table className="w-full text-left">
-            <thead className="bg-zinc-900/80 text-xs uppercase text-zinc-400">
-              <tr>
-                <th className="px-3 sm:px-6 py-4 font-medium">Rank</th>
-                <th className="px-3 sm:px-6 py-4 font-medium">Player</th>
-                <th className="px-3 sm:px-6 py-4 font-medium text-right">MMR</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800">
-              {users.map((user, index) => (
-                <tr key={user.id} className="hover:bg-zinc-800/50 transition-colors">
-                  <td className="px-3 sm:px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {index === 0 && <Medal className="h-5 w-5 text-yellow-500" />}
-                      {index === 1 && <Medal className="h-5 w-5 text-zinc-400" />}
-                      {index === 2 && <Medal className="h-5 w-5 text-amber-700" />}
-                      <span className={`font-mono ${index < 3 ? 'font-bold text-white' : 'text-zinc-500'}`}>
-                        #{index + 1}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 font-medium text-white">
-                    <div className="flex items-center gap-3">
-                      <UserAvatar username={user.username} displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
-                      <div className="truncate max-w-[120px] sm:max-w-none">
-                        <UserLabel username={user.username} displayName={user.displayName} color={user.color} userId={user.id} />
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 text-right font-mono text-indigo-400">
-                    {user.mmr}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left min-w-[400px]">
+              <thead className="bg-zinc-900/80 text-xs uppercase text-zinc-400">
+                <tr>
+                  <th className="px-3 sm:px-6 py-4 font-medium">Rank</th>
+                  <th className="px-3 sm:px-6 py-4 font-medium">Player</th>
+                  <th className="px-3 sm:px-6 py-4 font-medium text-right">MMR</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-zinc-800">
+                {users.map((user, index) => (
+                  <tr key={user.id} className="hover:bg-zinc-800/50 transition-colors">
+                    <td className="px-3 sm:px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {index === 0 && <Medal className="h-5 w-5 text-yellow-500" />}
+                        {index === 1 && <Medal className="h-5 w-5 text-zinc-400" />}
+                        {index === 2 && <Medal className="h-5 w-5 text-amber-700" />}
+                        <span className={`font-mono ${index < 3 ? 'font-bold text-white' : 'text-zinc-500'}`}>
+                          #{index + 1}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 font-medium text-white">
+                      <div className="flex items-center gap-3">
+                        <UserAvatar username={user.username} displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
+                        <div className="truncate max-w-[120px] sm:max-w-none">
+                          <UserLabel username={user.username} displayName={user.displayName} color={user.color} userId={user.id} />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 text-right font-mono text-indigo-400">
+                      {user.mmr}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
