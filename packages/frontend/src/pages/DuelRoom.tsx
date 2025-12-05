@@ -214,11 +214,22 @@ export default function DuelRoom() {
 
   const handleRematch = async () => {
     if (!user || !duel) return
+
+    const getDefaultRoomName = () => {
+      const now = new Date()
+      const day = String(now.getDate()).padStart(2, '0')
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const year = now.getFullYear()
+      const hours = String(now.getHours()).padStart(2, '0')
+      const minutes = String(now.getMinutes()).padStart(2, '0')
+      return `${day}-${month}-${year} ${hours}:${minutes}`
+    }
+
     try {
       const { duel: newDuel } = await api('/duels', {
         method: 'POST',
         body: JSON.stringify({
-          name: `${duel.name} (Rematch)`,
+          name: getDefaultRoomName(),
           createdBy: user.id,
           player1Id: duel.player1Id,
           player2Id: duel.player2Id,

@@ -53,13 +53,25 @@ export default function DuelDashboard() {
   }, [])
 
   const createDuel = async () => {
-    if (!newName || !user) return
+    if (!user) return
+
+    const getDefaultRoomName = () => {
+      const now = new Date()
+      const day = String(now.getDate()).padStart(2, '0')
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const year = now.getFullYear()
+      const hours = String(now.getHours()).padStart(2, '0')
+      const minutes = String(now.getMinutes()).padStart(2, '0')
+      return `${day}-${month}-${year} ${hours}:${minutes}`
+    }
+
+    const roomName = newName.trim() || getDefaultRoomName()
 
     try {
       const { duel } = await api('/duels', {
         method: 'POST',
         body: JSON.stringify({ 
-          name: newName, 
+          name: roomName, 
           createdBy: user.id,
         }),
       })
@@ -105,13 +117,13 @@ export default function DuelDashboard() {
             <h2 className="mb-4 text-xl font-bold text-white">Create Duel Room</h2>
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-400">Room Name</label>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">Room Name (Optional)</label>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="Enter room name..."
+                  placeholder="Default: DD-MM-YYYY HH:mm"
                   autoFocus
                 />
               </div>
