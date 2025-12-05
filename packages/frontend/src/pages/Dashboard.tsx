@@ -54,7 +54,6 @@ export default function Dashboard() {
     if (!newName) return
 
     try {
-      console.log('Creating tournament with type:', newType)
       await api('/tournaments', {
         method: 'POST',
         body: JSON.stringify({ 

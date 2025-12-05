@@ -257,7 +257,7 @@ export default function AdminPortal() {
 
   const handleSaveDuel = async () => {
     if (!editingDuel) return
-    console.log('Saving duel with user:', user)
+    if (!editingDuel) return
     try {
       if (!user?.id) {
         alert('User ID missing')

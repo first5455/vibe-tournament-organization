@@ -9,6 +9,7 @@ export async function api(path: string, options: RequestInit = {}) {
   }
 
   const response = await fetch(`${API_URL}${path}`, {
+    cache: 'no-store',
     ...options,
     headers,
   })

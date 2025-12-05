@@ -256,7 +256,7 @@ export default function DuelRoom() {
   const isParticipant = isPlayer1 || isPlayer2
   const canJoin = user && !isParticipant && duel.status === 'open' && !duel.player2
 
-  console.log('DuelRoom Debug:', { isAdmin, isParticipant, status: duel.status, userRole: user?.role, userId: user?.id })
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8 flex items-center justify-between">

@@ -38,16 +38,7 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
     const isPlayer1 = p1?.userId === reportedBy
     const isPlayer2 = p2?.userId === reportedBy
 
-    console.log('Match Report Debug:', {
-      matchId,
-      reportedBy,
-      tournamentCreator: tournament?.createdBy,
-      isAdmin,
-      p1UserId: p1?.userId,
-      p2UserId: p2?.userId,
-      isPlayer1,
-      isPlayer2
-    })
+
     
     if (!isAdmin && !isPlayer1 && !isPlayer2) {
       set.status = 403
@@ -100,7 +91,7 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
         await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
         await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
         
-        console.log(`MMR Update: ${user1.username} (${r1} -> ${newR1}), ${user2.username} (${r2} -> ${newR2})`)
+        // console.log(`MMR Update: ${user1.username} (${r1} -> ${newR1}), ${user2.username} (${r2} -> ${newR2})`)
       }
     }
 

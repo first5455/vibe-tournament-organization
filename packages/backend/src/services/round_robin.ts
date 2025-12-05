@@ -3,7 +3,7 @@ import { matches, participants } from '../db/schema'
 import { eq, and } from 'drizzle-orm'
 
 export async function generatePairings(tournamentId: number, roundNumber: number) {
-  console.log(`Generating Round Robin pairings for tournament ${tournamentId} round ${roundNumber}`)
+  // console.log(`Generating Round Robin pairings for tournament ${tournamentId} round ${roundNumber}`)
 
   const allParticipants = await db.select().from(participants).where(and(
     eq(participants.tournamentId, tournamentId),
@@ -54,7 +54,7 @@ export async function generatePairings(tournamentId: number, roundNumber: number
   
   const finalOrder = [fixed, ...rotated]
   
-  console.log(`Round ${roundNumber} order:`, finalOrder.map(p => p.id))
+  // console.log(`Round ${roundNumber} order:`, finalOrder.map(p => p.id))
 
   const pairings = []
   for (let i = 0; i < half; i++) {

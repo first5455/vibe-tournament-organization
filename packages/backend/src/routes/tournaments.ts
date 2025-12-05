@@ -8,14 +8,14 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     const { name, createdBy } = body
     
     try {
-      console.log('Creating tournament:', { name, createdBy, type: (body as any).type })
+      // console.log('Creating tournament:', { name, createdBy, type: (body as any).type })
       const result = await db.insert(tournaments).values({
         name,
         createdBy,
         status: 'pending',
         type: (body as any).type || 'swiss'
       }).returning().get()
-      console.log('Tournament created:', result)
+      // console.log('Tournament created:', result)
       return { tournament: result }
     } catch (e) {
       console.error('Failed to create tournament:', e)
@@ -50,7 +50,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   })
   .get('/:id', async ({ params, set }) => {
     const id = parseInt(params.id)
-    console.log('Fetching tournament:', id)
+    // console.log('Fetching tournament:', id)
     
     if (isNaN(id)) {
       set.status = 400
@@ -148,7 +148,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/:id/guests', async ({ params, body, set }) => {
     const tournamentId = parseInt(params.id)
     const { name, createdBy } = body
-    console.log('Adding guest:', { tournamentId, name, createdBy })
+    // console.log('Adding guest:', { tournamentId, name, createdBy })
 
     const tournament = await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).get()
     if (!tournament) {
@@ -358,7 +358,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       .run()
 
     // Generate pairings for round 1
-    console.log('Starting tournament:', tournamentId, 'Type:', tournament.type)
+    // console.log('Starting tournament:', tournamentId, 'Type:', tournament.type)
     try {
       if (tournament.type === 'round_robin') {
         const { generatePairings } = await import('../services/round_robin')
@@ -413,7 +413,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     for (const m of unfinishedMatches) {
       if (m.isBye) continue // Byes are already handled or don't need resolution
 
-      console.log(`Auto-resolving match ${m.id} as 0-0`)
+      // console.log(`Auto-resolving match ${m.id} as 0-0`)
       
       // Update match result
       await db.update(matches)
@@ -447,7 +447,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
           await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
           await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
           
-          console.log(`Auto-resolve MMR Update: ${user1.username} (${r1} -> ${newR1}), ${user2.username} (${r2} -> ${newR2})`)
+          // console.log(`Auto-resolve MMR Update: ${user1.username} (${r1} -> ${newR1}), ${user2.username} (${r2} -> ${newR2})`)
         }
       }
     }
@@ -513,7 +513,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     for (const m of unfinishedMatches) {
       if (m.isBye) continue
 
-      console.log(`Auto-resolving match ${m.id} as 0-0 on stop`)
+      // console.log(`Auto-resolving match ${m.id} as 0-0 on stop`)
       
       await db.update(matches)
         .set({ result: '0-0', winnerId: null })
