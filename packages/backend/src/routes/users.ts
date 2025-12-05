@@ -4,6 +4,29 @@ import { users, participants, tournaments, duelRooms, matches } from '../db/sche
 import { eq, desc, sql, or } from 'drizzle-orm'
 
 export const userRoutes = new Elysia({ prefix: '/users' })
+  .get('/search', async ({ query }) => {
+    const { q } = query
+    if (!q || q.length < 2) return []
+
+    const searchPattern = `%${q}%`
+    return await db.select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(users)
+    .where(or(
+      sql`lower(${users.username}) like lower(${searchPattern})`,
+      sql`lower(${users.displayName}) like lower(${searchPattern})`
+    ))
+    .limit(10)
+    .all()
+  }, {
+    query: t.Object({
+      q: t.String()
+    })
+  })
   .get('/leaderboard', async () => {
     return await db.select({
       id: users.id,

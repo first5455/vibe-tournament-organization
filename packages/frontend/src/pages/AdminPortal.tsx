@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu'
+import { UserSearchSelect } from '../components/UserSearchSelect'
 
 interface User {
   id: number
@@ -651,23 +652,24 @@ export default function AdminPortal() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Player 1 ID</label>
-              <input 
-                type="number" 
-                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
-                value={editDuelForm.player1Id}
-                onChange={e => setEditDuelForm({...editDuelForm, player1Id: parseInt(e.target.value)})}
+              <label className="text-sm font-medium text-zinc-400">Player 1</label>
+              <div className="text-sm text-zinc-300 mb-1">
+                Current ID: {editDuelForm.player1Id}
+              </div>
+              <UserSearchSelect 
+                onSelect={(user) => setEditDuelForm({...editDuelForm, player1Id: user.id})}
+                placeholder="Search to change Player 1..."
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Player 2 ID (Optional)</label>
-              <input 
-                type="number" 
-                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
-                value={editDuelForm.player2Id || ''}
-                onChange={e => setEditDuelForm({...editDuelForm, player2Id: e.target.value ? parseInt(e.target.value) : null})}
-                placeholder="Empty for open slot"
+              <label className="text-sm font-medium text-zinc-400">Player 2 (Optional)</label>
+              <div className="text-sm text-zinc-300 mb-1">
+                Current ID: {editDuelForm.player2Id || 'None'}
+              </div>
+              <UserSearchSelect 
+                onSelect={(user) => setEditDuelForm({...editDuelForm, player2Id: user.id})}
+                placeholder="Search to change Player 2..."
               />
             </div>
 

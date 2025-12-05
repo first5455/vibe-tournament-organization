@@ -8,6 +8,7 @@ import { UserLabel } from '../components/UserLabel'
 import { Swords, RefreshCw, Edit2 } from 'lucide-react'
 import { useRefresh } from '../hooks/useRefresh'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { UserSearchSelect } from '../components/UserSearchSelect'
 
 interface Player {
   id: number
@@ -472,19 +473,21 @@ export default function DuelRoom() {
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">User ID</label>
-              <input 
-                type="number" 
-                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
-                value={addPlayerId}
-                onChange={e => setAddPlayerId(e.target.value)}
-                placeholder="Enter User ID"
+              <label className="text-sm font-medium text-zinc-400">Search User</label>
+              <UserSearchSelect 
+                onSelect={(user) => setAddPlayerId(user.id.toString())}
+                placeholder="Search by name..."
               />
+              {addPlayerId && (
+                <div className="text-xs text-green-400">
+                  Selected User ID: {addPlayerId}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setAddPlayerOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddPlayer}>Add Player</Button>
+            <Button onClick={handleAddPlayer} disabled={!addPlayerId}>Add Player</Button>
           </div>
         </DialogContent>
       </Dialog>
