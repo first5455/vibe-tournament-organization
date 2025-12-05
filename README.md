@@ -4,6 +4,8 @@ A modern tournament organization platform built for speed and flexibility.
 
 > This project was made by **Google Antigravity** using **AI Vibe Coding** with **Gemini 3 Pro** + **Claude 4.5**.
 
+> NOTE: This Project is use for fun. Don't expected for any updated and many bugs
+
 ## 🛠️ Tech Stack
 
 ### Backend
