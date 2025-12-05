@@ -78,9 +78,9 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       name: t.String(),
       createdBy: t.Number(),
       player1Id: t.Optional(t.Number()),
-      player2Id: t.Optional(t.Number()),
-      player1Note: t.Optional(t.String()),
-      player2Note: t.Optional(t.String())
+      player2Id: t.Optional(t.Nullable(t.Number())),
+      player1Note: t.Optional(t.Nullable(t.String())),
+      player2Note: t.Optional(t.Nullable(t.String()))
     })
   })
   .get('/:id', async ({ params, set }) => {
