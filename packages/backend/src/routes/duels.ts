@@ -456,3 +456,63 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       userId: t.Number()
     })
   })
+  .post('/:id/rematch', async ({ params, body, set }) => {
+    const id = parseInt(params.id)
+    const { userId } = body
+
+    const duel = await db.select().from(duelRooms).where(eq(duelRooms.id, id)).get()
+    if (!duel) {
+      set.status = 404
+      return { error: 'Duel not found' }
+    }
+    
+    // Check if rematch already exists
+    if (duel.rematchRoomId) {
+      return { duel: { id: duel.rematchRoomId } }
+    }
+
+    // Determine basic new room name
+    const now = new Date()
+    const day = String(now.getDate()).padStart(2, '0')
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const year = now.getFullYear()
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const newName = `${day}-${month}-${year} ${hours}:${minutes}`
+
+    try {
+      // Create new duel room
+      // We keep the same players in the same slots usually, or maybe swap? 
+      // The requirement didn't specify, but typically rematch implies same setup.
+      // We will keep same player1 and player2.
+      
+      const newDuel = await db.insert(duelRooms).values({
+        name: newName,
+        player1Id: duel.player1Id,
+        player2Id: duel.player2Id,
+        status: 'ready', // Since both players are "in", it implies ready, although maybe just Open until joined?
+                         // Actually if we carry over players, they are effectively "in" the room data-wise,
+                         // but standard flow might require them to "join" again if we want to be strict.
+                         // However, for a seamless rematch, making them participants immediately is better.
+                         // Let's stick to the previous frontend logic which seemed to carry them over:
+                         // "player1Id: duel.player1Id, player2Id: duel.player2Id"
+        player1Note: duel.player1Note,
+        player2Note: duel.player2Note,
+      }).returning().get()
+
+      // Link old room to new room
+      await db.update(duelRooms)
+        .set({ rematchRoomId: newDuel.id })
+        .where(eq(duelRooms.id, id))
+        .run()
+
+      return { duel: newDuel }
+    } catch (e) {
+      console.error('Failed to create rematch:', e)
+      set.status = 500
+      return { error: 'Failed to create request' }
+    }
+  }, {
+    params: t.Object({ id: t.String() }),
+    body: t.Object({ userId: t.Number() })
+  })

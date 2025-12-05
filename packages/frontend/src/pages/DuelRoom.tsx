@@ -48,6 +48,7 @@ export default function DuelRoom() {
       setDuel(duel)
     } catch (err) {
       console.error('Failed to load duel', err)
+      setDuel(null)
     } finally {
       setLoading(false)
     }
@@ -219,26 +220,11 @@ export default function DuelRoom() {
   const handleRematch = async () => {
     if (!user || !duel) return
 
-    const getDefaultRoomName = () => {
-      const now = new Date()
-      const day = String(now.getDate()).padStart(2, '0')
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const year = now.getFullYear()
-      const hours = String(now.getHours()).padStart(2, '0')
-      const minutes = String(now.getMinutes()).padStart(2, '0')
-      return `${day}-${month}-${year} ${hours}:${minutes}`
-    }
-
     try {
-      const { duel: newDuel } = await api('/duels', {
+      const { duel: newDuel } = await api(`/duels/${id}/rematch`, {
         method: 'POST',
         body: JSON.stringify({
-          name: getDefaultRoomName(),
-          createdBy: user.id,
-          player1Id: duel.player1Id,
-          player2Id: duel.player2Id,
-          player1Note: duel.player1Note,
-          player2Note: duel.player2Note
+          userId: user.id
         })
       })
       navigate(`/duels/${newDuel.id}`)

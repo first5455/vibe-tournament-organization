@@ -61,5 +61,6 @@ export const duelRooms = sqliteTable('duel_rooms', {
   result: text('result'),
   player1Note: text('player1_note'),
   player2Note: text('player2_note'),
+  rematchRoomId: integer('rematch_room_id'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 })
