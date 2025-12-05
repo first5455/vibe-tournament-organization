@@ -112,23 +112,29 @@ export default function UserProfilePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Stats Cards */}
         <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-4 flex items-center justify-between">
-           <div>
+           <div className="space-y-1">
              <p className="text-sm text-zinc-400">Tournament Winrate</p>
              <p className="text-2xl font-bold text-white">
                {history.length > 0 
                  ? `${Math.round((history.filter(h => h.rank === 1).length / history.length) * 100)}%` 
                  : '-'}
              </p>
+             <p className="text-sm text-zinc-500">
+               {history.length} Played
+             </p>
            </div>
            <Trophy className="w-8 h-8 text-yellow-500" />
         </div>
         <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-4 flex items-center justify-between">
-           <div>
+           <div className="space-y-1">
              <p className="text-sm text-zinc-400">Duel Winrate</p>
-              <p className="text-2xl font-bold text-white">
+             <p className="text-2xl font-bold text-white">
                {duels.filter(d => d.status === 'completed').length > 0
                  ? `${Math.round((duels.filter(d => d.winnerId === user.id).length / duels.filter(d => d.status === 'completed').length) * 100)}%`
                  : '-'}
+             </p>
+             <p className="text-sm text-zinc-500">
+               {duels.filter(d => d.status === 'completed').length} Played
              </p>
            </div>
            <Swords className="w-8 h-8 text-red-500" />
