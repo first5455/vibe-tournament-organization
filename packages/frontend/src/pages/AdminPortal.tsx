@@ -48,6 +48,12 @@ export default function AdminPortal() {
     player2Id: 0 as number | null,
     status: 'open'
   })
+  const [createDuelOpen, setCreateDuelOpen] = useState(false)
+  const [createDuelForm, setCreateDuelForm] = useState({
+    name: '',
+    player1Id: 0 as number | null,
+    player2Id: 0 as number | null
+  })
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -271,6 +277,42 @@ export default function AdminPortal() {
         })
       })
       setEditDuelOpen(false)
+      loadData()
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
+  const handleCreateDuel = async () => {
+    if (!createDuelForm.player1Id) {
+      alert('Player 1 is required')
+      return
+    }
+
+    const getDefaultRoomName = () => {
+      const now = new Date()
+      const day = String(now.getDate()).padStart(2, '0')
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const year = now.getFullYear()
+      const hours = String(now.getHours()).padStart(2, '0')
+      const minutes = String(now.getMinutes()).padStart(2, '0')
+      return `${day}-${month}-${year} ${hours}:${minutes}`
+    }
+
+    const roomName = createDuelForm.name.trim() || getDefaultRoomName()
+
+    try {
+      await api('/duels', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: roomName,
+          createdBy: user?.id,
+          player1Id: createDuelForm.player1Id,
+          player2Id: createDuelForm.player2Id || undefined
+        })
+      })
+      setCreateDuelOpen(false)
+      setCreateDuelForm({ name: '', player1Id: null, player2Id: null })
       loadData()
     } catch (err: any) {
       alert(err.message)
@@ -536,6 +578,16 @@ export default function AdminPortal() {
 
       {activeTab === 'duels' && (
         <div className="w-full">
+          <div className="flex justify-end mb-4">
+            <Button onClick={() => {
+              setCreateDuelForm({
+                name: '',
+                player1Id: null,
+                player2Id: null
+              })
+              setCreateDuelOpen(true)
+            }}>Create Duel Room</Button>
+          </div>
           <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
             <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
             <thead className="bg-zinc-900 text-zinc-200">
@@ -715,6 +767,52 @@ export default function AdminPortal() {
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="ghost" onClick={() => setEditDuelOpen(false)}>Cancel</Button>
               <Button onClick={handleSaveDuel}>Save Changes</Button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Create Duel Dialog */}
+      {createDuelOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg w-full max-w-md space-y-4">
+            <h3 className="text-lg font-bold text-white">Create Duel Room</h3>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Room Name (Optional)</label>
+              <input 
+                type="text" 
+                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
+                placeholder="Default: DD-MM-YYYY HH:mm"
+                value={createDuelForm.name}
+                onChange={e => setCreateDuelForm({...createDuelForm, name: e.target.value})}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Player 1 (Required)</label>
+              <UserSearchSelect 
+                onSelect={(user) => setCreateDuelForm({...createDuelForm, player1Id: user.id})}
+                placeholder="Search for Player 1..."
+              />
+              {createDuelForm.player1Id && (
+                <div className="text-xs text-green-400">Selected ID: {createDuelForm.player1Id}</div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Player 2 (Optional)</label>
+              <UserSearchSelect 
+                onSelect={(user) => setCreateDuelForm({...createDuelForm, player2Id: user.id})}
+                placeholder="Search for Player 2..."
+              />
+              {createDuelForm.player2Id && (
+                <div className="text-xs text-green-400">Selected ID: {createDuelForm.player2Id}</div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="ghost" onClick={() => setCreateDuelOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateDuel} disabled={!createDuelForm.player1Id}>Create Room</Button>
             </div>
           </div>
         </div>
