@@ -254,7 +254,10 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       set.status = 400
       return { error: 'Duel is not active' }
     }
-    if (duel.player1Id !== reportedBy && duel.player2Id !== reportedBy) {
+    const reporter = await db.select().from(users).where(eq(users.id, reportedBy)).get()
+    const isAdmin = reporter?.role === 'admin'
+
+    if (duel.player1Id !== reportedBy && duel.player2Id !== reportedBy && !isAdmin) {
       set.status = 403
       return { error: 'Unauthorized' }
     }
