@@ -10,6 +10,7 @@ import { useRefresh } from '../hooks/useRefresh'
 import { useFocusRevalidate } from '../hooks/useFocusRevalidate'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { UserSearchSelect } from '../components/UserSearchSelect'
+import { formatDate } from '../lib/utils'
 
 interface Player {
   id: number
@@ -18,6 +19,7 @@ interface Player {
   avatarUrl?: string
   color?: string
   mmr: number
+  rank?: number
 }
 
 interface Duel {
@@ -260,7 +262,7 @@ export default function DuelRoom() {
             }`}>
               {duel.status}
             </span>
-            <span className="text-zinc-500 text-sm">Created {new Date(duel.createdAt).toLocaleDateString()}</span>
+            <span className="text-zinc-500 text-sm">Created {formatDate(duel.createdAt)}</span>
             <Button 
               variant="ghost" 
               size="icon" 
@@ -302,7 +304,10 @@ export default function DuelRoom() {
           <UserAvatar username={duel.player1?.username} displayName={duel.player1?.displayName} avatarUrl={duel.player1?.avatarUrl} size="lg" />
           <div className="text-center">
             <UserLabel username={duel.player1?.username} displayName={duel.player1?.displayName} color={duel.player1?.color} userId={duel.player1?.id} className="text-xl" />
-            <div className="text-zinc-500 text-sm mt-1">MMR: {duel.player1?.mmr}</div>
+            <div className="text-zinc-500 text-sm mt-1">
+              {duel.player1?.rank && <span className="text-zinc-400 mr-2">#{duel.player1.rank} •</span>}
+              MMR: {duel.player1?.mmr}
+            </div>
           </div>
           {duel.status === 'active' && (isParticipant || isAdmin) && (
             <Button 
@@ -353,8 +358,11 @@ export default function DuelRoom() {
             <>
               <UserAvatar username={duel.player2.username} displayName={duel.player2.displayName} avatarUrl={duel.player2.avatarUrl} size="lg" />
               <div className="text-center">
-                <UserLabel username={duel.player2.username} displayName={duel.player2.displayName} color={duel.player2.color} userId={duel.player2.id} className="text-xl" />
-                <div className="text-zinc-500 text-sm mt-1">MMR: {duel.player2.mmr}</div>
+              <UserLabel username={duel.player2.username} displayName={duel.player2.displayName} color={duel.player2.color} userId={duel.player2.id} className="text-xl" />
+                <div className="text-zinc-500 text-sm mt-1">
+                  {duel.player2?.rank && <span className="text-zinc-400 mr-2">#{duel.player2.rank} •</span>}
+                  MMR: {duel.player2.mmr}
+                </div>
               </div>
               {duel.status === 'active' && (isParticipant || isAdmin) && (
                 <Button 

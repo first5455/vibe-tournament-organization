@@ -2,6 +2,8 @@ import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { users, participants, tournaments, duelRooms, matches } from '../db/schema'
 import { eq, desc, sql, or } from 'drizzle-orm'
+import { getRank } from '../utils'
+
 
 export const userRoutes = new Elysia({ prefix: '/users' })
   .get('/search', async ({ query }) => {
@@ -60,7 +62,10 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       return { error: 'User not found' }
     }
 
-    return { user }
+    const rank = await getRank(user.mmr)
+
+    return { user: { ...user, rank } }
+
   }, {
     params: t.Object({
       id: t.String()

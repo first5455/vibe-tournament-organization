@@ -2,6 +2,8 @@ import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { duelRooms, users } from '../db/schema'
 import { eq, and, or, desc, aliasedTable } from 'drizzle-orm'
+import { getRank } from '../utils'
+
 
 export const duelRoutes = new Elysia({ prefix: '/duels' })
   .get('/', async ({ query }) => {
@@ -94,13 +96,16 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
 
     // Fetch player details
     const p1 = await db.select().from(users).where(eq(users.id, duel.player1Id)).get()
+    const p1Rank = p1 ? await getRank(p1.mmr) : null
+
     const p2 = duel.player2Id ? await db.select().from(users).where(eq(users.id, duel.player2Id)).get() : null
+    const p2Rank = p2 ? await getRank(p2.mmr) : null
 
     return { 
       duel: {
         ...duel,
-        player1: p1 ? { id: p1.id, username: p1.username, displayName: p1.displayName, avatarUrl: p1.avatarUrl, color: p1.color, mmr: p1.mmr } : null,
-        player2: p2 ? { id: p2.id, username: p2.username, displayName: p2.displayName, avatarUrl: p2.avatarUrl, color: p2.color, mmr: p2.mmr } : null,
+        player1: p1 ? { id: p1.id, username: p1.username, displayName: p1.displayName, avatarUrl: p1.avatarUrl, color: p1.color, mmr: p1.mmr, rank: p1Rank } : null,
+        player2: p2 ? { id: p2.id, username: p2.username, displayName: p2.displayName, avatarUrl: p2.avatarUrl, color: p2.color, mmr: p2.mmr, rank: p2Rank } : null,
       }
     }
   }, {
@@ -472,12 +477,26 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     }
 
     // Determine basic new room name
+    // Determine basic new room name based on Thailand time
     const now = new Date()
-    const day = String(now.getDate()).padStart(2, '0')
-    const month = String(now.getMonth() + 1).padStart(2, '0')
-    const year = now.getFullYear()
-    const hours = String(now.getHours()).padStart(2, '0')
-    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }
+    
+    const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(now)
+    const getPart = (type: Intl.DateTimeFormatPartTypes) => parts.find(p => p.type === type)?.value || '00'
+    
+    const day = getPart('day')
+    const month = getPart('month')
+    const year = getPart('year')
+    const hours = getPart('hour')
+    const minutes = getPart('minute')
     const newName = `${day}-${month}-${year} ${hours}:${minutes}`
 
     try {
