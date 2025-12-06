@@ -18,6 +18,32 @@ const app = new Elysia()
   .use(matchRoutes)
   .use(adminRoutes)
   .use(duelRoutes)
+  .get('/time', () => {
+    const now = new Date()
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }
+    
+    const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(now)
+    const getPart = (type: Intl.DateTimeFormatPartTypes) => parts.find(p => p.type === type)?.value || '00'
+    
+    const day = getPart('day')
+    const month = getPart('month')
+    const year = getPart('year')
+    const hours = getPart('hour')
+    const minutes = getPart('minute')
+    
+    return {
+      iso: now.toISOString(),
+      formatted: `${day}-${month}-${year} ${hours}:${minutes}`
+    }
+  })
   .ws('/ws', {
     open(ws) {
       console.log('WS Connected')

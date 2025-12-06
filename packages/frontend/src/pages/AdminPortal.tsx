@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu'
 import { UserSearchSelect } from '../components/UserSearchSelect'
+import { formatDate } from '../lib/utils'
 
 interface User {
   id: number
@@ -289,19 +290,14 @@ export default function AdminPortal() {
       return
     }
 
-    const getDefaultRoomName = () => {
-      const now = new Date()
-      const day = String(now.getDate()).padStart(2, '0')
-      const month = String(now.getMonth() + 1).padStart(2, '0')
-      const year = now.getFullYear()
-      const hours = String(now.getHours()).padStart(2, '0')
-      const minutes = String(now.getMinutes()).padStart(2, '0')
-      return `${day}-${month}-${year} ${hours}:${minutes}`
-    }
-
-    const roomName = createDuelForm.name.trim() || getDefaultRoomName()
-
     try {
+      let roomName = createDuelForm.name.trim() 
+
+      if (!roomName) {
+        const timeRes = await api('/time')
+        roomName = timeRes.formatted
+      }
+
       await api('/duels', {
         method: 'POST',
         body: JSON.stringify({
@@ -429,7 +425,7 @@ export default function AdminPortal() {
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono">{u.mmr}</td>
-                  <td className="px-4 py-3">{new Date(u.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3">{formatDate(u.createdAt)}</td>
                   <td className="px-4 py-3 text-right">
                     {editingColorId === u.id ? (
                       <div className="flex items-center justify-end gap-1">

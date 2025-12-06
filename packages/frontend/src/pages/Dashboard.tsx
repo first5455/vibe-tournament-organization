@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useRefresh } from '../hooks/useRefresh'
+import { formatDate } from '../lib/utils'
 
 interface Tournament {
   id: number
@@ -203,14 +204,14 @@ export default function Dashboard() {
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
                   {tournament.status === 'pending' ? (
-                    <span>Created: {new Date(tournament.createdAt).toLocaleDateString('en-GB')}</span>
+                    <span>Created: {formatDate(tournament.createdAt)}</span>
                   ) : (
                     <div className="flex flex-col gap-0.5">
                       {tournament.startDate && (
-                        <span>Started: {new Date(tournament.startDate).toLocaleDateString('en-GB')}</span>
+                        <span>Started: {formatDate(tournament.startDate)}</span>
                       )}
                       {tournament.endDate && (
-                        <span>Ended: {new Date(tournament.endDate).toLocaleDateString('en-GB')}</span>
+                        <span>Ended: {formatDate(tournament.endDate)}</span>
                       )}
                     </div>
                   )}

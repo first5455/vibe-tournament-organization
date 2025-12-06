@@ -7,6 +7,7 @@ import { Trophy, Users, Play, RefreshCw } from 'lucide-react'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useRefresh } from '../hooks/useRefresh'
+import { formatDate } from '../lib/utils'
 
 interface Participant {
   id: number
@@ -317,12 +318,12 @@ export default function TournamentView() {
             </span>
             {tournament.startDate && (
               <span className="text-xs text-zinc-500 border-l border-zinc-700 pl-4 ml-2">
-                Started: {new Date(tournament.startDate).toLocaleDateString('en-GB')}
+                Started: {formatDate(tournament.startDate)}
               </span>
             )}
             {tournament.endDate && (
               <span className="text-xs text-zinc-500">
-                • Finished: {new Date(tournament.endDate).toLocaleDateString('en-GB')}
+                • Finished: {formatDate(tournament.endDate)}
               </span>
             )}
             {tournament.createdByName && (

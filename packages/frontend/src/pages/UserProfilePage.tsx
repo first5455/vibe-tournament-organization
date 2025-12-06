@@ -7,6 +7,8 @@ import { UserLabel } from '../components/UserLabel'
 import { Button } from '../components/ui/button'
 import { Trophy, Swords, Calendar, MoreVertical } from 'lucide-react'
 import { ProfileSettingsDialog } from '../components/ProfileSettingsDialog'
+import { formatDate } from '../lib/utils'
+
 
 interface UserProfile {
   id: number
@@ -16,6 +18,7 @@ interface UserProfile {
   color?: string
   avatarUrl?: string
   createdAt: string
+  rank?: number
 }
 
 interface TournamentHistory {
@@ -99,28 +102,31 @@ export default function UserProfilePage() {
           <div className="flex items-center justify-center md:justify-start gap-4 text-zinc-400">
             <div className="flex items-center gap-2 bg-zinc-800/50 px-3 py-1 rounded-full">
               <Trophy className="w-4 h-4 text-yellow-500" />
-              <span className="font-medium text-white">{user.mmr} MMR</span>
+              <span className="font-medium text-white">
+                {user.rank && <span className="text-zinc-400 mr-2">#{user.rank} •</span>}
+                {user.mmr} MMR
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              <span>Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+              <span>Joined {formatDate(user.createdAt)}</span>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Stats Cards */}
         <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-4 flex items-center justify-between">
            <div className="space-y-1">
              <p className="text-sm text-zinc-400">Tournament Winrate</p>
              <p className="text-2xl font-bold text-white">
-               {history.length > 0 
-                 ? `${Math.round((history.filter(h => h.rank === 1).length / history.length) * 100)}%` 
+               {history.filter(h => h.status === 'completed').length > 0 
+                 ? `${Math.round((history.filter(h => h.status === 'completed' && h.rank === 1).length / history.filter(h => h.status === 'completed').length) * 100)}%` 
                  : '-'}
              </p>
              <p className="text-sm text-zinc-500">
-               {history.length} Played
+               {history.filter(h => h.status === 'completed').length} Played ({history.filter(h => h.status === 'completed' && h.rank === 1).length} Win - {history.filter(h => h.status === 'completed').length - history.filter(h => h.status === 'completed' && h.rank === 1).length} Loss)
              </p>
            </div>
            <Trophy className="w-8 h-8 text-yellow-500" />
@@ -130,14 +136,38 @@ export default function UserProfilePage() {
              <p className="text-sm text-zinc-400">Duel Winrate</p>
              <p className="text-2xl font-bold text-white">
                {duels.filter(d => d.status === 'completed').length > 0
-                 ? `${Math.round((duels.filter(d => d.winnerId === user.id).length / duels.filter(d => d.status === 'completed').length) * 100)}%`
+                 ? `${Math.round((duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length / duels.filter(d => d.status === 'completed').length) * 100)}%`
                  : '-'}
              </p>
              <p className="text-sm text-zinc-500">
-               {duels.filter(d => d.status === 'completed').length} Played
+               {duels.filter(d => d.status === 'completed').length} Played ({duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length} Win - {duels.filter(d => d.status === 'completed').length - duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length} Loss)
              </p>
            </div>
            <Swords className="w-8 h-8 text-red-500" />
+        </div>
+        <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-4 flex items-center justify-between">
+           <div className="space-y-1">
+             <p className="text-sm text-zinc-400">Daily Performance</p>
+             <p className="text-2xl font-bold text-white">
+               {(() => {
+                 const today = new Date().toLocaleDateString()
+                 const todaysDuels = duels.filter(d => new Date(d.createdAt).toLocaleDateString() === today && d.status === 'completed')
+                 if (todaysDuels.length === 0) return '-'
+                 const wins = todaysDuels.filter(d => d.winnerId === user.id).length
+                 return `${Math.round((wins / todaysDuels.length) * 100)}%`
+               })()}
+             </p>
+             <p className="text-sm text-zinc-500">
+               {(() => {
+                 const today = new Date().toLocaleDateString()
+                 const todaysDuels = duels.filter(d => new Date(d.createdAt).toLocaleDateString() === today && d.status === 'completed')
+                 const wins = todaysDuels.filter(d => d.winnerId === user.id).length
+                 const losses = todaysDuels.length - wins
+                 return `${todaysDuels.length} Played (${wins} Win - ${losses} Loss)`
+               })()}
+             </p>
+           </div>
+           <Calendar className="w-8 h-8 text-blue-500" />
         </div>
       </div>
 
@@ -165,7 +195,7 @@ export default function UserProfilePage() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm text-zinc-400">
-                      <span>{item.tournamentDate.startsWith('Started:') ? item.tournamentDate : `Date: ${new Date(item.tournamentDate).toLocaleDateString()}`}</span>
+                      <span>{item.tournamentDate.startsWith('Started:') ? item.tournamentDate : `Date: ${formatDate(item.tournamentDate)}`}</span>
                       <span>Score: {item.score}</span>
                     </div>
                     {item.note && (
@@ -221,7 +251,7 @@ export default function UserProfilePage() {
                             <span>{duel.opponent}</span>
                           )}
                         </div>
-                        <span className="text-zinc-500">{new Date(duel.createdAt).toLocaleDateString()}</span>
+                        <span className="text-zinc-500">{formatDate(duel.createdAt)}</span>
                       </div>
                       {/* Display notes if they exist */}
                       {(duel.player1Note || duel.player2Note) && (
