@@ -186,8 +186,12 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     }
 
     if (tournament.createdBy !== createdBy) {
-      set.status = 403
-      return { error: 'Unauthorized' }
+      // Check if admin
+      const requester = await db.select().from(users).where(eq(users.id, createdBy)).get()
+      if (!requester || requester.role !== 'admin') {
+        set.status = 403
+        return { error: 'Unauthorized' }
+      }
     }
 
     await db.update(tournaments)
@@ -213,15 +217,12 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       return { error: 'Tournament not found' }
     }
 
-    const requester = await db.select().from(users).where(eq(users.id, createdBy)).get()
-    if (!requester) {
-      set.status = 403
-      return { error: 'Unauthorized' }
-    }
-
-    if (tournament.createdBy !== createdBy && requester.role !== 'admin') {
-      set.status = 403
-      return { error: 'Unauthorized' }
+    if (tournament.createdBy !== createdBy) {
+      const requester = await db.select().from(users).where(eq(users.id, createdBy)).get()
+      if (!requester || requester.role !== 'admin') {
+        set.status = 403
+        return { error: 'Unauthorized' }
+      }
     }
 
     // Delete related data (cascade manually if needed, but sqlite might handle if configured, or just leave for now)
@@ -235,6 +236,56 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     params: t.Object({ id: t.String() }),
     body: t.Object({ createdBy: t.Number() })
   })
+  .post('/:id/participants', async ({ params, body, set }) => {
+    const tournamentId = parseInt(params.id)
+    const { userId, createdBy } = body
+
+    const tournament = await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).get()
+    if (!tournament) {
+      set.status = 404
+      return { error: 'Tournament not found' }
+    }
+
+    // Auth check (Owner or Admin)
+    if (tournament.createdBy !== createdBy) {
+      const requester = await db.select().from(users).where(eq(users.id, createdBy)).get()
+      if (!requester || requester.role !== 'admin') {
+        set.status = 403
+        return { error: 'Unauthorized' }
+      }
+    }
+
+    if (tournament.status !== 'pending') {
+      set.status = 400
+      return { error: 'Tournament already started or completed' }
+    }
+
+    // Check if user already joined
+    const existingParticipant = await db.select().from(participants)
+      .where(and(
+        eq(participants.tournamentId, tournamentId),
+        eq(participants.userId, userId)
+      ))
+      .get()
+
+    if (existingParticipant) {
+      set.status = 400
+      return { error: 'User already joined this tournament' }
+    }
+
+    await db.insert(participants).values({
+      tournamentId,
+      userId,
+    }).run()
+
+    return { success: true }
+  }, {
+    params: t.Object({ id: t.String() }),
+    body: t.Object({ 
+      userId: t.Number(),
+      createdBy: t.Number() 
+    })
+  })
   .delete('/:id/participants/:participantId', async ({ params, body, set }) => {
     const tournamentId = parseInt(params.id)
     const participantId = parseInt(params.participantId)
@@ -247,8 +298,11 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     }
 
     if (tournament.createdBy !== createdBy) {
-      set.status = 403
-      return { error: 'Unauthorized' }
+      const requester = await db.select().from(users).where(eq(users.id, createdBy)).get()
+      if (!requester || requester.role !== 'admin') {
+        set.status = 403
+        return { error: 'Unauthorized' }
+      }
     }
 
     // If tournament is active, maybe we should just drop them? 

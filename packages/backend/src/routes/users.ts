@@ -29,6 +29,43 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       q: t.String()
     })
   })
+  .post('/', async ({ body, set }) => {
+    const { requesterId, username, password, displayName } = body
+    
+    // Auth check
+    const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
+    if (!requester || requester.role !== 'admin') {
+      set.status = 403
+      return { error: 'Forbidden' }
+    }
+
+    // Check existing
+    const existing = await db.select().from(users).where(eq(users.username, username)).get()
+    if (existing) {
+      set.status = 400
+      return { error: 'Username already taken' }
+    }
+
+    const passwordHash = await Bun.password.hash(password || 'password') // Default password if not provided, though generic
+    
+    const result = await db.insert(users).values({
+      username,
+      displayName: displayName || username,
+      passwordHash,
+      role: 'user', // Default role
+      color: '#3f3f46',
+      mmr: 1000
+    }).returning().get()
+
+    return { user: result }
+  }, {
+    body: t.Object({
+      requesterId: t.Number(),
+      username: t.String(),
+      password: t.Optional(t.String()),
+      displayName: t.Optional(t.String())
+    })
+  })
   .get('/leaderboard', async () => {
     return await db.select({
       id: users.id,

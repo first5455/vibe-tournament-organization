@@ -8,6 +8,8 @@ import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useRefresh } from '../hooks/useRefresh'
 import { formatDate } from '../lib/utils'
+import { UserSearchSelect } from '../components/UserSearchSelect'
+import { CreateUserDialog } from '../components/CreateUserDialog'
 
 interface Participant {
   id: number
@@ -195,6 +197,8 @@ export default function TournamentView() {
   const [editName, setEditName] = useState('')
   const [guestName, setGuestName] = useState('')
   const [showGuestInput, setShowGuestInput] = useState(false)
+  const [showAddParticipant, setShowAddParticipant] = useState(false)
+  const [showCreateUser, setShowCreateUser] = useState(false)
   
   // Score Reporting Modal State
   const [reportingMatch, setReportingMatch] = useState<Match | null>(null)
@@ -249,6 +253,22 @@ export default function TournamentView() {
     } catch (err: any) {
       console.error('Failed to add guest:', err)
       alert(`Failed to add guest: ${err.message || 'Unknown error'}`)
+    }
+  }
+
+  const addParticipant = async (selectedUser: { id: number }) => {
+    try {
+      if (!user?.id) throw new Error('User not authenticated')
+
+      await api(`/tournaments/${id}/participants`, {
+        method: 'POST',
+        body: JSON.stringify({ userId: selectedUser.id, createdBy: user.id })
+      })
+      setShowAddParticipant(false)
+      loadTournament()
+    } catch (err: any) {
+      console.error('Failed to add participant:', err)
+      alert(`Failed to add participant: ${err.message || 'Unknown error'}`)
     }
   }
 
@@ -407,6 +427,9 @@ export default function TournamentView() {
               )}
               {isAdmin && (
                 <>
+                  <Button onClick={() => setShowAddParticipant(!showAddParticipant)} variant="outline">
+                    Add Player
+                  </Button>
                   <Button onClick={() => setShowGuestInput(!showGuestInput)} variant="outline">
                     Add Guest
                   </Button>
@@ -420,6 +443,33 @@ export default function TournamentView() {
           )}
         </div>
       </div>
+
+      {showAddParticipant && (
+        <div className="p-4 bg-zinc-900/50 rounded-lg border border-zinc-800 space-y-2">
+          <div className="flex justify-between items-center">
+             <label className="text-sm font-medium text-zinc-400">Add Registered User</label>
+             <button 
+               onClick={() => setShowCreateUser(true)} 
+               className="text-xs text-indigo-400 hover:text-indigo-300 hover:underline"
+             >
+               Create New User
+             </button>
+          </div>
+          <UserSearchSelect 
+            onSelect={addParticipant}
+            placeholder="Search for user..."
+          />
+        </div>
+      )}
+
+      <CreateUserDialog 
+        isOpen={showCreateUser}
+        onClose={() => setShowCreateUser(false)}
+        onSuccess={(newUser) => {
+           addParticipant(newUser)
+        }}
+        requesterId={user?.id || 0}
+      />
 
       {showGuestInput && (
         <div className="flex items-center gap-2 p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
