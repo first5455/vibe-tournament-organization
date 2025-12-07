@@ -502,6 +502,13 @@ export default function AdminPortal() {
 
       {activeTab === 'users' && (
         <div className="w-full">
+          <div className="flex justify-between items-center mb-4">
+             <h2 className="text-xl font-bold text-white">Users</h2>
+             <Button onClick={() => setShowCreateUser(true)}>
+               <UserPlus className="mr-2 h-4 w-4" />
+               Create User
+             </Button>
+          </div>
           <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
             <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
             <thead className="bg-zinc-900 text-zinc-200">
