@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useNavigate, Link } from 'react-router-dom'
-import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2 } from 'lucide-react'
+import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2, Users, UserPlus } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu'
 import { UserSearchSelect } from '../components/UserSearchSelect'
+import { CreateUserDialog } from '../components/CreateUserDialog'
 import { formatDate } from '../lib/utils'
 
 interface User {
@@ -55,6 +56,21 @@ export default function AdminPortal() {
     player1Id: 0 as number | null,
     player2Id: 0 as number | null
   })
+  
+  // Tournament Management State
+  const [editingTournament, setEditingTournament] = useState<any>(null)
+  const [editTournamentOpen, setEditTournamentOpen] = useState(false)
+  const [editTournamentForm, setEditTournamentForm] = useState({
+    name: '',
+    status: 'pending' as 'pending' | 'active' | 'completed'
+  })
+  
+  const [managingParticipants, setManagingParticipants] = useState<any>(null)
+  const [participantsOpen, setParticipantsOpen] = useState(false)
+  const [currentParticipants, setCurrentParticipants] = useState<any[]>([])
+  const [showAddParticipant, setShowAddParticipant] = useState(false)
+  const [showCreateUser, setShowCreateUser] = useState(false)
+
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -315,6 +331,102 @@ export default function AdminPortal() {
     }
   }
 
+  const openEditTournament = (t: any) => {
+    setEditingTournament(t)
+    setEditTournamentForm({
+      name: t.name,
+      status: t.status
+    })
+    setEditTournamentOpen(true)
+  }
+
+  const saveTournament = async () => {
+    if (!editingTournament) return
+    try {
+      await api(`/tournaments/${editingTournament.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ 
+          name: editTournamentForm.name,
+          // Status update might need separate endpoint if it has complex logic, but for now assuming simple update or manual db update via same put if supported, 
+          // actually existing PUT only updates name. We might need to allow status update for admin.
+          // Let's modify the frontend to just update name for now, or if we want status, we need to check backend.
+          // Backend PUT /:id only updates name.
+          // To update status, we usually use start/stop endpoints. 
+          // But as admin we might want to force status.
+          // Let's stick to name for now to be safe, or just name.
+          createdBy: user?.id
+        })
+      })
+      setEditTournamentOpen(false)
+      loadData()
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
+  const openManageParticipants = async (t: any) => {
+    setManagingParticipants(t)
+    setParticipantsOpen(true)
+    loadParticipants(t.id)
+  }
+
+  const loadParticipants = async (tournamentId: number) => {
+    try {
+      const data = await api(`/tournaments/${tournamentId}/participants`)
+      setCurrentParticipants(data)
+    } catch (err: any) {
+      console.error(err)
+    }
+  }
+
+  const removeParticipant = async (participantId: number) => {
+    if (!confirm('Remove this participant?')) return
+    if (!managingParticipants) return
+
+    try {
+      await api(`/tournaments/${managingParticipants.id}/participants/${participantId}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ createdBy: user?.id })
+      })
+      loadParticipants(managingParticipants.id)
+      loadData() // To update participant count
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
+  const addRegisteredParticipant = async (userToAdd: { id: number }) => {
+    if (!managingParticipants) return
+    try {
+      await api(`/tournaments/${managingParticipants.id}/participants`, {
+        method: 'POST',
+        body: JSON.stringify({ userId: userToAdd.id, createdBy: user?.id })
+      })
+      setShowAddParticipant(false)
+      loadParticipants(managingParticipants.id)
+      loadData()
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
+  const addGuestParticipant = async () => {
+    if (!managingParticipants) return
+    const name = prompt('Enter guest name:')
+    if (!name) return
+
+    try {
+      await api(`/tournaments/${managingParticipants.id}/guests`, {
+        method: 'POST',
+        body: JSON.stringify({ name, createdBy: user?.id })
+      })
+      loadParticipants(managingParticipants.id)
+      loadData()
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
+
   if (loading && !users.length && !tournaments.length && !duels.length) return <div className="p-8 text-center text-zinc-500">Loading...</div>
 
   return (
@@ -549,7 +661,25 @@ export default function AdminPortal() {
                     </div>
                   </td>
                   <td className="px-4 py-3">{t.participantCount}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-zinc-400 hover:text-white"
+                      title="Edit Tournament"
+                      onClick={() => openEditTournament(t)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-zinc-400 hover:text-white"
+                      title="Manage Participants"
+                      onClick={() => openManageParticipants(t)}
+                    >
+                      <Users className="h-4 w-4" />
+                    </Button>
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -813,6 +943,116 @@ export default function AdminPortal() {
           </div>
         </div>
       )}
+      {/* Edit Tournament Dialog */}
+      {editTournamentOpen && editingTournament && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg w-full max-w-md space-y-4">
+            <h3 className="text-lg font-bold text-white">Edit Tournament: {editingTournament.name}</h3>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Name</label>
+              <input 
+                type="text" 
+                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
+                value={editTournamentForm.name}
+                onChange={e => setEditTournamentForm({...editTournamentForm, name: e.target.value})}
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="ghost" onClick={() => setEditTournamentOpen(false)}>Cancel</Button>
+              <Button onClick={saveTournament}>Save Changes</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Participants Dialog */}
+      {participantsOpen && managingParticipants && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg w-full max-w-2xl space-y-4 max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Participants: {managingParticipants.name}</h3>
+              <Button variant="ghost" size="icon" onClick={() => setParticipantsOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                 onClick={() => setShowAddParticipant(!showAddParticipant)} 
+                 variant={showAddParticipant ? "secondary" : "outline"}
+                 size="sm"
+              >
+                Add Registered User
+              </Button>
+              <Button onClick={addGuestParticipant} variant="outline" size="sm">
+                Add Guest
+              </Button>
+            </div>
+
+            {showAddParticipant && (
+              <div className="p-4 bg-zinc-950/50 rounded border border-zinc-800 space-y-2">
+                <label className="text-sm font-medium text-zinc-400">Search User</label>
+                <UserSearchSelect 
+                  onSelect={addRegisteredParticipant} 
+                  placeholder="Search user to add..."
+                />
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto border rounded border-zinc-800">
+              <table className="w-full text-left text-sm text-zinc-400">
+                <thead className="bg-zinc-950 text-zinc-200 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-2 font-medium">User</th>
+                    <th className="px-4 py-2 font-medium">Status</th>
+                    <th className="px-4 py-2 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {currentParticipants.map(p => (
+                    <tr key={p.id} className="hover:bg-zinc-900/50">
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <UserAvatar username={p.username || p.guestName} displayName={p.displayName} avatarUrl={p.userAvatarUrl} size="sm" className="h-6 w-6" />
+                          <UserLabel username={p.username || p.guestName} displayName={p.displayName} color={p.userColor} />
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">
+                        {p.dropped ? <span className="text-red-500">Dropped</span> : <span className="text-green-500">Active</span>}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          onClick={() => removeParticipant(p.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {currentParticipants.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-4 py-8 text-center text-zinc-500">No participants</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+EMPTY
+
+      <CreateUserDialog 
+        isOpen={showCreateUser} 
+        onClose={() => setShowCreateUser(false)} 
+        onSuccess={() => loadData()}
+        requesterId={user?.id || 0}
+      />
     </div>
   )
 }
