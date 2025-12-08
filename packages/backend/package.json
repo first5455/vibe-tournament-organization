@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "module": "src/index.ts",
-  "version": "0.5.0.1",
+  "version": "0.5.1",
   "license": "WTFPL",
   "type": "module",
   "scripts": {
