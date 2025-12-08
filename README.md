@@ -88,3 +88,7 @@ vibe-tournament-organization/
     bun run dev
     ```
     The application will be available at `http://localhost:5173`.
+
+## 📄 License
+
+This project is licensed under the **WTFPL** (Do What The Fuck You Want To Public License) - see the [LICENSE](LICENSE) file for details.

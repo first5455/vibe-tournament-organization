@@ -1,6 +1,8 @@
 {
   "name": "backend",
   "module": "src/index.ts",
+  "version": "0.5.0",
+  "license": "WTFPL",
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
