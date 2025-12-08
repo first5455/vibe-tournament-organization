@@ -32,6 +32,8 @@ interface Match {
   winnerId: number | null
   result: string | null
   isBye: boolean
+  player1MmrChange?: number | null
+  player2MmrChange?: number | null
 }
 
 interface Tournament {
@@ -604,9 +606,16 @@ export default function TournamentView() {
                               userId={p1?.userId || undefined}
                             />
                             {match.result && (
-                              <span className={`text-xs px-1.5 py-0.5 rounded ${match.winnerId === match.player1Id ? 'bg-green-900/30 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
-                                {match.winnerId === match.player1Id ? 'Win' : 'Lose'}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className={`text-xs px-1.5 py-0.5 rounded ${match.winnerId === match.player1Id ? 'bg-green-900/30 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
+                                  {match.winnerId === match.player1Id ? 'Win' : 'Lose'}
+                                </span>
+                                {match.player1MmrChange != null && (
+                                  <span className={`text-xs font-mono ml-1 ${match.player1MmrChange > 0 ? 'text-green-500' : match.player1MmrChange < 0 ? 'text-red-500' : 'text-zinc-500'}`}>
+                                    {match.player1MmrChange > 0 ? '+' : ''}{match.player1MmrChange}
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
                           <div className="text-zinc-600 text-xs">vs</div>
@@ -626,9 +635,16 @@ export default function TournamentView() {
                                   userId={p2?.userId || undefined}
                                 />
                                 {match.result && (
-                                  <span className={`text-xs px-1.5 py-0.5 rounded ${match.winnerId === match.player2Id ? 'bg-green-900/30 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
-                                    {match.winnerId === match.player2Id ? 'Win' : 'Lose'}
-                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <span className={`text-xs px-1.5 py-0.5 rounded ${match.winnerId === match.player2Id ? 'bg-green-900/30 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
+                                      {match.winnerId === match.player2Id ? 'Win' : 'Lose'}
+                                    </span>
+                                    {match.player2MmrChange != null && (
+                                      <span className={`text-xs font-mono ml-1 ${match.player2MmrChange > 0 ? 'text-green-500' : match.player2MmrChange < 0 ? 'text-red-500' : 'text-zinc-500'}`}>
+                                        {match.player2MmrChange > 0 ? '+' : ''}{match.player2MmrChange}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </>
                             )}

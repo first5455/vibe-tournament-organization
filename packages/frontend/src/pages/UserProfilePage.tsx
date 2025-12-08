@@ -44,6 +44,8 @@ interface DuelHistory {
   player2Id?: number
   player1Note?: string
   player2Note?: string
+  player1MmrChange?: number | null
+  player2MmrChange?: number | null
 }
 
 export default function UserProfilePage() {
@@ -225,20 +227,29 @@ export default function UserProfilePage() {
                   const isWinner = duel.winnerId === user.id
                   const isDraw = !duel.winnerId && duel.status === 'completed'
                   
+                  const mmrChange = user.id === duel.player1Id ? duel.player1MmrChange : duel.player2MmrChange
+
                   return (
                     <div key={duel.id} className="p-4 hover:bg-white/5 transition-colors">
                       <div className="flex justify-between items-center mb-2">
                         <Link to={`/duels/${duel.id}`} className="font-medium text-white hover:underline">
                           {duel.name}
                         </Link>
-                        <span className={`text-xs px-1.5 py-0.5 rounded uppercase font-bold ${
-                          duel.status !== 'completed' ? 'bg-zinc-800 text-zinc-500' :
-                          isWinner ? 'bg-green-500/20 text-green-400' :
-                          isDraw ? 'bg-zinc-700 text-zinc-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
-                          {duel.status !== 'completed' ? duel.status : isWinner ? 'WIN' : isDraw ? 'DRAW' : 'LOSS'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {mmrChange != null && (
+                            <span className={`text-xs font-mono font-bold ${mmrChange > 0 ? 'text-green-500' : mmrChange < 0 ? 'text-red-500' : 'text-zinc-500'}`}>
+                              {mmrChange > 0 ? '+' : ''}{mmrChange}
+                            </span>
+                          )}
+                          <span className={`text-xs px-1.5 py-0.5 rounded uppercase font-bold ${
+                            duel.status !== 'completed' ? 'bg-zinc-800 text-zinc-500' :
+                            isWinner ? 'bg-green-500/20 text-green-400' :
+                            isDraw ? 'bg-zinc-700 text-zinc-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            {duel.status !== 'completed' ? duel.status : isWinner ? 'WIN' : isDraw ? 'DRAW' : 'LOSS'}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <div className="flex items-center gap-1 text-zinc-400">

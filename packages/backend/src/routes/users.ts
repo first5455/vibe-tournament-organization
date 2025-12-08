@@ -169,6 +169,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       player2Id: duelRooms.player2Id,
       player1Note: duelRooms.player1Note,
       player2Note: duelRooms.player2Note,
+      player1MmrChange: duelRooms.player1MmrChange,
+      player2MmrChange: duelRooms.player2MmrChange,
     })
     .from(duelRooms)
     .where(or(eq(duelRooms.player1Id, id), eq(duelRooms.player2Id, id)))
@@ -199,6 +201,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         player2Id: d.player2Id,
         player1Note: d.player1Note,
         player2Note: d.player2Note,
+        player1MmrChange: d.player1MmrChange,
+        player2MmrChange: d.player2MmrChange,
       }
     }))
 
