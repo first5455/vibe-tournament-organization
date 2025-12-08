@@ -161,7 +161,7 @@ export default function Layout() {
 
       <footer className="border-t border-white/10 bg-zinc-900/50 backdrop-blur-xl py-6 mt-auto">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-zinc-500 text-sm">
-          <p>© 2024 VibeTourney. Open Source under <a href="http://www.wtfpl.net/" target="_blank" rel="noreferrer" className="underline hover:text-white">WTFPL</a> License.</p>
+          <p>© 2025 VibeTourney. Open Source under <a href="http://www.wtfpl.net/" target="_blank" rel="noreferrer" className="underline hover:text-white">WTFPL</a> License.</p>
           <a 
             href="https://github.com/first5455/vibe-tournament-organization" 
             target="_blank" 
