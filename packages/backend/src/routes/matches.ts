@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { matches, participants, tournaments, users } from '../db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 
 export const matchRoutes = new Elysia({ prefix: '/matches' })
   .post('/:id/report', async ({ params, body, set }) => {
@@ -87,9 +87,18 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
 
         const newR1 = Math.round(r1 + K * (s1 - e1))
         const newR2 = Math.round(r2 + K * (s2 - e2))
+        
+        const change1 = newR1 - r1
+        const change2 = newR2 - r2
 
         await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
         await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+        
+        // Update match with MMR changes
+        await db.update(matches)
+          .set({ player1MmrChange: change1, player2MmrChange: change2 })
+          .where(eq(matches.id, matchId))
+          .run()
         
         // console.log(`MMR Update: ${user1.username} (${r1} -> ${newR1}), ${user2.username} (${r2} -> ${newR2})`)
       }
@@ -127,8 +136,63 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
     }
 
     // Update match result
+    const updateData: any = { winnerId, result }
+    
+    // Revert previous MMR if exists
+    if (match.player1MmrChange !== null && match.player2MmrChange !== null && match.player1Id && match.player2Id) {
+        // Revert for p1
+        const p1 = await db.select().from(participants).where(eq(participants.id, match.player1Id)).get()
+        if (p1?.userId) {
+             await db.run(sql`UPDATE users SET mmr = mmr - ${match.player1MmrChange} WHERE id = ${p1.userId}`)
+        }
+        // Revert for p2
+        const p2 = await db.select().from(participants).where(eq(participants.id, match.player2Id)).get()
+        if (p2?.userId) {
+             await db.run(sql`UPDATE users SET mmr = mmr - ${match.player2MmrChange} WHERE id = ${p2.userId}`)
+        }
+        
+        updateData.player1MmrChange = null
+        updateData.player2MmrChange = null
+    }
+
+    // Apply new MMR if valid result
+    // We need to fetch participants to get User IDs
+    if (match.player1Id && match.player2Id && winnerId !== undefined) {
+         const p1 = await db.select().from(participants).where(eq(participants.id, match.player1Id)).get()
+         const p2 = await db.select().from(participants).where(eq(participants.id, match.player2Id)).get()
+         
+         if (p1?.userId && p2?.userId) {
+            const user1 = await db.select().from(users).where(eq(users.id, p1.userId)).get()
+            const user2 = await db.select().from(users).where(eq(users.id, p2.userId)).get()
+            
+            if (user1 && user2) {
+                const K = 32
+                const r1 = user1.mmr
+                const r2 = user2.mmr
+        
+                const e1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400))
+                const e2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400))
+        
+                const s1 = winnerId === p1.id ? 1 : 0
+                const s2 = winnerId === p2.id ? 1 : 0
+        
+                const newR1 = Math.round(r1 + K * (s1 - e1))
+                const newR2 = Math.round(r2 + K * (s2 - e2))
+                
+                const change1 = newR1 - r1
+                const change2 = newR2 - r2
+                
+                await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
+                await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+                
+                updateData.player1MmrChange = change1
+                updateData.player2MmrChange = change2
+            }
+         }
+    }
+
     await db.update(matches)
-      .set({ winnerId, result })
+      .set(updateData)
       .where(eq(matches.id, matchId))
       .run()
 
@@ -166,7 +230,7 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
   }, {
     params: t.Object({ id: t.String() }),
     body: t.Object({
-      winnerId: t.Number(),
+      winnerId: t.Nullable(t.Number()),
       result: t.String(),
       createdBy: t.Number()
     })

@@ -497,9 +497,18 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
 
           const newR1 = Math.round(r1 + K * (s1 - e1))
           const newR2 = Math.round(r2 + K * (s2 - e2))
+          
+          const change1 = newR1 - r1
+          const change2 = newR2 - r2
 
           await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
           await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+          
+          // Store MMR Change
+          await db.update(matches)
+            .set({ player1MmrChange: change1, player2MmrChange: change2 })
+            .where(eq(matches.id, m.id))
+            .run()
           
           // console.log(`Auto-resolve MMR Update: ${user1.username} (${r1} -> ${newR1}), ${user2.username} (${r2} -> ${newR2})`)
         }
@@ -595,9 +604,18 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
 
           const newR1 = Math.round(r1 + K * (s1 - e1))
           const newR2 = Math.round(r2 + K * (s2 - e2))
+          
+          const change1 = newR1 - r1
+          const change2 = newR2 - r2
 
           await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
           await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+          
+          // Store MMR Change
+          await db.update(matches)
+            .set({ player1MmrChange: change1, player2MmrChange: change2 })
+            .where(eq(matches.id, m.id))
+            .run()
         }
       }
     }
