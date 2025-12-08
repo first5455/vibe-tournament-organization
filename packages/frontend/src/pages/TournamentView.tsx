@@ -153,16 +153,29 @@ export default function TournamentView() {
 
     const winnerId = s1 > s2 ? match.player1Id : (s2 > s1 ? match.player2Id : null)
 
+    // Check if updating existing result
+    const isUpdate = !!match.result
+
     try {
-      await api(`/matches/${match.id}/report`, {
-        method: 'POST',
-        body: JSON.stringify({
-          player1Score: s1,
-          player2Score: s2,
-          winnerId,
-          result: `${s1}-${s2}`,
-          reportedBy: user.id
-        })
+      const url = isUpdate ? `/matches/${match.id}` : `/matches/${match.id}/report`
+      const method = isUpdate ? 'PUT' : 'POST'
+
+      const body: any = {
+        winnerId,
+        result: `${s1}-${s2}`,
+      }
+
+      if (isUpdate) {
+        body.createdBy = user.id // PUT expects createdBy (admin check)
+      } else {
+        body.player1Score = s1
+        body.player2Score = s2
+        body.reportedBy = user.id
+      }
+
+      await api(url, {
+        method,
+        body: JSON.stringify(body)
       })
       loadTournament()
     } catch (e: any) {

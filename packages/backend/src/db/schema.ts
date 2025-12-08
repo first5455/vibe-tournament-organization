@@ -48,6 +48,8 @@ export const matches = sqliteTable('matches', {
   winnerId: integer('winner_id').references(() => participants.id), // Reference participant
   result: text('result'), // e.g. "2-0", "1-1"
   isBye: integer('is_bye', { mode: 'boolean' }).default(false).notNull(),
+  player1MmrChange: integer('player1_mmr_change'),
+  player2MmrChange: integer('player2_mmr_change'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 })
 
@@ -62,5 +64,7 @@ export const duelRooms = sqliteTable('duel_rooms', {
   player1Note: text('player1_note'),
   player2Note: text('player2_note'),
   rematchRoomId: integer('rematch_room_id'),
+  player1MmrChange: integer('player1_mmr_change'),
+  player2MmrChange: integer('player2_mmr_change'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 })

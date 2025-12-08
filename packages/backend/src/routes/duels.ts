@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { duelRooms, users } from '../db/schema'
-import { eq, and, or, desc, aliasedTable } from 'drizzle-orm'
+import { eq, and, or, desc, aliasedTable, sql } from 'drizzle-orm'
 import { getRank } from '../utils'
 
 
@@ -288,14 +288,23 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
         const e1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400))
         const e2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400))
 
-        const s1 = player1Score > player2Score ? 1 : (player1Score === player2Score ? 0.5 : 0)
-        const s2 = player2Score > player1Score ? 1 : (player1Score === player2Score ? 0.5 : 0)
+        const s1 = player1Score > player2Score ? 1 : 0 // Draw is 0
+        const s2 = player2Score > player1Score ? 1 : 0 // Draw is 0
 
         const newR1 = Math.round(r1 + K * (s1 - e1))
         const newR2 = Math.round(r2 + K * (s2 - e2))
+        
+        const change1 = newR1 - r1
+        const change2 = newR2 - r2
 
         await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
         await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+        
+        // Update duel with MMR changes
+        await db.update(duelRooms)
+          .set({ player1MmrChange: change1, player2MmrChange: change2 })
+          .where(eq(duelRooms.id, id))
+          .run()
       }
     }
 
@@ -379,12 +388,50 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       return { error: 'Duel is not completed' }
     }
 
+    // Revert previous MMR change if exists
+    if (duel.player1MmrChange !== null && duel.player2MmrChange !== null) {
+       await db.run(sql`UPDATE users SET mmr = mmr - ${duel.player1MmrChange} WHERE id = ${duel.player1Id}`)
+       await db.run(sql`UPDATE users SET mmr = mmr - ${duel.player2MmrChange} WHERE id = ${duel.player2Id}`)
+    }
+
     const winnerId = player1Score > player2Score ? duel.player1Id : (player2Score > player1Score ? duel.player2Id! : null)
+    
+    // Calculate new MMR
+    let change1 = 0
+    let change2 = 0
+    
+    if (duel.player2Id) {
+       const user1 = await db.select().from(users).where(eq(users.id, duel.player1Id)).get()
+       const user2 = await db.select().from(users).where(eq(users.id, duel.player2Id)).get()
+
+       if (user1 && user2) {
+          const K = 32
+          const r1 = user1.mmr
+          const r2 = user2.mmr
+
+          const e1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400))
+          const e2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400))
+
+          const s1 = player1Score > player2Score ? 1 : 0 // Draw (equal) is 0
+          const s2 = player2Score > player1Score ? 1 : 0 // Draw (equal) is 0
+
+          const newR1 = Math.round(r1 + K * (s1 - e1))
+          const newR2 = Math.round(r2 + K * (s2 - e2))
+          
+          change1 = newR1 - r1
+          change2 = newR2 - r2
+
+          await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
+          await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+       }
+    }
 
     await db.update(duelRooms)
       .set({ 
         result: `${player1Score}-${player2Score}`,
-        winnerId
+        winnerId,
+        player1MmrChange: change1,
+        player2MmrChange: change2
       })
       .where(eq(duelRooms.id, id))
       .run()
@@ -433,14 +480,55 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     if (player1Score !== undefined && player2Score !== undefined) {
       const currentStatus = status || duel.status
       if (currentStatus === 'completed') {
-        const p1 = player1Id || duel.player1Id
-        const p2 = player2Id || duel.player2Id
+        const p1Id = player1Id || duel.player1Id
+        const p2Id = player2Id || duel.player2Id
         
+        // 1. Revert previous MMR change if it exists
+        if (duel.player1MmrChange !== null && duel.player2MmrChange !== null) {
+            // Fetch current users to be safe, though we just need to update
+            // We revert by subtracting the change
+             await db.run(sql`UPDATE users SET mmr = mmr - ${duel.player1MmrChange} WHERE id = ${duel.player1Id}`)
+             await db.run(sql`UPDATE users SET mmr = mmr - ${duel.player2MmrChange} WHERE id = ${duel.player2Id}`)
+             
+             // Clear change in updateData until we recalc
+             updateData.player1MmrChange = null
+             updateData.player2MmrChange = null
+        }
+
         // Ensure p2 exists for a result
-        if (p2) {
-          const winnerId = player1Score > player2Score ? p1 : (player2Score > player1Score ? p2 : null)
+        if (p2Id) {
+          const winnerId = player1Score > player2Score ? p1Id : (player2Score > player1Score ? p2Id : null)
           updateData.result = `${player1Score}-${player2Score}`
           updateData.winnerId = winnerId
+          
+          // 2. Calculate New MMR
+          const user1 = await db.select().from(users).where(eq(users.id, p1Id)).get()
+          const user2 = await db.select().from(users).where(eq(users.id, p2Id)).get()
+
+          if (user1 && user2) {
+            const K = 32
+            const r1 = user1.mmr // This is now the "reverted" or "current" mmr which should be correct base
+            const r2 = user2.mmr
+
+            const e1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400))
+            const e2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400))
+
+            const s1 = player1Score > player2Score ? 1 : 0
+            const s2 = player2Score > player1Score ? 1 : 0
+
+            const newR1 = Math.round(r1 + K * (s1 - e1))
+            const newR2 = Math.round(r2 + K * (s2 - e2))
+            
+            const change1 = newR1 - r1
+            const change2 = newR2 - r2
+            
+            // Apply new MMR
+            await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
+            await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+            
+            updateData.player1MmrChange = change1
+            updateData.player2MmrChange = change2
+          }
         }
       }
     }
