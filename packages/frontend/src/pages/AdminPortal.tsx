@@ -844,6 +844,7 @@ export default function AdminPortal() {
               <UserSearchSelect 
                 onSelect={(user) => setEditDuelForm({...editDuelForm, player1Id: user.id})}
                 placeholder="Search to change Player 1..."
+                initialValue={editingDuel.player1DisplayName || editingDuel.player1Name}
               />
             </div>
 
@@ -855,6 +856,7 @@ export default function AdminPortal() {
               <UserSearchSelect 
                 onSelect={(user) => setEditDuelForm({...editDuelForm, player2Id: user.id})}
                 placeholder="Search to change Player 2..."
+                initialValue={editingDuel.player2DisplayName || editingDuel.player2Name || ''}
               />
             </div>
 

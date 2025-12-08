@@ -13,10 +13,11 @@ interface User {
 interface UserSearchSelectProps {
   onSelect: (user: User) => void
   placeholder?: string
+  initialValue?: string
 }
 
-export function UserSearchSelect({ onSelect, placeholder = "Search user..." }: UserSearchSelectProps) {
-  const [query, setQuery] = useState('')
+export function UserSearchSelect({ onSelect, placeholder = "Search user...", initialValue = "" }: UserSearchSelectProps) {
+  const [query, setQuery] = useState(initialValue)
   const [results, setResults] = useState<User[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
