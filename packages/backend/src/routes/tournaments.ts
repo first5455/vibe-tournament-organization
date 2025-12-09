@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { tournaments, participants, users, matches } from '../db/schema'
+import { tournaments, participants, users, matches, decks } from '../db/schema'
 import { eq, and, or, isNull, sql, getTableColumns } from 'drizzle-orm'
 
 export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
@@ -78,39 +78,12 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   }, {
     params: t.Object({ id: t.String() })
   })
-  .get('/:id/participants', async ({ params }) => {
-    const id = parseInt(params.id)
-    const result = await db.select({
-      id: participants.id,
-      userId: participants.userId,
-      guestName: participants.guestName,
-      score: participants.score,
-      dropped: participants.dropped,
-      note: participants.note,
-      username: users.username,
-      displayName: users.displayName,
-      userColor: users.color,
-      userAvatarUrl: users.avatarUrl
-    })
-    .from(participants)
-    .leftJoin(users, eq(participants.userId, users.id))
-    .where(eq(participants.tournamentId, id))
-    .all()
-    
-    return result
-  }, {
-    params: t.Object({ id: t.String() })
-  })
-  .get('/:id/matches', async ({ params }) => {
-    const id = parseInt(params.id)
-    return await db.select().from(matches).where(eq(matches.tournamentId, id)).all()
-  }, {
-    params: t.Object({ id: t.String() })
-  })
   .post('/:id/join', async ({ params, body, set }) => {
     const tournamentId = parseInt(params.id)
-    const { userId } = body
+    const { userId, deckId } = body
+    console.log('Join attempt:', { tournamentId, userId, deckId })
 
+    
     // Check if tournament exists and is pending
     const tournament = await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).get()
     if (!tournament) {
@@ -138,12 +111,17 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     await db.insert(participants).values({
       tournamentId,
       userId,
+      deckId
     }).run()
 
     return { success: true }
   }, {
     params: t.Object({ id: t.String() }),
-    body: t.Object({ userId: t.Number() })
+    body: t.Object({ 
+      userId: t.Number(),
+
+      deckId: t.Optional(t.Nullable(t.Number()))
+    })
   })
   .post('/:id/guests', async ({ params, body, set }) => {
     const tournamentId = parseInt(params.id)
@@ -236,9 +214,38 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     params: t.Object({ id: t.String() }),
     body: t.Object({ createdBy: t.Number() })
   })
+  .get('/:id/participants', async ({ params, set }) => {
+    const id = parseInt(params.id)
+    
+    const tournament = await db.select().from(tournaments).where(eq(tournaments.id, id)).get()
+    if (!tournament) {
+      set.status = 404
+      return { error: 'Tournament not found' }
+    }
+
+    const result = await db.select({
+      ...getTableColumns(participants),
+      username: users.username,
+      displayName: users.displayName,
+      userColor: users.color,
+      userAvatarUrl: users.avatarUrl,
+      deckName: decks.name,
+      deckColor: decks.color,
+      deckLink: decks.link
+    })
+    .from(participants)
+    .leftJoin(users, eq(participants.userId, users.id))
+    .leftJoin(decks, eq(participants.deckId, decks.id)) // Join with decks
+    .where(eq(participants.tournamentId, id))
+    .all()
+
+    return result
+  }, {
+    params: t.Object({ id: t.String() })
+  })
   .post('/:id/participants', async ({ params, body, set }) => {
     const tournamentId = parseInt(params.id)
-    const { userId, createdBy } = body
+    const { userId, createdBy, deckId } = body
 
     const tournament = await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).get()
     if (!tournament) {
@@ -276,6 +283,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     await db.insert(participants).values({
       tournamentId,
       userId,
+      deckId
     }).run()
 
     return { success: true }
@@ -283,7 +291,8 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     params: t.Object({ id: t.String() }),
     body: t.Object({ 
       userId: t.Number(),
-      createdBy: t.Number() 
+      createdBy: t.Number(),
+      deckId: t.Optional(t.Nullable(t.Number()))
     })
   })
   .delete('/:id/participants/:participantId', async ({ params, body, set }) => {
@@ -326,6 +335,18 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     params: t.Object({ id: t.String(), participantId: t.String() }),
     body: t.Object({ createdBy: t.Number() })
   })
+  .get('/:id/matches', async ({ params, set }) => {
+    const id = parseInt(params.id)
+    
+    const tournamentMatches = await db.select().from(matches)
+      .where(eq(matches.tournamentId, id))
+      .orderBy(matches.roundNumber)
+      .all()
+      
+    return tournamentMatches
+  }, {
+    params: t.Object({ id: t.String() })
+  })
   .put('/:id/participants/:participantId/note', async ({ params, body, set }) => {
     const tournamentId = parseInt(params.id)
     const participantId = parseInt(params.participantId)
@@ -366,6 +387,56 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     params: t.Object({ id: t.String(), participantId: t.String() }),
     body: t.Object({ 
       note: t.String(),
+      userId: t.Number()
+    })
+  })
+  .put('/:id/participants/:participantId', async ({ params, body, set }) => {
+    const tournamentId = parseInt(params.id)
+    const participantId = parseInt(params.participantId)
+    const { deckId, userId } = body
+
+    const tournament = await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).get()
+    if (!tournament) {
+      set.status = 404
+      return { error: 'Tournament not found' }
+    }
+
+    const participant = await db.select().from(participants).where(and(
+      eq(participants.id, participantId),
+      eq(participants.tournamentId, tournamentId)
+    )).get()
+
+    if (!participant) {
+      set.status = 404
+      return { error: 'Participant not found' }
+    }
+
+    // Permission Check
+    const requester = await db.select().from(users).where(eq(users.id, userId)).get()
+    const isAdmin = requester?.role === 'admin' || tournament.createdBy === userId
+    const isSelf = participant.userId === userId
+
+    if (!isAdmin && !isSelf) {
+      set.status = 403
+      return { error: 'Unauthorized' }
+    }
+
+    // Logic Check
+    if (!isAdmin && tournament.status !== 'pending') {
+      set.status = 400
+      return { error: 'Cannot change deck after tournament has started' }
+    }
+
+    await db.update(participants)
+      .set({ deckId })
+      .where(eq(participants.id, participantId))
+      .run()
+
+    return { success: true }
+  }, {
+    params: t.Object({ id: t.String(), participantId: t.String() }),
+    body: t.Object({ 
+      deckId: t.Nullable(t.Number()),
       userId: t.Number()
     })
   })

@@ -15,6 +15,15 @@ export const users = sqliteTable('users', {
   avatarUrl: text('avatar_url'),
 })
 
+export const decks = sqliteTable('decks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  name: text('name').notNull(),
+  link: text('link'),
+  color: text('color').default('#ffffff').notNull(),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+})
+
 export const tournaments = sqliteTable('tournaments', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
@@ -34,6 +43,7 @@ export const participants = sqliteTable('participants', {
   userId: integer('user_id').references(() => users.id), // Nullable for guests
   guestName: text('guest_name'), // For guests
   score: integer('score').default(0).notNull(),
+  deckId: integer('deck_id').references(() => decks.id),
   tieBreakers: text('tie_breakers', { mode: 'json' }).$type<{ buchholz: number }>().default({ buchholz: 0 }),
   dropped: integer('dropped', { mode: 'boolean' }).default(false).notNull(),
   note: text('note'),
@@ -47,6 +57,7 @@ export const matches = sqliteTable('matches', {
   player2Id: integer('player2_id').references(() => participants.id), // Reference participant
   winnerId: integer('winner_id').references(() => participants.id), // Reference participant
   result: text('result'), // e.g. "2-0", "1-1"
+  firstPlayerId: integer('first_player_id').references(() => participants.id), // Reference participant
   isBye: integer('is_bye', { mode: 'boolean' }).default(false).notNull(),
   player1MmrChange: integer('player1_mmr_change'),
   player2MmrChange: integer('player2_mmr_change'),
@@ -63,8 +74,12 @@ export const duelRooms = sqliteTable('duel_rooms', {
   result: text('result'),
   player1Note: text('player1_note'),
   player2Note: text('player2_note'),
+  firstPlayerId: integer('first_player_id').references(() => users.id),
   rematchRoomId: integer('rematch_room_id'),
   player1MmrChange: integer('player1_mmr_change'),
   player2MmrChange: integer('player2_mmr_change'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  player1DeckId: integer('player1_deck_id').references(() => decks.id),
+  player2DeckId: integer('player2_deck_id').references(() => decks.id),
 })
+

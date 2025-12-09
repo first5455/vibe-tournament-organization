@@ -6,35 +6,14 @@ import { useAuth } from '../lib/auth'
 import { Trophy, Users, Play, RefreshCw } from 'lucide-react'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
+
 import { useRefresh } from '../hooks/useRefresh'
 import { formatDate } from '../lib/utils'
 import { UserSearchSelect } from '../components/UserSearchSelect'
 import { CreateUserDialog } from '../components/CreateUserDialog'
-
-interface Participant {
-  id: number
-  userId: number | null
-  guestName: string | null
-  username?: string | null
-  displayName?: string | null
-  score: number
-  dropped: boolean
-  note?: string | null
-  userColor?: string | null
-  userAvatarUrl?: string | null
-}
-
-interface Match {
-  id: number
-  roundNumber: number
-  player1Id: number
-  player2Id: number | null
-  winnerId: number | null
-  result: string | null
-  isBye: boolean
-  player1MmrChange?: number | null
-  player2MmrChange?: number | null
-}
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { Match, Participant, Deck } from '../types'
+import { MatchCard } from '../components/MatchCard'
 
 interface Tournament {
   id: number
@@ -58,8 +37,14 @@ export default function TournamentView() {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [matches, setMatches] = useState<Match[]>([])
   const { user } = useAuth()
+  const [userDecks, setUserDecks] = useState<Deck[]>([])
+  const [selectedDeckId, setSelectedDeckId] = useState<number | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reportingMatch, setReportingMatch] = useState<Match | null>(null)
+  const [score1, setScore1] = useState('')
+  const [score2, setScore2] = useState('')
+  const [firstPlayerId, setFirstPlayerId] = useState<number | undefined>(undefined)
 
   const loadTournament = async () => {
     if (!id) return
@@ -147,7 +132,27 @@ export default function TournamentView() {
     }
   }, [id])
 
-  const reportMatch = async (match: Match, s1: number, s2: number) => {
+  useEffect(() => {
+    const fetchUserDecks = async () => {
+      if (user?.id) {
+        try {
+          const decks = await api(`/decks?userId=${user.id}`)
+          setUserDecks(decks)
+        } catch (e) {
+          console.error('Failed to fetch user decks', e)
+        }
+      }
+    }
+    fetchUserDecks()
+  }, [user])
+
+  const [showAddParticipant, setShowAddParticipant] = useState(false)
+  const [showGuestInput, setShowGuestInput] = useState(false)
+  const [showCreateUser, setShowCreateUser] = useState(false)
+
+
+
+  const reportMatch = async (match: Match, s1: number, s2: number, firstPlayerId?: number) => {
     if (!user?.id) {
       alert('You must be logged in to report results')
       return
@@ -168,11 +173,12 @@ export default function TournamentView() {
       }
 
       if (isUpdate) {
-        body.createdBy = user.id // PUT expects createdBy (admin check)
+        body.createdBy = user.id
       } else {
         body.player1Score = s1
         body.player2Score = s2
         body.reportedBy = user.id
+        if (firstPlayerId) body.firstPlayerId = firstPlayerId
       }
 
       await api(url, {
@@ -182,19 +188,23 @@ export default function TournamentView() {
       loadTournament()
     } catch (e: any) {
       console.error('Report failed:', e)
-      alert(e.message)
+      alert('Failed to report score')
     }
   }
-
   const joinTournament = async () => {
+    if (!user?.id) return
     try {
-      await api(`/tournaments/${id}/join`, {
+      await api(`/tournaments/${id}/participants`, {
         method: 'POST',
-        body: JSON.stringify({ userId: user?.id }),
+        body: JSON.stringify({ 
+          userId: user.id, 
+          deckId: selectedDeckId,
+          createdBy: user.id
+        })
       })
       loadTournament()
-    } catch (err) {
-      alert('Failed to join tournament')
+    } catch (e: any) {
+      alert(e.message)
     }
   }
 
@@ -211,15 +221,11 @@ export default function TournamentView() {
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState('')
   const [guestName, setGuestName] = useState('')
-  const [showGuestInput, setShowGuestInput] = useState(false)
-  const [showAddParticipant, setShowAddParticipant] = useState(false)
-  const [showCreateUser, setShowCreateUser] = useState(false)
-  
-  // Score Reporting Modal State
-  const [reportingMatch, setReportingMatch] = useState<Match | null>(null)
-  const [score1, setScore1] = useState('')
-  const [score2, setScore2] = useState('')
-  
+  const [editDeckOpen, setEditDeckOpen] = useState(false)
+  const [editingDeckParticipantId, setEditingDeckParticipantId] = useState<number | null>(null)
+  const [targetUserDecks, setTargetUserDecks] = useState<Deck[]>([])
+  const [newDeckId, setNewDeckId] = useState<number | undefined>(undefined)
+
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -277,13 +283,59 @@ export default function TournamentView() {
 
       await api(`/tournaments/${id}/participants`, {
         method: 'POST',
-        body: JSON.stringify({ userId: selectedUser.id, createdBy: user.id })
+        body: JSON.stringify({ 
+          userId: selectedUser.id, 
+          createdBy: user.id
+          // TODO: Admin selecting deck for user? maybe later
+        })
       })
       setShowAddParticipant(false)
       loadTournament()
     } catch (err: any) {
       console.error('Failed to add participant:', err)
       alert(`Failed to add participant: ${err.message || 'Unknown error'}`)
+    }
+  }
+
+  const openEditDeck = async (p: Participant) => {
+    if (!p.userId) return
+    setEditingDeckParticipantId(p.id)
+    setEditDeckOpen(true)
+    setTargetUserDecks([]) // Clear previous
+    setNewDeckId(undefined)
+
+    // Initial selected deck? We don't have the ID in participant list easily unless we add it to API
+    // The API sends everything, let's check table cols. I added deckName/Color but not deckId to `participants` query in `tournaments.ts`?
+    // Let's check `backend/src/routes/tournaments.ts` ... I did `...getTableColumns(participants)` so `deckId` IS there.
+    // However, I need to cast it or update interface.
+    // Interface Participant has ... wait, where is deckId in interface?
+    // It's not in the interface in `TournamentView.tsx` line 14. I should add it.
+    
+    // For now assuming we can fix interface below or just access it as any for a sec, 
+    // but better to add it to interface.
+
+    try {
+      const decks = await api(`/decks?userId=${p.userId}`)
+      setTargetUserDecks(decks)
+    } catch (e) {
+      console.error('Failed to fetch decks for user', e)
+    }
+  }
+
+  const saveDeckChange = async () => {
+    if (!editingDeckParticipantId) return
+    try {
+        await api(`/tournaments/${id}/participants/${editingDeckParticipantId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ 
+                deckId: newDeckId === -1 ? null : newDeckId, // -1 or null handling
+                userId: user?.id 
+            })
+        })
+        setEditDeckOpen(false)
+        loadTournament()
+    } catch (err: any) {
+        alert(err.message)
     }
   }
 
@@ -438,7 +490,23 @@ export default function TournamentView() {
                   Joined
                 </Button>
               ) : (
-                <Button onClick={joinTournament} variant="secondary">Join Tournament</Button>
+                <div className="flex gap-2 items-center">
+                  {userDecks.length > 0 && (
+                    <select
+                      value={selectedDeckId || ''}
+                      onChange={(e) => setSelectedDeckId(e.target.value ? parseInt(e.target.value) : undefined)}
+                      className="bg-zinc-900 border border-zinc-700 rounded px-2 py-2 text-white text-sm focus:outline-none focus:border-zinc-500"
+                    >
+                      <option value="">No Deck</option>
+                      {userDecks.map(deck => (
+                        <option key={deck.id} value={deck.id}>
+                          {deck.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <Button onClick={joinTournament} variant="secondary">Join Tournament</Button>
+                </div>
               )}
               {isAdmin && (
                 <>
@@ -535,34 +603,36 @@ export default function TournamentView() {
                       (m.player1Id === p2.id && m.player2Id === p1.id)
                     )
 
-                    if (!match) return <td key={p2.id} className="p-2 border border-zinc-800 text-zinc-600 text-center">-</td>
-
-                    const isP1 = match.player1Id === p1.id
-                    const score = match.result ? (isP1 ? match.result : match.result.split('-').reverse().join('-')) : null
-                    
-                    // Determine cell color based on result
-                    let cellClass = "hover:bg-zinc-800/50 cursor-pointer transition-colors"
-                    if (score) {
-                      const [s1, s2] = score.split('-').map(Number)
-                      if (s1 > s2) cellClass += " bg-green-900/20 text-green-400"
-                      else if (s2 > s1) cellClass += " bg-red-900/20 text-red-400"
-                      else cellClass += " bg-zinc-800/30 text-zinc-400"
+                    if (match) {
+                       return (
+                           <td 
+                               key={p2.id} 
+                               className={`p-2 border border-zinc-800 bg-zinc-950/50 text-center text-sm ${
+                                   match.result ? 'text-zinc-200' : 'text-zinc-500'
+                               } ${
+                                   (isAdmin || (user && (match.player1Id === user.id || match.player2Id === user.id))) 
+                                   ? 'cursor-pointer hover:bg-zinc-800/50' 
+                                   : ''
+                               }`}
+                               onClick={() => {
+                                   if (isAdmin || (user && (match.player1Id === user.id || match.player2Id === user.id))) {
+                                       setReportingMatch(match)
+                                       setScore1(match.result?.split('-')[0] || '')
+                                       setScore2(match.result?.split('-')[1] || '')
+                                       setFirstPlayerId(match.firstPlayerId || undefined)
+                                   }
+                               }}
+                           >
+                               {match.result || (
+                                   (isAdmin || (user && (match.player1Id === user.id || match.player2Id === user.id))) 
+                                   ? <span className="text-zinc-600 hover:text-zinc-400">Report</span> 
+                                   : '-'
+                               )}
+                           </td>
+                       )
+                    } else {
+                        return <td key={p2.id} className="p-2 border border-zinc-800 bg-zinc-950/50"></td>
                     }
-
-                    return (
-                      <td 
-                        key={p2.id} 
-                        className={`p-2 border border-zinc-800 text-center ${cellClass}`}
-                        onClick={() => {
-                          if (tournament.status === 'completed' && !isAdmin) return
-                          setReportingMatch(match)
-                          setScore1('')
-                          setScore2('')
-                        }}
-                      >
-                        {score || <span className="text-zinc-600 text-xs">Play</span>}
-                      </td>
-                    )
                   })}
                 </tr>
               ))}
@@ -570,146 +640,44 @@ export default function TournamentView() {
           </table>
         </div>
       ) : (
-        <div className="space-y-6">
-          {Array.from({ length: tournament.currentRound }, (_, i) => tournament.currentRound - i).map(roundNum => {
-            const roundMatches = matches.filter(m => m.roundNumber === roundNum)
-            if (roundMatches.length === 0) return null
-  
-            const isCurrentRound = roundNum === tournament.currentRound
-  
-            return (
-              <div key={roundNum} className={`rounded-xl border ${isCurrentRound ? 'border-zinc-800 bg-zinc-900/50' : 'border-zinc-900 bg-zinc-950/30'} p-6`}>
-                <h2 className={`text-xl font-semibold mb-4 ${isCurrentRound ? 'text-white' : 'text-zinc-500'}`}>
-                  {isCurrentRound ? (tournament.currentRound === tournament.totalRounds ? 'Final Round Matches' : 'Current Round Matches') : `Round ${roundNum}`}
-                </h2>
+        <div className="space-y-4">
+             {(() => {
+                const roundMatches = matches.filter(m => m.roundNumber === tournament.currentRound)
+                const isCurrentRound = true
+                
+                return (
+                 <>
+                  <h2 className="text-xl font-semibold text-white mb-4">
+                    {tournament.currentRound === tournament.totalRounds ? 'Final Round Matches' : 'Current Round Matches'}
+                  </h2>
                 <div className="grid gap-4 md:grid-cols-2">
-                  {roundMatches.map(match => {
-                    const p1 = participants.find(p => p.id === match.player1Id)
-                    const p2 = participants.find(p => p.id === match.player2Id)
-                    const isParticipant = user && (p1?.userId === user.id || p2?.userId === user.id)
-                    const canReport = (isAdmin || isParticipant) && isCurrentRound // Only allow report in current round
-  
-                    return (
-                      <div key={match.id} className={`border rounded-lg p-4 flex items-center justify-between ${isCurrentRound ? 'border-zinc-800 bg-zinc-900/30' : 'border-zinc-900 bg-zinc-950/50'}`}>
-                        <div className="flex flex-col gap-2">
-                          <div className={`flex items-center gap-2 ${match.winnerId === match.player1Id ? 'font-bold' : ''}`}>
-                            <UserAvatar 
-                              username={p1?.username || p1?.guestName || (p1?.userId ? `User ${p1.userId}` : 'Unknown')} 
-                              displayName={p1?.displayName || undefined}
-                              avatarUrl={p1?.userAvatarUrl}
-                              size="sm"
-                            />
-                            <UserLabel 
-                              username={p1?.username || p1?.guestName || (p1?.userId ? `User ${p1.userId}` : 'Unknown')} 
-                              displayName={p1?.displayName || undefined}
-                              color={p1?.userColor}
-                              userId={p1?.userId || undefined}
-                            />
-                            {match.result && (
-                              <div className="flex items-center gap-1">
-                                <span className={`text-xs px-1.5 py-0.5 rounded ${match.winnerId === match.player1Id ? 'bg-green-900/30 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
-                                  {match.winnerId === match.player1Id ? 'Win' : 'Lose'}
-                                </span>
-                                {match.player1MmrChange != null && (
-                                  <span className={`text-xs font-mono ml-1 ${match.player1MmrChange > 0 ? 'text-green-500' : match.player1MmrChange < 0 ? 'text-red-500' : 'text-zinc-500'}`}>
-                                    {match.player1MmrChange > 0 ? '+' : ''}{match.player1MmrChange}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-zinc-600 text-xs">vs</div>
-                          <div className={`flex items-center gap-2 ${match.winnerId === match.player2Id ? 'font-bold' : ''}`}>
-                            {match.isBye ? <span className="italic text-zinc-500">Bye</span> : (
-                              <>
-                                <UserAvatar 
-                                  username={p2?.username || p2?.guestName || (p2?.userId ? `User ${p2.userId}` : 'Unknown')} 
-                                  displayName={p2?.displayName || undefined}
-                                  avatarUrl={p2?.userAvatarUrl}
-                                  size="sm"
-                                />
-                                <UserLabel 
-                                  username={p2?.username || p2?.guestName || (p2?.userId ? `User ${p2.userId}` : 'Unknown')} 
-                                  displayName={p2?.displayName || undefined}
-                                  color={p2?.userColor}
-                                  userId={p2?.userId || undefined}
-                                />
-                                {match.result && (
-                                  <div className="flex items-center gap-1">
-                                    <span className={`text-xs px-1.5 py-0.5 rounded ${match.winnerId === match.player2Id ? 'bg-green-900/30 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
-                                      {match.winnerId === match.player2Id ? 'Win' : 'Lose'}
-                                    </span>
-                                    {match.player2MmrChange != null && (
-                                      <span className={`text-xs font-mono ml-1 ${match.player2MmrChange > 0 ? 'text-green-500' : match.player2MmrChange < 0 ? 'text-red-500' : 'text-zinc-500'}`}>
-                                        {match.player2MmrChange > 0 ? '+' : ''}{match.player2MmrChange}
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </div>
-  
-                        <div className="flex flex-col items-end gap-2">
-                          {match.result ? (
-                            <span className={`text-sm font-mono px-2 py-1 rounded ${isCurrentRound ? 'bg-zinc-800 text-white' : 'bg-zinc-900 text-zinc-500'}`}>{match.result}</span>
-                          ) : (
-                            <span className="text-xs text-zinc-500 italic">Pending</span>
-                          )}
-                          
-                          {canReport && !match.result && !match.isBye && (
-                            <div className="flex gap-2">
-                              {isParticipant && (
-                                <>
-                                  <Button 
-                                    size="sm" 
-                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                    onClick={() => {
-                                      if (p1?.userId === user?.id) reportMatch(match, 1, 0)
-                                      else if (p2?.userId === user?.id) reportMatch(match, 0, 1)
-                                    }}
-                                  >
-                                    Win
-                                  </Button>
-                                  <Button 
-                                    size="sm" 
-                                    className="bg-red-600 hover:bg-red-700 text-white"
-                                    onClick={() => {
-                                      if (p1?.userId === user?.id) reportMatch(match, 0, 1)
-                                      else if (p2?.userId === user?.id) reportMatch(match, 1, 0)
-                                    }}
-                                  >
-                                    Loss
-                                  </Button>
-                                </>
-                              )}
-                              <Button size="sm" variant="outline" onClick={() => {
-                                setReportingMatch(match)
-                                setScore1('')
-                                setScore2('')
-                              }}>
-                                Manual
-                              </Button>
-                            </div>
-                          )}
-                          {isAdmin && match.result && isCurrentRound && tournament.status !== 'completed' && (
-                            <Button size="sm" variant="ghost" className="text-zinc-500 hover:text-white" onClick={() => {
-                              setReportingMatch(match)
-                              setScore1(match.result?.split('-')[0] || '')
-                              setScore2(match.result?.split('-')[1] || '')
-                            }}>
-                              Edit
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
+                  {roundMatches.map(match => (
+                    <MatchCard
+                        key={match.id}
+                        match={match}
+                        participants={participants}
+                        isCurrentRound={isCurrentRound}
+                        currentUser={user}
+                        isAdmin={isAdmin}
+                        onReport={reportMatch}
+                        onManualReport={(m) => {
+                            setReportingMatch(m)
+                            setScore1('')
+                            setScore2('')
+                            setFirstPlayerId(undefined)
+                        }}
+                        onEdit={(m) => {
+                            setReportingMatch(m)
+                            setScore1(m.result?.split('-')[0] || '')
+                            setScore2(m.result?.split('-')[1] || '')
+                            setFirstPlayerId(m.firstPlayerId || undefined)
+                        }}
+                    />
+                  ))}
                 </div>
-              </div>
+              </>
             )
-          })}
+          })()}
         </div>
       )}
 
@@ -722,6 +690,7 @@ export default function TournamentView() {
               <tr>
                 <th className="px-4 py-3 font-medium">Rank</th>
                 <th className="px-4 py-3 font-medium">Player</th>
+                <th className="px-4 py-3 font-medium">Deck</th>
                 <th className="px-4 py-3 font-medium">Note</th>
                 <th className="px-4 py-3 font-medium text-right">Score</th>
                 {isAdmin && <th className="px-4 py-3 font-medium text-right">Actions</th>}
@@ -738,6 +707,35 @@ export default function TournamentView() {
                         <UserLabel username={p.username || p.guestName || `User ${p.userId}`} displayName={p.displayName || undefined} color={p.userColor} userId={p.userId || undefined} />
                         {p.dropped && <span className="ml-2 text-xs text-red-500">(Dropped)</span>}
                       </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                        {p.deckName ? (
+                          p.deckLink ? (
+                              <a href={p.deckLink} target="_blank" rel="noreferrer" className="text-sm font-medium hover:underline" style={{ color: p.deckColor || '#fff' }}>
+                                  {p.deckName}
+                              </a>
+                          ) : (
+                              <span className="text-sm font-medium" style={{ color: p.deckColor || '#fff' }}>
+                                  {p.deckName}
+                              </span>
+                          )
+                        ) : (
+                          <span className="text-zinc-600 text-xs italic">-</span>
+                        )}
+                        {p.userId && (isAdmin || (user?.id === p.userId && tournament.status === 'pending')) && (
+                            <button
+                                onClick={() => {
+                                    setNewDeckId(p.deckId || undefined)
+                                    openEditDeck(p)
+                                }}
+                                className="text-zinc-500 hover:text-zinc-300 ml-1 transition-colors"
+                                title="Edit Deck"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                            </button>
+                        )}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-zinc-400">
@@ -829,10 +827,10 @@ export default function TournamentView() {
                 <div className="pt-6 text-zinc-500 font-bold">-</div>
                 <div className="flex-1">
                   <label className="mb-2 block text-sm font-medium text-zinc-400">
-                    {participants.find(p => p.id === reportingMatch.player2Id)?.displayName || 
+                    {reportingMatch && (participants.find(p => p.id === reportingMatch.player2Id)?.displayName || 
                      participants.find(p => p.id === reportingMatch.player2Id)?.username || 
                      participants.find(p => p.id === reportingMatch.player2Id)?.guestName || 
-                     'Player 2'}
+                     'Player 2')}
                   </label>
                   <input
                     type="number"
@@ -843,6 +841,33 @@ export default function TournamentView() {
                   />
                 </div>
               </div>
+
+               {/* First Player Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-400">Who Went First?</label>
+                <div className="flex gap-2">
+                   <Button
+                      variant={firstPlayerId === reportingMatch.player1Id ? undefined : 'outline'}
+                      size="sm"
+                      className={`flex-1 ${firstPlayerId === reportingMatch.player1Id ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
+                      onClick={() => setFirstPlayerId(reportingMatch.player1Id)}
+                   >
+                     {participants.find(p => p.id === reportingMatch.player1Id)?.username || 'Player 1'}
+                   </Button>
+                   <Button
+                      variant={firstPlayerId === reportingMatch.player2Id ? undefined : 'outline'}
+                      size="sm"
+                      className={`flex-1 ${firstPlayerId === reportingMatch.player2Id ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
+                      onClick={() => {
+                        setReportingMatch(reportingMatch.player2Id ? { ...reportingMatch, firstPlayerId: reportingMatch.player2Id } : reportingMatch)
+                        setFirstPlayerId(reportingMatch.player2Id || undefined)
+                      }}
+                   >
+                     {reportingMatch.player2Id ? (participants.find(p => p.id === reportingMatch.player2Id)?.username || 'Player 2') : 'Player 2'}
+                   </Button>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="ghost" onClick={() => setReportingMatch(null)}>Cancel</Button>
                 <Button onClick={() => {
@@ -854,7 +879,9 @@ export default function TournamentView() {
                     return
                   }
                   
-                  reportMatch(reportingMatch, s1, s2)
+                  if (reportingMatch) {
+                    reportMatch(reportingMatch, s1, s2, firstPlayerId)
+                  }
                   setReportingMatch(null)
                 }}>Submit Result</Button>
               </div>
@@ -862,6 +889,36 @@ export default function TournamentView() {
           </div>
         </div>
       )}
+
+      {/* Edit Deck Dialog */}
+      <Dialog open={editDeckOpen} onOpenChange={setEditDeckOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Change Deck</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">Select Deck</label>
+                    <select
+                        value={newDeckId ?? ''}
+                        onChange={(e) => setNewDeckId(e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    >
+                        <option value="">No Deck</option>
+                        {targetUserDecks.map(deck => (
+                            <option key={deck.id} value={deck.id}>
+                                {deck.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setEditDeckOpen(false)}>Cancel</Button>
+                <Button onClick={saveDeckChange}>Save</Button>
+            </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

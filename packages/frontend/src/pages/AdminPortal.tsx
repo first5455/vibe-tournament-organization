@@ -16,18 +16,14 @@ import {
 } from '../components/ui/dropdown-menu'
 import { UserSearchSelect } from '../components/UserSearchSelect'
 import { CreateUserDialog } from '../components/CreateUserDialog'
-import { formatDate } from '../lib/utils'
+import { User, Deck } from '../types'
 
-interface User {
-  id: number
-  username: string
-  displayName?: string
-  role: string
-  mmr: number
-  createdAt: string
-  color?: string
-  avatarUrl?: string
+const formatDate = (dateDict?: string) => {
+  if (!dateDict) return ''
+  return new Date(dateDict).toLocaleString()
 }
+
+
 
 export default function AdminPortal() {
   const { user, refreshUser } = useAuth()
@@ -48,8 +44,12 @@ export default function AdminPortal() {
     player2Note: '',
     player1Id: 0,
     player2Id: 0 as number | null,
+    player1DeckId: undefined as number | undefined,
+    player2DeckId: undefined as number | undefined,
     status: 'open'
   })
+  const [player1Decks, setPlayer1Decks] = useState<Deck[]>([])
+  const [player2Decks, setPlayer2Decks] = useState<Deck[]>([])
   const [createDuelOpen, setCreateDuelOpen] = useState(false)
   const [createDuelForm, setCreateDuelForm] = useState({
     name: '',
@@ -181,7 +181,7 @@ export default function AdminPortal() {
   }
 
   const editMMR = async (targetUser: User) => {
-    const newMMR = prompt(`Enter new MMR for ${targetUser.username}:`, targetUser.mmr.toString())
+    const newMMR = prompt(`Enter new MMR for ${targetUser.username}:`, (targetUser.mmr || 1000).toString())
     if (newMMR === null) return
     
     const mmrValue = parseInt(newMMR)
@@ -267,8 +267,23 @@ export default function AdminPortal() {
       player2Note: duel.player2Note || '',
       player1Id: duel.player1Id,
       player2Id: duel.player2Id,
+      player1DeckId: duel.player1DeckId,
+      player2DeckId: duel.player2DeckId,
       status: duel.status
     })
+    
+    // Fetch decks
+    if (duel.player1Id) {
+        api(`/decks?userId=${duel.player1Id}`).then(setPlayer1Decks).catch(console.error)
+    } else {
+        setPlayer1Decks([])
+    }
+    if (duel.player2Id) {
+        api(`/decks?userId=${duel.player2Id}`).then(setPlayer2Decks).catch(console.error)
+    } else {
+        setPlayer2Decks([])
+    }
+
     setEditDuelOpen(true)
   }
 
@@ -290,6 +305,8 @@ export default function AdminPortal() {
           player2Note: editDuelForm.player2Note,
           player1Id: editDuelForm.player1Id,
           player2Id: editDuelForm.player2Id || null,
+          player1DeckId: editDuelForm.player1DeckId,
+          player2DeckId: editDuelForm.player2DeckId,
           status: editDuelForm.status
         })
       })
@@ -763,6 +780,20 @@ export default function AdminPortal() {
                           Note: {d.player1Note}
                         </div>
                       )}
+                      {d.player1DeckName && (
+                        <div className="ml-8 mt-1 flex items-center gap-1">
+                             <span className="text-xs text-zinc-500 font-medium">Deck:</span>
+                             {d.player1DeckLink ? (
+                                <a href={d.player1DeckLink} target="_blank" rel="noreferrer" className="text-xs font-medium hover:underline" style={{ color: d.player1DeckColor || '#fff' }}>
+                                    {d.player1DeckName}
+                                </a>
+                            ) : (
+                                <span className="text-xs font-medium" style={{ color: d.player1DeckColor || '#fff' }}>
+                                    {d.player1DeckName}
+                                </span>
+                            )}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -776,6 +807,20 @@ export default function AdminPortal() {
                           <div className="text-xs text-zinc-500 italic ml-8 truncate max-w-[200px]" title={d.player2Note}>
                             Note: {d.player2Note}
                           </div>
+                        )}
+                        {d.player2DeckName && (
+                            <div className="ml-8 mt-1 flex items-center gap-1">
+                                 <span className="text-xs text-zinc-500 font-medium">Deck:</span>
+                                 {d.player2DeckLink ? (
+                                    <a href={d.player2DeckLink} target="_blank" rel="noreferrer" className="text-xs font-medium hover:underline" style={{ color: d.player2DeckColor || '#fff' }}>
+                                        {d.player2DeckName}
+                                    </a>
+                                ) : (
+                                    <span className="text-xs font-medium" style={{ color: d.player2DeckColor || '#fff' }}>
+                                        {d.player2DeckName}
+                                    </span>
+                                )}
+                            </div>
                         )}
                       </div>
                     ) : (
@@ -818,34 +863,35 @@ export default function AdminPortal() {
       {editDuelOpen && editingDuel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
           <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-white">Edit Duel: {editingDuel.name}</h3>
+            <h3 className="text-lg font-bold text-white">Edit Duel</h3>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Status</label>
-                <select 
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
-                  value={editDuelForm.status}
-                  onChange={e => setEditDuelForm({...editDuelForm, status: e.target.value})}
-                >
-                  <option value="open">Open</option>
-                  <option value="ready">Ready</option>
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-            </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">Player 1</label>
               <div className="text-sm text-zinc-300 mb-1">
                 Current ID: {editDuelForm.player1Id}
               </div>
               <UserSearchSelect 
-                onSelect={(user) => setEditDuelForm({...editDuelForm, player1Id: user.id})}
                 placeholder="Search to change Player 1..."
                 initialValue={editingDuel.player1DisplayName || editingDuel.player1Name}
+                onSelect={(user) => {
+                    setEditDuelForm({...editDuelForm, player1Id: user.id})
+                    api(`/decks?userId=${user.id}`).then(setPlayer1Decks).catch(console.error)
+                }}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Player 1 Deck</label>
+              <select
+                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
+                value={editDuelForm.player1DeckId || ''}
+                onChange={e => setEditDuelForm({...editDuelForm, player1DeckId: e.target.value ? parseInt(e.target.value) : undefined})}
+              >
+                <option value="">No Deck</option>
+                {player1Decks.map(deck => (
+                    <option key={deck.id} value={deck.id}>{deck.name}</option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-2">
@@ -854,10 +900,27 @@ export default function AdminPortal() {
                 Current ID: {editDuelForm.player2Id || 'None'}
               </div>
               <UserSearchSelect 
-                onSelect={(user) => setEditDuelForm({...editDuelForm, player2Id: user.id})}
                 placeholder="Search to change Player 2..."
                 initialValue={editingDuel.player2DisplayName || editingDuel.player2Name || ''}
+                onSelect={(user) => {
+                    setEditDuelForm({...editDuelForm, player2Id: user.id})
+                    api(`/decks?userId=${user.id}`).then(setPlayer2Decks).catch(console.error)
+                }}
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Player 2 Deck</label>
+              <select
+                className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
+                value={editDuelForm.player2DeckId || ''}
+                onChange={e => setEditDuelForm({...editDuelForm, player2DeckId: e.target.value ? parseInt(e.target.value) : undefined})}
+              >
+                <option value="">No Deck</option>
+                {player2Decks.map(deck => (
+                    <option key={deck.id} value={deck.id}>{deck.name}</option>
+                ))}
+              </select>
             </div>
 
             {editDuelForm.status === 'completed' && (

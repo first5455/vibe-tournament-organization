@@ -22,7 +22,7 @@ export function UserAvatar({ username, displayName, avatarUrl, className, size =
       sizeClasses[size],
       className
     )}>
-      {avatarUrl ? (
+      {avatarUrl && (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) ? (
         <img 
           src={avatarUrl} 
           alt={username} 

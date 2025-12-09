@@ -12,6 +12,7 @@ import UserProfilePage from './pages/UserProfilePage'
 import AdminPortal from './pages/AdminPortal'
 import DuelDashboard from './pages/DuelDashboard'
 import DuelRoom from './pages/DuelRoom'
+import DecksPage from './pages/DecksPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -64,6 +65,11 @@ function App() {
             <Route path="/users/:id" element={
               <ProtectedRoute>
                 <UserProfilePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/decks" element={
+              <ProtectedRoute>
+                <DecksPage />
               </ProtectedRoute>
             } />
             <Route path="/admin" element={

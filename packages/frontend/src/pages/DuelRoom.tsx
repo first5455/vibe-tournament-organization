@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth'
 import { Button } from '../components/ui/button'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
-import { Swords, RefreshCw, Edit2 } from 'lucide-react'
+import { Swords, RefreshCw, Edit2, Plus } from 'lucide-react'
 import { useRefresh } from '../hooks/useRefresh'
 import { useFocusRevalidate } from '../hooks/useFocusRevalidate'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
@@ -20,6 +20,20 @@ interface Player {
   color?: string
   mmr: number
   rank?: number
+  deck?: {
+    id: number
+    name: string
+    color: string
+    link?: string
+  }
+}
+
+interface Deck {
+  id: number
+  userId: number
+  name: string
+  link?: string
+  color: string
 }
 
 interface Duel {
@@ -34,6 +48,7 @@ interface Duel {
   player2?: Player
   player1Note?: string
   player2Note?: string
+  firstPlayerId?: number
   createdAt: string
 }
 
@@ -43,6 +58,13 @@ export default function DuelRoom() {
   const { user } = useAuth()
   const [duel, setDuel] = useState<Duel | null>(null)
   const [loading, setLoading] = useState(true)
+  const [userDecks, setUserDecks] = useState<Deck[]>([])
+  const [selectedDeckId, setSelectedDeckId] = useState<number | undefined>(undefined)
+
+  const [editDeckOpen, setEditDeckOpen] = useState(false)
+  const [editingTargetUserId, setEditingTargetUserId] = useState<number | null>(null)
+  const [targetUserDecks, setTargetUserDecks] = useState<Deck[]>([])
+  const [newDeckId, setNewDeckId] = useState<number | undefined>(undefined)
 
   const fetchDuel = async () => {
     try {
@@ -62,6 +84,20 @@ export default function DuelRoom() {
     fetchDuel()
   }, [id])
 
+  useEffect(() => {
+    const fetchUserDecks = async () => {
+      if (user?.id) {
+        try {
+          const decks = await api(`/decks?userId=${user.id}`)
+          setUserDecks(decks)
+        } catch (e) {
+          console.error('Failed to fetch user decks', e)
+        }
+      }
+    }
+    fetchUserDecks()
+  }, [user])
+
   useFocusRevalidate(fetchDuel, 10000)
 
   const handleJoin = async () => {
@@ -69,7 +105,10 @@ export default function DuelRoom() {
     try {
       await api(`/duels/${id}/join`, {
         method: 'POST',
-        body: JSON.stringify({ userId: user.id })
+        body: JSON.stringify({ 
+          userId: user.id,
+          deckId: selectedDeckId
+        })
       })
       fetchDuel()
     } catch (error) {
@@ -102,6 +141,38 @@ export default function DuelRoom() {
     } catch (error) {
       console.error('Failed to start duel:', error)
     }
+  }
+
+  const openEditDeck = async (userId: number, currentDeckId?: number) => {
+      setEditingTargetUserId(userId)
+      setEditDeckOpen(true)
+      setTargetUserDecks([])
+      setNewDeckId(currentDeckId)
+
+      try {
+          const decks = await api(`/decks?userId=${userId}`)
+          setTargetUserDecks(decks)
+      } catch (e) {
+          console.error('Failed to fetch user decks', e)
+      }
+  }
+
+  const saveDeckChange = async () => {
+      if (!editingTargetUserId) return
+      try {
+          await api(`/duels/${id}/players`, {
+              method: 'PUT',
+              body: JSON.stringify({
+                  userId: user?.id, // Requester
+                  targetUserId: editingTargetUserId, // Target
+                  deckId: newDeckId === -1 ? null : newDeckId
+              })
+          })
+          setEditDeckOpen(false)
+          fetchDuel()
+      } catch (err: any) {
+          alert(err.message)
+      }
   }
 
   const handleDelete = async () => {
@@ -287,7 +358,23 @@ export default function DuelRoom() {
             <Button variant="outline" onClick={handleLeave}>Leave Room</Button>
           )}
           {canJoin && (
-            <Button onClick={handleJoin} className="bg-indigo-600 hover:bg-indigo-700">Join Duel</Button>
+            <div className="flex items-center gap-2">
+               {userDecks.length > 0 && (
+                  <select
+                    value={selectedDeckId || ''}
+                    onChange={(e) => setSelectedDeckId(e.target.value ? parseInt(e.target.value) : undefined)}
+                    className="bg-zinc-900 border border-zinc-700 rounded px-2 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 w-[150px]"
+                  >
+                    <option value="">No Deck</option>
+                    {userDecks.map(deck => (
+                      <option key={deck.id} value={deck.id}>
+                        {deck.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              <Button onClick={handleJoin} className="bg-indigo-600 hover:bg-indigo-700">Join Duel</Button>
+            </div>
           )}
           {isAdmin && duel.status === 'completed' && (
             <Button variant="outline" onClick={handleOpenEditResult}>Edit Result</Button>
@@ -308,6 +395,28 @@ export default function DuelRoom() {
               {duel.player1?.rank && <span className="text-zinc-400 mr-2">#{duel.player1.rank} •</span>}
               MMR: {duel.player1?.mmr}
             </div>
+            {duel.player1?.deck ? (
+              <div className="mt-2 text-sm font-medium flex items-center gap-2" style={{ color: duel.player1.deck.color }}>
+                {duel.player1.deck.link ? (
+                    <a href={duel.player1.deck.link} target="_blank" rel="noreferrer" className="hover:underline">
+                        {duel.player1.deck.name}
+                    </a>
+                ) : (
+                    duel.player1.deck.name
+                )}
+                {(isAdmin || (user?.id === duel.player1Id)) && (
+                    <button onClick={() => openEditDeck(duel.player1Id!, duel.player1.deck?.id)} className="text-zinc-500 hover:text-white transition-colors">
+                        <Edit2 className="w-3 h-3" />
+                    </button>
+                )}
+              </div>
+            ) : (
+                (isAdmin || (user?.id === duel.player1Id)) && (
+                    <Button variant="outline" size="sm" className="mt-2 h-7 text-xs" onClick={() => openEditDeck(duel.player1Id!)}>
+                        <Plus className="w-3 h-3 mr-1" /> Add Deck
+                    </Button>
+                )
+            )}
           </div>
           {duel.status === 'active' && (isParticipant || isAdmin) && (
             <Button 
@@ -350,6 +459,56 @@ export default function DuelRoom() {
           {duel.status === 'ready' && (
             <div className="text-yellow-500 text-sm font-medium">Ready to start!</div>
           )}
+          
+          {/* Who Goes First UI */}
+          {(duel.status === 'ready' || duel.status === 'active') && (
+             <div className="mt-4 flex flex-col items-center gap-1">
+                <span className="text-xs text-zinc-500 uppercase font-medium tracking-wider">Going First</span>
+                {(isAdmin || isParticipant) ? (
+                    <div className="flex bg-zinc-900 border border-zinc-700 rounded-md p-0.5">
+                         <button 
+                            className={`px-3 py-1 text-xs rounded-sm transition-colors ${duel.firstPlayerId === duel.player1Id ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            onClick={async () => {
+                                if (duel.firstPlayerId === duel.player1Id) return
+                                try {
+                                    await api(`/duels/${id}/first-player`, {
+                                        method: 'PUT',
+                                        body: JSON.stringify({ firstPlayerId: duel.player1Id, userId: user?.id })
+                                    })
+                                    fetchDuel()
+                                } catch (e: any) {
+                                    alert(e.message)
+                                }
+                            }}
+                         >
+                            {duel.player1?.username || 'P1'}
+                         </button>
+                         <button 
+                            className={`px-3 py-1 text-xs rounded-sm transition-colors ${duel.firstPlayerId === duel.player2Id ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            onClick={async () => {
+                                if (duel.firstPlayerId === duel.player2Id) return
+                                try {
+                                    await api(`/duels/${id}/first-player`, {
+                                        method: 'PUT',
+                                        body: JSON.stringify({ firstPlayerId: duel.player2Id, userId: user?.id })
+                                    })
+                                    fetchDuel()
+                                } catch (e: any) {
+                                    alert(e.message)
+                                }
+                            }}
+                         >
+                            {duel.player2?.username || 'P2'}
+                         </button>
+                    </div>
+                ) : (
+                    <div className="text-white font-medium text-sm">
+                        {duel.firstPlayerId === duel.player1Id ? duel.player1.username : 
+                         duel.firstPlayerId === duel.player2Id ? duel.player2?.username : 'Not set'}
+                    </div>
+                )}
+             </div>
+          )}
         </div>
 
         {/* Player 2 */}
@@ -363,6 +522,28 @@ export default function DuelRoom() {
                   {duel.player2?.rank && <span className="text-zinc-400 mr-2">#{duel.player2.rank} •</span>}
                   MMR: {duel.player2.mmr}
                 </div>
+                {duel.player2?.deck ? (
+                  <div className="mt-2 text-sm font-medium flex items-center justify-center gap-2" style={{ color: duel.player2.deck.color }}>
+                    {duel.player2.deck.link ? (
+                        <a href={duel.player2.deck.link} target="_blank" rel="noreferrer" className="hover:underline">
+                            {duel.player2.deck.name}
+                        </a>
+                    ) : (
+                        duel.player2.deck.name
+                    )}
+                    {(isAdmin || (user?.id === duel.player2Id)) && (
+                        <button onClick={() => openEditDeck(duel.player2Id!, duel.player2!.deck?.id)} className="text-zinc-500 hover:text-white transition-colors">
+                            <Edit2 className="w-3 h-3" />
+                        </button>
+                    )}
+                  </div>
+                ) : (
+                    (isAdmin || (user?.id === duel.player2Id)) && (
+                        <Button variant="outline" size="sm" className="mt-2 h-7 text-xs" onClick={() => openEditDeck(duel.player2Id!)}>
+                            <Plus className="w-3 h-3 mr-1" /> Add Deck
+                        </Button>
+                    )
+                )}
               </div>
               {duel.status === 'active' && (isParticipant || isAdmin) && (
                 <Button 
@@ -486,6 +667,34 @@ export default function DuelRoom() {
             <Button variant="outline" onClick={() => setAddPlayerOpen(false)}>Cancel</Button>
             <Button onClick={handleAddPlayer} disabled={!addPlayerId}>Add Player</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={editDeckOpen} onOpenChange={setEditDeckOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Change Deck</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">Select Deck</label>
+                    <select
+                        value={newDeckId ?? ''}
+                        onChange={(e) => setNewDeckId(e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    >
+                        <option value="">No Deck</option>
+                        {targetUserDecks.map(deck => (
+                            <option key={deck.id} value={deck.id}>
+                                {deck.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setEditDeckOpen(false)}>Cancel</Button>
+                <Button onClick={saveDeckChange}>Save</Button>
+            </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,13 +1,14 @@
 {
   "name": "backend",
   "module": "src/index.ts",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "license": "WTFPL",
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
     "setup:local": "setup_local.bat",
     "introspect": "drizzle-kit introspect"
   },
