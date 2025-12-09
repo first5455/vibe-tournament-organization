@@ -138,6 +138,11 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
     // Update match result
     const updateData: any = { winnerId, result }
     
+    // Update firstPlayerId if provided
+    if ((body as any).firstPlayerId !== undefined) {
+        updateData.firstPlayerId = (body as any).firstPlayerId
+    }
+    
     // Revert previous MMR if exists
     if (match.player1MmrChange !== null && match.player2MmrChange !== null && match.player1Id && match.player2Id) {
         // Revert for p1
@@ -232,6 +237,7 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
     body: t.Object({
       winnerId: t.Nullable(t.Number()),
       result: t.String(),
-      createdBy: t.Number()
+      createdBy: t.Number(),
+      firstPlayerId: t.Optional(t.Number())
     })
   })

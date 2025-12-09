@@ -27,6 +27,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       status: duelRooms.status,
       player1Id: duelRooms.player1Id,
       player2Id: duelRooms.player2Id,
+      firstPlayerId: duelRooms.firstPlayerId,
       player1DeckId: duelRooms.player1DeckId,
       player2DeckId: duelRooms.player2DeckId,
       winnerId: duelRooms.winnerId,
@@ -551,6 +552,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     // Update participants if provided
     if (player1Id !== undefined) updateData.player1Id = player1Id
     if (player2Id !== undefined) updateData.player2Id = player2Id
+    if (body.firstPlayerId !== undefined) updateData.firstPlayerId = body.firstPlayerId
     if (body.player1DeckId !== undefined) updateData.player1DeckId = body.player1DeckId
     if (body.player2DeckId !== undefined) updateData.player2DeckId = body.player2DeckId
 
@@ -629,6 +631,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       player2Note: t.Optional(t.String()),
       player1Id: t.Optional(t.Number()),
       player2Id: t.Optional(t.Nullable(t.Number())),
+      firstPlayerId: t.Optional(t.Number()),
       player1DeckId: t.Optional(t.Nullable(t.Number())),
       player2DeckId: t.Optional(t.Nullable(t.Number())),
       status: t.Optional(t.String()),
@@ -710,4 +713,48 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
   }, {
     params: t.Object({ id: t.String() }),
     body: t.Object({ userId: t.Number() })
+  })
+  .put('/:id/first-player', async ({ params, body, set }) => {
+    const id = parseInt(params.id)
+    const { firstPlayerId, userId } = body
+
+    const duel = await db.select().from(duelRooms).where(eq(duelRooms.id, id)).get()
+    if (!duel) {
+      set.status = 404
+      return { error: 'Duel not found' }
+    }
+
+    const requester = await db.select().from(users).where(eq(users.id, userId)).get()
+    if (!requester) {
+      set.status = 403
+      return { error: 'Unauthorized' }
+    }
+
+    const isAdmin = requester.role === 'admin'
+    const isPlayer1 = duel.player1Id === userId
+    const isPlayer2 = duel.player2Id === userId
+
+    if (!isAdmin && !isPlayer1 && !isPlayer2) {
+      set.status = 403
+      return { error: 'Unauthorized' }
+    }
+    
+    // Verify firstPlayerId is one of the players (if set)
+    if (firstPlayerId && firstPlayerId !== duel.player1Id && firstPlayerId !== duel.player2Id) {
+       set.status = 400
+       return { error: 'Selected user is not a player in this duel' }
+    }
+
+    await db.update(duelRooms)
+      .set({ firstPlayerId })
+      .where(eq(duelRooms.id, id))
+      .run()
+
+    return { success: true }
+  }, {
+    params: t.Object({ id: t.String() }),
+    body: t.Object({
+      firstPlayerId: t.Nullable(t.Number()),
+      userId: t.Number()
+    })
   })

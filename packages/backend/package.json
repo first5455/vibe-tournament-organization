@@ -8,6 +8,7 @@
     "dev": "bun run --watch src/index.ts",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
     "setup:local": "setup_local.bat",
     "introspect": "drizzle-kit introspect"
   },

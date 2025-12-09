@@ -16,26 +16,14 @@ import {
 } from '../components/ui/dropdown-menu'
 import { UserSearchSelect } from '../components/UserSearchSelect'
 import { CreateUserDialog } from '../components/CreateUserDialog'
-import { formatDate } from '../lib/utils'
+import { User, Deck } from '../types'
 
-interface User {
-  id: number
-  username: string
-  displayName?: string
-  role: string
-  mmr: number
-  createdAt: string
-  color?: string
-  avatarUrl?: string
+const formatDate = (dateDict?: string) => {
+  if (!dateDict) return ''
+  return new Date(dateDict).toLocaleString()
 }
 
-interface Deck {
-  id: number
-  userId: number
-  name: string
-  link?: string
-  color: string
-}
+
 
 export default function AdminPortal() {
   const { user, refreshUser } = useAuth()
@@ -193,7 +181,7 @@ export default function AdminPortal() {
   }
 
   const editMMR = async (targetUser: User) => {
-    const newMMR = prompt(`Enter new MMR for ${targetUser.username}:`, targetUser.mmr.toString())
+    const newMMR = prompt(`Enter new MMR for ${targetUser.username}:`, (targetUser.mmr || 1000).toString())
     if (newMMR === null) return
     
     const mmrValue = parseInt(newMMR)
@@ -875,24 +863,8 @@ export default function AdminPortal() {
       {editDuelOpen && editingDuel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
           <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-white">Edit Duel: {editingDuel.name}</h3>
+            <h3 className="text-lg font-bold text-white">Edit Duel</h3>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-400">Status</label>
-                <select 
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 text-white"
-                  value={editDuelForm.status}
-                  onChange={e => setEditDuelForm({...editDuelForm, status: e.target.value})}
-                >
-                  <option value="open">Open</option>
-                  <option value="ready">Ready</option>
-                  <option value="active">Active</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-            </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-400">Player 1</label>
               <div className="text-sm text-zinc-300 mb-1">

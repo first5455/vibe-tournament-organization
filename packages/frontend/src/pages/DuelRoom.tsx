@@ -48,6 +48,7 @@ interface Duel {
   player2?: Player
   player1Note?: string
   player2Note?: string
+  firstPlayerId?: number
   createdAt: string
 }
 
@@ -457,6 +458,56 @@ export default function DuelRoom() {
           )}
           {duel.status === 'ready' && (
             <div className="text-yellow-500 text-sm font-medium">Ready to start!</div>
+          )}
+          
+          {/* Who Goes First UI */}
+          {(duel.status === 'ready' || duel.status === 'active') && (
+             <div className="mt-4 flex flex-col items-center gap-1">
+                <span className="text-xs text-zinc-500 uppercase font-medium tracking-wider">Going First</span>
+                {(isAdmin || isParticipant) ? (
+                    <div className="flex bg-zinc-900 border border-zinc-700 rounded-md p-0.5">
+                         <button 
+                            className={`px-3 py-1 text-xs rounded-sm transition-colors ${duel.firstPlayerId === duel.player1Id ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            onClick={async () => {
+                                if (duel.firstPlayerId === duel.player1Id) return
+                                try {
+                                    await api(`/duels/${id}/first-player`, {
+                                        method: 'PUT',
+                                        body: JSON.stringify({ firstPlayerId: duel.player1Id, userId: user?.id })
+                                    })
+                                    fetchDuel()
+                                } catch (e: any) {
+                                    alert(e.message)
+                                }
+                            }}
+                         >
+                            {duel.player1?.username || 'P1'}
+                         </button>
+                         <button 
+                            className={`px-3 py-1 text-xs rounded-sm transition-colors ${duel.firstPlayerId === duel.player2Id ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            onClick={async () => {
+                                if (duel.firstPlayerId === duel.player2Id) return
+                                try {
+                                    await api(`/duels/${id}/first-player`, {
+                                        method: 'PUT',
+                                        body: JSON.stringify({ firstPlayerId: duel.player2Id, userId: user?.id })
+                                    })
+                                    fetchDuel()
+                                } catch (e: any) {
+                                    alert(e.message)
+                                }
+                            }}
+                         >
+                            {duel.player2?.username || 'P2'}
+                         </button>
+                    </div>
+                ) : (
+                    <div className="text-white font-medium text-sm">
+                        {duel.firstPlayerId === duel.player1Id ? duel.player1.username : 
+                         duel.firstPlayerId === duel.player2Id ? duel.player2?.username : 'Not set'}
+                    </div>
+                )}
+             </div>
           )}
         </div>
 

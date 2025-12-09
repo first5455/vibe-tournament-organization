@@ -19,6 +19,11 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
     
     // Calculate stats for each deck
     const decksWithStats = await Promise.all(userDecks.map(async (deck) => {
+        let firstWins = 0
+        let firstTotal = 0
+        let secondWins = 0
+        let secondTotal = 0
+
         // 1. Duel Room Stats
         const duels = await db.select({
             id: duelRooms.id,
@@ -26,7 +31,8 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
             player1Id: duelRooms.player1Id,
             player2Id: duelRooms.player2Id,
             player1DeckId: duelRooms.player1DeckId,
-            player2DeckId: duelRooms.player2DeckId
+            player2DeckId: duelRooms.player2DeckId,
+            firstPlayerId: duelRooms.firstPlayerId
         })
         .from(duelRooms)
         .where(
@@ -41,8 +47,21 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
         let duelTotal = duels.length
 
         for (const d of duels) {
-            if (d.player1DeckId === deck.id && d.winnerId === d.player1Id) duelWins++
-            if (d.player2DeckId === deck.id && d.winnerId === d.player2Id) duelWins++
+            const isP1 = d.player1DeckId === deck.id
+            const isWinner = (isP1 && d.winnerId === d.player1Id) || (!isP1 && d.winnerId === d.player2Id)
+            
+            if (isWinner) duelWins++
+
+            if (d.firstPlayerId) {
+                const wentFirst = (isP1 && d.firstPlayerId === d.player1Id) || (!isP1 && d.firstPlayerId === d.player2Id)
+                if (wentFirst) {
+                    firstTotal++
+                    if (isWinner) firstWins++
+                } else {
+                    secondTotal++
+                    if (isWinner) secondWins++
+                }
+            }
         }
 
         // 2. Tournament Stats
@@ -57,7 +76,8 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
             const tourneyMatches = await db.select({
                 winnerId: matches.winnerId,
                 player1Id: matches.player1Id,
-                player2Id: matches.player2Id
+                player2Id: matches.player2Id,
+                firstPlayerId: matches.firstPlayerId
             })
             .from(matches)
             .where(
@@ -73,19 +93,43 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
 
             tourneyTotal = tourneyMatches.length
             for (const m of tourneyMatches) {
-                if (partIds.includes(m.winnerId!)) tourneyWins++
+                // Determine which player is the deck owner
+                const isP1 = partIds.includes(m.player1Id!) // Assumes player1Id is not null if partIds found it
+                const myPartId = isP1 ? m.player1Id : m.player2Id
+                const isWinner = m.winnerId === myPartId
+                
+                if (isWinner) tourneyWins++
+
+                if (m.firstPlayerId) {
+                    const wentFirst = m.firstPlayerId === myPartId
+                    if (wentFirst) {
+                        firstTotal++
+                        if (isWinner) firstWins++
+                    } else {
+                        secondTotal++
+                        if (isWinner) secondWins++
+                    }
+                }
             }
         }
 
         const totalWins = duelWins + tourneyWins
         const totalGames = duelTotal + tourneyTotal
         const winRate = totalGames > 0 ? Math.round((totalWins / totalGames) * 100) : 0
+        const firstWinRate = firstTotal > 0 ? Math.round((firstWins / firstTotal) * 100) : 0
+        const secondWinRate = secondTotal > 0 ? Math.round((secondWins / secondTotal) * 100) : 0
         
         return {
             ...deck,
             winRate,
-            totalGames, // Optional: useful to show
-            totalWins
+            totalGames,
+            totalWins,
+            firstWinRate,
+            firstTotal,
+            firstWins,
+            secondWinRate,
+            secondTotal,
+            secondWins
         }
     }))
 

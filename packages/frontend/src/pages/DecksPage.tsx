@@ -15,6 +15,12 @@ interface Deck {
   winRate?: number
   totalGames?: number
   totalWins?: number
+  firstWinRate?: number
+  firstTotal?: number
+  firstWins?: number
+  secondWinRate?: number
+  secondTotal?: number
+  secondWins?: number
 }
 
 export default function DecksPage() {
@@ -177,6 +183,38 @@ export default function DecksPage() {
                    <span className="text-zinc-500 text-xs">
                         ({deck.totalWins || 0}/{deck.totalGames || 0} Games)
                    </span>
+                </div>
+
+                
+                {/* Detailed Win Rates */}
+                <div className="flex items-center gap-4 text-xs text-zinc-500 mt-2 border-t border-zinc-800/50 pt-2">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold text-zinc-600">Play First</span>
+                        <div className="flex items-center gap-1">
+                             <span className={`font-bold ${
+                                (deck.firstWinRate || 0) >= 50 ? 'text-green-400' : 'text-zinc-400'
+                             }`}>
+                                {deck.firstWinRate || 0}%
+                             </span>
+                             <span className="text-[10px] text-zinc-600">
+                                ({deck.firstWins || 0}/{deck.firstTotal || 0})
+                             </span>
+                        </div>
+                    </div>
+                    <div className="w-px h-6 bg-zinc-800/50"></div>
+                    <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold text-zinc-600">Play Second</span>
+                        <div className="flex items-center gap-1">
+                             <span className={`font-bold ${
+                                (deck.secondWinRate || 0) >= 50 ? 'text-green-400' : 'text-zinc-400'
+                             }`}>
+                                {deck.secondWinRate || 0}%
+                             </span>
+                             <span className="text-[10px] text-zinc-600">
+                                ({deck.secondWins || 0}/{deck.secondTotal || 0})
+                             </span>
+                        </div>
+                    </div>
                 </div>
               </div>
               
