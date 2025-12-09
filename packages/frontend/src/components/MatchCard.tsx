@@ -149,16 +149,18 @@ export function MatchCard({
                 <span className="text-[10px] text-zinc-500 uppercase font-bold px-1">First:</span>
                 <button
                     onClick={() => setSelectedFirstPlayerId(p1?.id)}
-                    className={`text-xs px-2 py-0.5 rounded transition-colors ${selectedFirstPlayerId === p1?.id ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                    className={`text-xs px-2 py-0.5 rounded transition-colors max-w-[100px] truncate ${selectedFirstPlayerId === p1?.id ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                    title={p1?.username || p1?.guestName || 'Player 1'}
                 >
-                    P1
+                    {p1?.username || p1?.guestName || 'P1'}
                 </button>
                 <button
                     onClick={() => setSelectedFirstPlayerId(p2?.id)}
-                    className={`text-xs px-2 py-0.5 rounded transition-colors ${selectedFirstPlayerId === p2?.id ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                    className={`text-xs px-2 py-0.5 rounded transition-colors max-w-[100px] truncate ${selectedFirstPlayerId === p2?.id ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
                     disabled={!p2}
+                    title={p2?.username || p2?.guestName || 'Player 2'}
                 >
-                    P2
+                    {p2?.username || p2?.guestName || 'P2'}
                 </button>
              </div>
 

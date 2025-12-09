@@ -852,7 +852,10 @@ export default function TournamentView() {
                       className={`flex-1 ${firstPlayerId === reportingMatch.player1Id ? 'bg-indigo-600 hover:bg-indigo-700' : ''}`}
                       onClick={() => setFirstPlayerId(reportingMatch.player1Id)}
                    >
-                     {participants.find(p => p.id === reportingMatch.player1Id)?.username || 'Player 1'}
+                     {(() => {
+                        const p = participants.find(p => p.id === reportingMatch.player1Id)
+                        return p?.username || p?.guestName || 'Player 1'
+                     })()}
                    </Button>
                    <Button
                       variant={firstPlayerId === reportingMatch.player2Id ? undefined : 'outline'}
@@ -863,7 +866,11 @@ export default function TournamentView() {
                         setFirstPlayerId(reportingMatch.player2Id || undefined)
                       }}
                    >
-                     {reportingMatch.player2Id ? (participants.find(p => p.id === reportingMatch.player2Id)?.username || 'Player 2') : 'Player 2'}
+                     {(() => {
+                        if (!reportingMatch.player2Id) return 'Player 2'
+                        const p = participants.find(p => p.id === reportingMatch.player2Id)
+                        return p?.username || p?.guestName || 'Player 2'
+                     })()}
                    </Button>
                 </div>
               </div>
