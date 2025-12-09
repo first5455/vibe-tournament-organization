@@ -1,9 +1,152 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "afbc6c87-4fb9-490d-b0d5-bbb812eb6ba5",
+  "id": "5ab22cba-b95e-43dd-b115-bde7c0cc5620",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
+    "duel_rooms": {
+      "name": "duel_rooms",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'open'"
+        },
+        "player1_id": {
+          "name": "player1_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "player2_id": {
+          "name": "player2_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "winner_id": {
+          "name": "winner_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "player1_note": {
+          "name": "player1_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "player2_note": {
+          "name": "player2_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "rematch_room_id": {
+          "name": "rematch_room_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "player1_mmr_change": {
+          "name": "player1_mmr_change",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "player2_mmr_change": {
+          "name": "player2_mmr_change",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "duel_rooms_player1_id_users_id_fk": {
+          "name": "duel_rooms_player1_id_users_id_fk",
+          "tableFrom": "duel_rooms",
+          "tableTo": "users",
+          "columnsFrom": [
+            "player1_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "duel_rooms_player2_id_users_id_fk": {
+          "name": "duel_rooms_player2_id_users_id_fk",
+          "tableFrom": "duel_rooms",
+          "tableTo": "users",
+          "columnsFrom": [
+            "player2_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "duel_rooms_winner_id_users_id_fk": {
+          "name": "duel_rooms_winner_id_users_id_fk",
+          "tableFrom": "duel_rooms",
+          "tableTo": "users",
+          "columnsFrom": [
+            "winner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
     "matches": {
       "name": "matches",
       "columns": {
@@ -64,6 +207,20 @@
           "autoincrement": false,
           "default": false
         },
+        "player1_mmr_change": {
+          "name": "player1_mmr_change",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "player2_mmr_change": {
+          "name": "player2_mmr_change",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "text",
@@ -88,10 +245,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "matches_player1_id_users_id_fk": {
-          "name": "matches_player1_id_users_id_fk",
+        "matches_player1_id_participants_id_fk": {
+          "name": "matches_player1_id_participants_id_fk",
           "tableFrom": "matches",
-          "tableTo": "users",
+          "tableTo": "participants",
           "columnsFrom": [
             "player1_id"
           ],
@@ -101,10 +258,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "matches_player2_id_users_id_fk": {
-          "name": "matches_player2_id_users_id_fk",
+        "matches_player2_id_participants_id_fk": {
+          "name": "matches_player2_id_participants_id_fk",
           "tableFrom": "matches",
-          "tableTo": "users",
+          "tableTo": "participants",
           "columnsFrom": [
             "player2_id"
           ],
@@ -114,10 +271,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "matches_winner_id_users_id_fk": {
-          "name": "matches_winner_id_users_id_fk",
+        "matches_winner_id_participants_id_fk": {
+          "name": "matches_winner_id_participants_id_fk",
           "tableFrom": "matches",
-          "tableTo": "users",
+          "tableTo": "participants",
           "columnsFrom": [
             "winner_id"
           ],
@@ -153,7 +310,14 @@
           "name": "user_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "guest_name": {
+          "name": "guest_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "score": {
@@ -179,6 +343,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -239,6 +410,14 @@
           "autoincrement": false,
           "default": "'pending'"
         },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'swiss'"
+        },
         "total_rounds": {
           "name": "total_rounds",
           "type": "integer",
@@ -269,6 +448,20 @@
           "notNull": true,
           "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
+        },
+        "start_date": {
+          "name": "start_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "end_date": {
+          "name": "end_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},
@@ -308,6 +501,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "password_hash": {
           "name": "password_hash",
           "type": "text",
@@ -330,6 +530,43 @@
           "notNull": true,
           "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
+        },
+        "security_question": {
+          "name": "security_question",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "security_answer_hash": {
+          "name": "security_answer_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'user'"
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": "'#ffffff'"
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {

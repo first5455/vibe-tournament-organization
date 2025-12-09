@@ -8,7 +8,8 @@
     "dev": "bun run --watch src/index.ts",
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
-    "setup:local": "setup_local.bat"
+    "setup:local": "setup_local.bat",
+    "introspect": "drizzle-kit introspect"
   },
   "dependencies": {
     "elysia": "latest",
