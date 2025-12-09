@@ -10,6 +10,7 @@ import { useRefresh } from '../hooks/useRefresh'
 import { formatDate } from '../lib/utils'
 import { UserSearchSelect } from '../components/UserSearchSelect'
 import { CreateUserDialog } from '../components/CreateUserDialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 
 interface Participant {
   id: number
@@ -22,6 +23,18 @@ interface Participant {
   note?: string | null
   userColor?: string | null
   userAvatarUrl?: string | null
+  deckName?: string | null
+  deckColor?: string | null
+  deckId?: number | null
+  deckLink?: string | null
+}
+
+interface Deck {
+  id: number
+  userId: number
+  name: string
+  link?: string
+  color: string
 }
 
 interface Match {
@@ -58,6 +71,8 @@ export default function TournamentView() {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [matches, setMatches] = useState<Match[]>([])
   const { user } = useAuth()
+  const [userDecks, setUserDecks] = useState<Deck[]>([])
+  const [selectedDeckId, setSelectedDeckId] = useState<number | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -147,6 +162,20 @@ export default function TournamentView() {
     }
   }, [id])
 
+  useEffect(() => {
+    const fetchUserDecks = async () => {
+      if (user?.id) {
+        try {
+          const decks = await api(`/decks?userId=${user.id}`)
+          setUserDecks(decks)
+        } catch (e) {
+          console.error('Failed to fetch user decks', e)
+        }
+      }
+    }
+    fetchUserDecks()
+  }, [user])
+
   const reportMatch = async (match: Match, s1: number, s2: number) => {
     if (!user?.id) {
       alert('You must be logged in to report results')
@@ -190,7 +219,10 @@ export default function TournamentView() {
     try {
       await api(`/tournaments/${id}/join`, {
         method: 'POST',
-        body: JSON.stringify({ userId: user?.id }),
+        body: JSON.stringify({ 
+          userId: user?.id,
+          deckId: selectedDeckId
+        }),
       })
       loadTournament()
     } catch (err) {
@@ -218,8 +250,16 @@ export default function TournamentView() {
   // Score Reporting Modal State
   const [reportingMatch, setReportingMatch] = useState<Match | null>(null)
   const [score1, setScore1] = useState('')
+
+  
   const [score2, setScore2] = useState('')
   
+  // Deck Editing State
+  const [editDeckOpen, setEditDeckOpen] = useState(false)
+  const [editingDeckParticipantId, setEditingDeckParticipantId] = useState<number | null>(null)
+  const [targetUserDecks, setTargetUserDecks] = useState<Deck[]>([])
+  const [newDeckId, setNewDeckId] = useState<number | undefined>(undefined)
+
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -277,13 +317,59 @@ export default function TournamentView() {
 
       await api(`/tournaments/${id}/participants`, {
         method: 'POST',
-        body: JSON.stringify({ userId: selectedUser.id, createdBy: user.id })
+        body: JSON.stringify({ 
+          userId: selectedUser.id, 
+          createdBy: user.id
+          // TODO: Admin selecting deck for user? maybe later
+        })
       })
       setShowAddParticipant(false)
       loadTournament()
     } catch (err: any) {
       console.error('Failed to add participant:', err)
       alert(`Failed to add participant: ${err.message || 'Unknown error'}`)
+    }
+  }
+
+  const openEditDeck = async (p: Participant) => {
+    if (!p.userId) return
+    setEditingDeckParticipantId(p.id)
+    setEditDeckOpen(true)
+    setTargetUserDecks([]) // Clear previous
+    setNewDeckId(undefined)
+
+    // Initial selected deck? We don't have the ID in participant list easily unless we add it to API
+    // The API sends everything, let's check table cols. I added deckName/Color but not deckId to `participants` query in `tournaments.ts`?
+    // Let's check `backend/src/routes/tournaments.ts` ... I did `...getTableColumns(participants)` so `deckId` IS there.
+    // However, I need to cast it or update interface.
+    // Interface Participant has ... wait, where is deckId in interface?
+    // It's not in the interface in `TournamentView.tsx` line 14. I should add it.
+    
+    // For now assuming we can fix interface below or just access it as any for a sec, 
+    // but better to add it to interface.
+
+    try {
+      const decks = await api(`/decks?userId=${p.userId}`)
+      setTargetUserDecks(decks)
+    } catch (e) {
+      console.error('Failed to fetch decks for user', e)
+    }
+  }
+
+  const saveDeckChange = async () => {
+    if (!editingDeckParticipantId) return
+    try {
+        await api(`/tournaments/${id}/participants/${editingDeckParticipantId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ 
+                deckId: newDeckId === -1 ? null : newDeckId, // -1 or null handling
+                userId: user?.id 
+            })
+        })
+        setEditDeckOpen(false)
+        loadTournament()
+    } catch (err: any) {
+        alert(err.message)
     }
   }
 
@@ -438,7 +524,23 @@ export default function TournamentView() {
                   Joined
                 </Button>
               ) : (
-                <Button onClick={joinTournament} variant="secondary">Join Tournament</Button>
+                <div className="flex gap-2 items-center">
+                  {userDecks.length > 0 && (
+                    <select
+                      value={selectedDeckId || ''}
+                      onChange={(e) => setSelectedDeckId(e.target.value ? parseInt(e.target.value) : undefined)}
+                      className="bg-zinc-900 border border-zinc-700 rounded px-2 py-2 text-white text-sm focus:outline-none focus:border-zinc-500"
+                    >
+                      <option value="">No Deck</option>
+                      {userDecks.map(deck => (
+                        <option key={deck.id} value={deck.id}>
+                          {deck.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  <Button onClick={joinTournament} variant="secondary">Join Tournament</Button>
+                </div>
               )}
               {isAdmin && (
                 <>
@@ -605,6 +707,17 @@ export default function TournamentView() {
                               color={p1?.userColor}
                               userId={p1?.userId || undefined}
                             />
+                            {p1?.deckName && (
+                                p1.deckLink ? (
+                                    <a href={p1.deckLink} target="_blank" rel="noreferrer" className="text-xs font-medium truncate max-w-[100px] hover:underline" style={{ color: p1.deckColor || '#fff' }}>
+                                        {p1.deckName}
+                                    </a>
+                                ) : (
+                                    <span className="text-xs font-medium truncate max-w-[100px]" style={{ color: p1.deckColor || '#fff' }}>
+                                        {p1.deckName}
+                                    </span>
+                                )
+                            )}
                             {match.result && (
                               <div className="flex items-center gap-1">
                                 <span className={`text-xs px-1.5 py-0.5 rounded ${match.winnerId === match.player1Id ? 'bg-green-900/30 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
@@ -634,6 +747,17 @@ export default function TournamentView() {
                                   color={p2?.userColor}
                                   userId={p2?.userId || undefined}
                                 />
+                                {p2?.deckName && (
+                                    p2.deckLink ? (
+                                        <a href={p2.deckLink} target="_blank" rel="noreferrer" className="text-xs font-medium truncate max-w-[100px] hover:underline" style={{ color: p2.deckColor || '#fff' }}>
+                                            {p2.deckName}
+                                        </a>
+                                    ) : (
+                                        <span className="text-xs font-medium truncate max-w-[100px]" style={{ color: p2.deckColor || '#fff' }}>
+                                            {p2.deckName}
+                                        </span>
+                                    )
+                                )}
                                 {match.result && (
                                   <div className="flex items-center gap-1">
                                     <span className={`text-xs px-1.5 py-0.5 rounded ${match.winnerId === match.player2Id ? 'bg-green-900/30 text-green-400' : 'bg-red-900/20 text-red-400'}`}>
@@ -722,6 +846,7 @@ export default function TournamentView() {
               <tr>
                 <th className="px-4 py-3 font-medium">Rank</th>
                 <th className="px-4 py-3 font-medium">Player</th>
+                <th className="px-4 py-3 font-medium">Deck</th>
                 <th className="px-4 py-3 font-medium">Note</th>
                 <th className="px-4 py-3 font-medium text-right">Score</th>
                 {isAdmin && <th className="px-4 py-3 font-medium text-right">Actions</th>}
@@ -738,6 +863,35 @@ export default function TournamentView() {
                         <UserLabel username={p.username || p.guestName || `User ${p.userId}`} displayName={p.displayName || undefined} color={p.userColor} userId={p.userId || undefined} />
                         {p.dropped && <span className="ml-2 text-xs text-red-500">(Dropped)</span>}
                       </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                        {p.deckName ? (
+                          p.deckLink ? (
+                              <a href={p.deckLink} target="_blank" rel="noreferrer" className="text-sm font-medium hover:underline" style={{ color: p.deckColor || '#fff' }}>
+                                  {p.deckName}
+                              </a>
+                          ) : (
+                              <span className="text-sm font-medium" style={{ color: p.deckColor || '#fff' }}>
+                                  {p.deckName}
+                              </span>
+                          )
+                        ) : (
+                          <span className="text-zinc-600 text-xs italic">-</span>
+                        )}
+                        {p.userId && (isAdmin || (user?.id === p.userId && tournament.status === 'pending')) && (
+                            <button
+                                onClick={() => {
+                                    setNewDeckId(p.deckId || undefined)
+                                    openEditDeck(p)
+                                }}
+                                className="text-zinc-500 hover:text-zinc-300 ml-1 transition-colors"
+                                title="Edit Deck"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                            </button>
+                        )}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-zinc-400">
@@ -829,10 +983,10 @@ export default function TournamentView() {
                 <div className="pt-6 text-zinc-500 font-bold">-</div>
                 <div className="flex-1">
                   <label className="mb-2 block text-sm font-medium text-zinc-400">
-                    {participants.find(p => p.id === reportingMatch.player2Id)?.displayName || 
+                    {reportingMatch && (participants.find(p => p.id === reportingMatch.player2Id)?.displayName || 
                      participants.find(p => p.id === reportingMatch.player2Id)?.username || 
                      participants.find(p => p.id === reportingMatch.player2Id)?.guestName || 
-                     'Player 2'}
+                     'Player 2')}
                   </label>
                   <input
                     type="number"
@@ -854,7 +1008,9 @@ export default function TournamentView() {
                     return
                   }
                   
-                  reportMatch(reportingMatch, s1, s2)
+                  if (reportingMatch) {
+                    reportMatch(reportingMatch, s1, s2)
+                  }
                   setReportingMatch(null)
                 }}>Submit Result</Button>
               </div>
@@ -862,6 +1018,36 @@ export default function TournamentView() {
           </div>
         </div>
       )}
+
+      {/* Edit Deck Dialog */}
+      <Dialog open={editDeckOpen} onOpenChange={setEditDeckOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Change Deck</DialogTitle>
+            </DialogHeader>
+            <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">Select Deck</label>
+                    <select
+                        value={newDeckId ?? ''}
+                        onChange={(e) => setNewDeckId(e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                    >
+                        <option value="">No Deck</option>
+                        {targetUserDecks.map(deck => (
+                            <option key={deck.id} value={deck.id}>
+                                {deck.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            <div className="flex justify-end gap-2">
+                <Button variant="ghost" onClick={() => setEditDeckOpen(false)}>Cancel</Button>
+                <Button onClick={saveDeckChange}>Save</Button>
+            </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

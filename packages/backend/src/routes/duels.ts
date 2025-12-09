@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { duelRooms, users } from '../db/schema'
+import { duelRooms, users, decks } from '../db/schema'
 import { eq, and, or, desc, aliasedTable, sql } from 'drizzle-orm'
 import { getRank } from '../utils'
 
@@ -18,6 +18,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     }
 
     const p2 = aliasedTable(users, 'p2')
+    const d1 = aliasedTable(decks, 'd1')
+    const d2 = aliasedTable(decks, 'd2')
 
     const queryBuilder = db.select({
       id: duelRooms.id,
@@ -25,6 +27,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       status: duelRooms.status,
       player1Id: duelRooms.player1Id,
       player2Id: duelRooms.player2Id,
+      player1DeckId: duelRooms.player1DeckId,
+      player2DeckId: duelRooms.player2DeckId,
       winnerId: duelRooms.winnerId,
       result: duelRooms.result,
       createdAt: duelRooms.createdAt,
@@ -38,10 +42,18 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       player2Color: p2.color,
       player1Note: duelRooms.player1Note,
       player2Note: duelRooms.player2Note,
+      player1DeckName: d1.name,
+      player1DeckColor: d1.color,
+      player1DeckLink: d1.link,
+      player2DeckName: d2.name,
+      player2DeckColor: d2.color,
+      player2DeckLink: d2.link,
     })
     .from(duelRooms)
     .leftJoin(users, eq(duelRooms.player1Id, users.id))
     .leftJoin(p2, eq(duelRooms.player2Id, p2.id))
+    .leftJoin(d1, eq(duelRooms.player1DeckId, d1.id))
+    .leftJoin(d2, eq(duelRooms.player2DeckId, d2.id))
     .orderBy(desc(duelRooms.createdAt))
 
     if (!showAll) {
@@ -57,13 +69,15 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     })
   })
   .post('/', async ({ body, set }) => {
-    const { name, createdBy, player1Id, player2Id, player1Note, player2Note } = body
+    const { name, createdBy, player1Id, player2Id, player1Note, player2Note, player1DeckId, player2DeckId } = body
     
     try {
       const result = await db.insert(duelRooms).values({
         name,
         player1Id: player1Id || createdBy,
         player2Id: player2Id || null,
+        player1DeckId,
+        player2DeckId,
         status: player2Id ? 'ready' : 'open',
         player1Note,
         player2Note,
@@ -82,7 +96,9 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       player1Id: t.Optional(t.Number()),
       player2Id: t.Optional(t.Nullable(t.Number())),
       player1Note: t.Optional(t.Nullable(t.String())),
-      player2Note: t.Optional(t.Nullable(t.String()))
+      player2Note: t.Optional(t.Nullable(t.String())),
+      player1DeckId: t.Optional(t.Number()),
+      player2DeckId: t.Optional(t.Number())
     })
   })
   .get('/:id', async ({ params, set }) => {
@@ -97,15 +113,17 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     // Fetch player details
     const p1 = await db.select().from(users).where(eq(users.id, duel.player1Id)).get()
     const p1Rank = p1 ? await getRank(p1.mmr) : null
+    const p1Deck = duel.player1DeckId ? await db.select().from(decks).where(eq(decks.id, duel.player1DeckId)).get() : null
 
     const p2 = duel.player2Id ? await db.select().from(users).where(eq(users.id, duel.player2Id)).get() : null
     const p2Rank = p2 ? await getRank(p2.mmr) : null
+    const p2Deck = duel.player2DeckId ? await db.select().from(decks).where(eq(decks.id, duel.player2DeckId)).get() : null
 
     return { 
       duel: {
         ...duel,
-        player1: p1 ? { id: p1.id, username: p1.username, displayName: p1.displayName, avatarUrl: p1.avatarUrl, color: p1.color, mmr: p1.mmr, rank: p1Rank } : null,
-        player2: p2 ? { id: p2.id, username: p2.username, displayName: p2.displayName, avatarUrl: p2.avatarUrl, color: p2.color, mmr: p2.mmr, rank: p2Rank } : null,
+        player1: p1 ? { id: p1.id, username: p1.username, displayName: p1.displayName, avatarUrl: p1.avatarUrl, color: p1.color, mmr: p1.mmr, rank: p1Rank, deck: p1Deck } : null,
+        player2: p2 ? { id: p2.id, username: p2.username, displayName: p2.displayName, avatarUrl: p2.avatarUrl, color: p2.color, mmr: p2.mmr, rank: p2Rank, deck: p2Deck } : null,
       }
     }
   }, {
@@ -113,7 +131,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
   })
   .post('/:id/join', async ({ params, body, set }) => {
     const id = parseInt(params.id)
-    const { userId } = body
+    const { userId, deckId } = body
 
     const duel = await db.select().from(duelRooms).where(eq(duelRooms.id, id)).get()
     if (!duel) {
@@ -134,14 +152,75 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     }
 
     await db.update(duelRooms)
-      .set({ player2Id: userId, status: 'ready' })
+      .set({ player2Id: userId, player2DeckId: deckId, status: 'ready' })
       .where(eq(duelRooms.id, id))
       .run()
 
     return { success: true }
   }, {
     params: t.Object({ id: t.String() }),
-    body: t.Object({ userId: t.Number() })
+    body: t.Object({ 
+      userId: t.Number(),
+      deckId: t.Optional(t.Number())
+    })
+  })
+  .put('/:id/players', async ({ params, body, set }) => {
+    const id = parseInt(params.id)
+    const { userId, targetUserId, deckId } = body
+
+    const duel = await db.select().from(duelRooms).where(eq(duelRooms.id, id)).get()
+    if (!duel) {
+      set.status = 404
+      return { error: 'Duel not found' }
+    }
+
+    // Permission Check
+    const requester = await db.select().from(users).where(eq(users.id, userId)).get()
+    const isAdmin = requester?.role === 'admin'
+    
+    const targetId = targetUserId || userId
+    const isPlayer1 = duel.player1Id === targetId
+    const isPlayer2 = duel.player2Id === targetId
+
+    // Authorization
+    if (!isAdmin && userId !== targetId) { // User trying to edit someone else
+        set.status = 403
+        return { error: 'Unauthorized' }
+    }
+    
+    // Check if requester is part of this duel (if not admin)
+    if (!isAdmin && duel.player1Id !== userId && duel.player2Id !== userId) {
+        set.status = 403
+        return { error: 'Unauthorized' }
+    }
+
+    if (!isPlayer1 && !isPlayer2) {
+       set.status = 400
+       return { error: 'Target user is not in this duel' }
+    }
+
+    if (!isAdmin && duel.status === 'completed') {
+       set.status = 400
+       return { error: 'Cannot change deck in completed duel' }
+    }
+
+    const updates: any = {}
+    if (isPlayer1) updates.player1DeckId = deckId
+    if (isPlayer2) updates.player2DeckId = deckId
+
+    await db.update(duelRooms)
+      .set(updates)
+      .where(eq(duelRooms.id, id))
+      .run()
+
+    return { success: true }
+  }, {
+    params: t.Object({ id: t.String() }),
+    body: t.Object({ 
+        userId: t.Number(), // Requester
+        targetUserId: t.Optional(t.Number()), // Target 
+        deckId: t.Nullable(t.Number())
+    })
   })
   .post('/:id/leave', async ({ params, body, set }) => {
     const id = parseInt(params.id)
@@ -472,6 +551,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     // Update participants if provided
     if (player1Id !== undefined) updateData.player1Id = player1Id
     if (player2Id !== undefined) updateData.player2Id = player2Id
+    if (body.player1DeckId !== undefined) updateData.player1DeckId = body.player1DeckId
+    if (body.player2DeckId !== undefined) updateData.player2DeckId = body.player2DeckId
 
     // Update status if provided
     if (status !== undefined) updateData.status = status
@@ -548,6 +629,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       player2Note: t.Optional(t.String()),
       player1Id: t.Optional(t.Number()),
       player2Id: t.Optional(t.Nullable(t.Number())),
+      player1DeckId: t.Optional(t.Nullable(t.Number())),
+      player2DeckId: t.Optional(t.Nullable(t.Number())),
       status: t.Optional(t.String()),
       userId: t.Number()
     })
@@ -600,6 +683,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
         name: newName,
         player1Id: duel.player1Id,
         player2Id: duel.player2Id,
+        player1DeckId: duel.player1DeckId,
+        player2DeckId: duel.player2DeckId,
         status: 'ready', // Since both players are "in", it implies ready, although maybe just Open until joined?
                          // Actually if we carry over players, they are effectively "in" the room data-wise,
                          // but standard flow might require them to "join" again if we want to be strict.

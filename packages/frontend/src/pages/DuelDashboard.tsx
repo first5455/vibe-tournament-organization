@@ -25,6 +25,17 @@ interface Duel {
   player2DisplayName?: string
   player2Avatar?: string
   player2Color?: string
+  player1DeckName?: string
+  player1DeckColor?: string
+  player2DeckName?: string
+  player2DeckColor?: string
+  player1DeckLink?: string
+  player2DeckLink?: string
+}
+
+interface Deck {
+  id: number
+  name: string
 }
 
 export default function DuelDashboard() {
@@ -32,6 +43,8 @@ export default function DuelDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [newName, setNewName] = useState('')
+  const [userDecks, setUserDecks] = useState<Deck[]>([])
+  const [selectedDeckId, setSelectedDeckId] = useState<number | undefined>(undefined)
   const { user } = useAuth()
   const navigate = useNavigate()
 
@@ -52,6 +65,20 @@ export default function DuelDashboard() {
     loadDuels()
   }, [])
 
+  useEffect(() => {
+    const fetchDecks = async () => {
+      if (user?.id) {
+        try {
+          const decks = await api(`/decks?userId=${user.id}`)
+          setUserDecks(decks)
+        } catch (e) {
+          console.error('Failed to fetch decks', e)
+        }
+      }
+    }
+    fetchDecks()
+  }, [user])
+
   const createDuel = async () => {
     if (!user) return
 
@@ -68,6 +95,7 @@ export default function DuelDashboard() {
         body: JSON.stringify({ 
           name: roomName, 
           createdBy: user.id,
+          player1DeckId: selectedDeckId
         }),
       })
       setIsCreating(false)
@@ -122,6 +150,19 @@ export default function DuelDashboard() {
                   autoFocus
                 />
               </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">Select Deck (Optional)</label>
+                <select
+                  value={selectedDeckId || ''}
+                  onChange={(e) => setSelectedDeckId(e.target.value ? parseInt(e.target.value) : undefined)}
+                  className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="">No Deck</option>
+                  {userDecks.map(deck => (
+                    <option key={deck.id} value={deck.id}>{deck.name}</option>
+                  ))}
+                </select>
+              </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
                 <Button onClick={createDuel}>Create</Button>
@@ -162,22 +203,60 @@ export default function DuelDashboard() {
                        duel.status === 'ready' ? 'Ready to Start' : 'In Progress'}
                     </span>
                   </div>
-                  <div className="mt-4 flex items-center gap-2">
-                    <UserAvatar username={duel.player1Name} displayName={duel.player1DisplayName} avatarUrl={duel.player1Avatar} size="sm" className="h-6 w-6" />
-                    <span className="font-medium text-white">
-                      <UserLabel username={duel.player1Name} displayName={duel.player1DisplayName} color={duel.player1Color} />
-                    </span>
-                    <span className="text-zinc-600 font-bold">VS</span>
-                    {duel.player2Name ? (
-                      <>
-                        <span className="font-medium text-white">
-                          <UserLabel username={duel.player2Name} displayName={duel.player2DisplayName} color={duel.player2Color} />
-                        </span>
-                        <UserAvatar username={duel.player2Name} displayName={duel.player2DisplayName} avatarUrl={duel.player2Avatar} size="sm" className="h-6 w-6" />
-                      </>
-                    ) : (
-                      <span className="text-sm text-zinc-500 italic">Waiting...</span>
-                    )}
+                  <div className="mt-4 grid grid-cols-[1fr,auto,1fr] gap-2 items-center">
+                    <div className="flex flex-col items-center">
+                      <UserAvatar username={duel.player1Name} displayName={duel.player1DisplayName} avatarUrl={duel.player1Avatar} size="sm" className="h-8 w-8 mb-1" />
+                      <UserLabel username={duel.player1Name} displayName={duel.player1DisplayName} color={duel.player1Color} className="text-sm" />
+                      {duel.player1DeckName && (
+                        duel.player1DeckLink ? (
+                            <a 
+                                href={duel.player1DeckLink} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-xs font-medium truncate max-w-[100px] hover:underline" 
+                                style={{ color: duel.player1DeckColor || '#fff' }}
+                            >
+                                {duel.player1DeckName}
+                            </a>
+                        ) : (
+                            <span className="text-xs font-medium truncate max-w-[100px]" style={{ color: duel.player1DeckColor || '#fff' }}>
+                                {duel.player1DeckName}
+                            </span>
+                        )
+                      )}
+                    </div>
+                    
+                    <span className="text-zinc-600 font-bold text-sm">VS</span>
+                    
+                    <div className="flex flex-col items-center">
+                      {duel.player2Name ? (
+                        <>
+                          <UserAvatar username={duel.player2Name} displayName={duel.player2DisplayName} avatarUrl={duel.player2Avatar} size="sm" className="h-8 w-8 mb-1" />
+                          <UserLabel username={duel.player2Name} displayName={duel.player2DisplayName} color={duel.player2Color} className="text-sm" />
+                          {duel.player2DeckName && (
+                            duel.player2DeckLink ? (
+                                <a 
+                                    href={duel.player2DeckLink} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-xs font-medium truncate max-w-[100px] hover:underline" 
+                                    style={{ color: duel.player2DeckColor || '#fff' }}
+                                >
+                                    {duel.player2DeckName}
+                                </a>
+                            ) : (
+                                <span className="text-xs font-medium truncate max-w-[100px]" style={{ color: duel.player2DeckColor || '#fff' }}>
+                                    {duel.player2DeckName}
+                                </span>
+                            )
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-sm text-zinc-500 italic h-full flex items-center">Waiting...</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

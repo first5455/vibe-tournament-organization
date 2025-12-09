@@ -46,6 +46,12 @@ export default function Layout() {
                       Duel Room
                     </Button>
                   </Link>
+                  <Link to="/decks">
+                    <Button variant={location.pathname === '/decks' ? 'secondary' : 'ghost'} size="sm">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      My Decks
+                    </Button>
+                  </Link>
                   {user.role === 'admin' && (
                     <Link to="/admin">
                       <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} size="sm">
@@ -115,6 +121,12 @@ export default function Layout() {
                     <Button variant={location.pathname === '/duels' ? 'secondary' : 'ghost'} className="w-full justify-start">
                       <Swords className="mr-2 h-4 w-4" />
                       Duel Room
+                    </Button>
+                  </Link>
+                  <Link to="/decks" onClick={() => setIsMenuOpen(false)}>
+                    <Button variant={location.pathname === '/decks' ? 'secondary' : 'ghost'} className="w-full justify-start">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      My Decks
                     </Button>
                   </Link>
                   {user.role === 'admin' && (
