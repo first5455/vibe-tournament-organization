@@ -642,25 +642,6 @@ export default function TournamentView() {
       ) : (
         <div className="space-y-4">
              {(() => {
-                // Group matches by round for non-round-robin
-                // Or if there are rounds, show them.
-                // Assuming we want to show the list of matches.
-                // Reconstructing the logic that was likely here.
-                
-                const currentRoundMatches = matches.filter(m => m.roundNumber === tournament.currentRound)
-                // Filter matches for display? The original code had logic here.
-                // Let's assume we are iterating rounds or just showing current round.
-                // The broken code suggested: 
-                // {isCurrentRound ? (tournament.currentRound === tournament.totalRounds ? 'Final Round Matches' : 'Current Round Matches') : `Round ${roundNum}`}
-                
-                // We'll simplify to just showing the matches list for now until we see the fuller context or just show all matches.
-                // But the code below (lines 588+) uses `roundMatches`.
-                // Let's define roundMatches.
-                
-                // Actually, the simplest fix is to restore the "Matches" header and the map.
-                // But we don't have the `roundNum` loop variable here.
-                // Let's just show standard matches for the current round.
-                
                 const roundMatches = matches.filter(m => m.roundNumber === tournament.currentRound)
                 const isCurrentRound = true
                 
