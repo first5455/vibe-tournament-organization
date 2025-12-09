@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - DeckName Feature and DeckList URL
 - Deck Winrate Feature
+- First Player Feature
 
 ### Changed
 

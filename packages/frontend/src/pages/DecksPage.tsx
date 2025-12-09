@@ -189,7 +189,7 @@ export default function DecksPage() {
                 {/* Detailed Win Rates */}
                 <div className="flex items-center gap-4 text-xs text-zinc-500 mt-2 border-t border-zinc-800/50 pt-2">
                     <div className="flex flex-col">
-                        <span className="text-[10px] uppercase font-bold text-zinc-600">Play First</span>
+                        <span className="text-[10px] uppercase font-bold text-zinc-600">Play First Winrate</span>
                         <div className="flex items-center gap-1">
                              <span className={`font-bold ${
                                 (deck.firstWinRate || 0) >= 50 ? 'text-green-400' : 'text-zinc-400'
@@ -203,7 +203,7 @@ export default function DecksPage() {
                     </div>
                     <div className="w-px h-6 bg-zinc-800/50"></div>
                     <div className="flex flex-col">
-                        <span className="text-[10px] uppercase font-bold text-zinc-600">Play Second</span>
+                        <span className="text-[10px] uppercase font-bold text-zinc-600">Play Second Winrate</span>
                         <div className="flex items-center gap-1">
                              <span className={`font-bold ${
                                 (deck.secondWinRate || 0) >= 50 ? 'text-green-400' : 'text-zinc-400'
@@ -220,14 +220,14 @@ export default function DecksPage() {
               
               {deck.link && (
                 <div className="mb-4 pl-2">
-                  <a 
-                    href={deck.link} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    className="text-sm text-blue-400 hover:underline flex items-center gap-1"
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="text-blue-400 border-blue-400/20 hover:bg-blue-400/10 hover:text-blue-300"
+                    onClick={() => window.open(deck.link, '_blank')}
                   >
-                    View Decklist <ExternalLink className="w-3 h-3" />
-                  </a>
+                    View Decklist <ExternalLink className="ml-2 w-3 h-3" />
+                  </Button>
                 </div>
               )}
               
