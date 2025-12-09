@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1764731634138,
-      "tag": "0000_panoramic_callisto",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1764748744514,
-      "tag": "0001_flat_beyonder",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1764819947764,
-      "tag": "0002_black_tigra",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1764851641600,
-      "tag": "0003_burly_supernaut",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1764954668754,
-      "tag": "0004_yummy_mantis",
+      "when": 1765252496863,
+      "tag": "0000_amusing_mockingbird",
       "breakpoints": true
     }
   ]
