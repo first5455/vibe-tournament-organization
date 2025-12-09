@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, participants, tournaments, duelRooms, matches } from '../db/schema'
+import { users, participants, tournaments, duelRooms, matches, decks } from '../db/schema'
 import { eq, desc, sql, or } from 'drizzle-orm'
 import { getRank } from '../utils'
 
@@ -120,6 +120,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       tournamentName: tournaments.name,
       tournamentStartDate: sql<string>`COALESCE(${tournaments.startDate}, ${tournaments.createdAt})`,
       tournamentStatus: tournaments.status,
+      deckId: participants.deckId,
     })
     .from(participants)
     .innerJoin(tournaments, eq(participants.tournamentId, tournaments.id))
@@ -146,6 +147,13 @@ export const userRoutes = new Elysia({ prefix: '/users' })
 
       const rank = allParticipants.findIndex(ap => ap.userId === id) + 1
 
+      // Fetch deck info if exists
+      let deckInfo = null
+      if (p.deckId) {
+          const deck = await db.select({ id: decks.id, name: decks.name, color: decks.color, link: decks.link }).from(decks).where(eq(decks.id, p.deckId)).get()
+          if (deck) deckInfo = deck
+      }
+
       return {
         tournamentName: p.tournamentName,
         tournamentDate: p.tournamentStartDate,
@@ -154,6 +162,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         rank,
         totalParticipants: allParticipants.length,
         note: p.note,
+        deck: deckInfo
       }
     }))
 
@@ -171,13 +180,15 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       player2Note: duelRooms.player2Note,
       player1MmrChange: duelRooms.player1MmrChange,
       player2MmrChange: duelRooms.player2MmrChange,
+      player1DeckId: duelRooms.player1DeckId,
+      player2DeckId: duelRooms.player2DeckId,
     })
     .from(duelRooms)
     .where(or(eq(duelRooms.player1Id, id), eq(duelRooms.player2Id, id)))
     .orderBy(desc(duelRooms.createdAt))
     .all()
 
-    // Enrich duel history with opponent names
+    // Enrich duel history with opponent names and deck info
     const enrichedDuels = await Promise.all(userDuels.map(async (d) => {
       const opponentId = d.player1Id === id ? d.player2Id : d.player1Id
       let opponentName = 'Unknown'
@@ -186,6 +197,14 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         if (opponent) opponentName = opponent.displayName || opponent.username
       } else {
         opponentName = 'Waiting...'
+      }
+
+      // Determine used deck
+      const myDeckId = d.player1Id === id ? d.player1DeckId : d.player2DeckId
+      let deckInfo = null
+      if (myDeckId) {
+          const deck = await db.select({ id: decks.id, name: decks.name, color: decks.color, link: decks.link }).from(decks).where(eq(decks.id, myDeckId)).get()
+          if (deck) deckInfo = deck
       }
 
       return {
@@ -203,6 +222,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         player2Note: d.player2Note,
         player1MmrChange: d.player1MmrChange,
         player2MmrChange: d.player2MmrChange,
+        deck: deckInfo
       }
     }))
 

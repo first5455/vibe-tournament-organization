@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
 import { Button } from '../components/ui/button'
-import { Trophy, Swords, Calendar, MoreVertical } from 'lucide-react'
+import { Trophy, Swords, Calendar, MoreVertical, ExternalLink } from 'lucide-react'
 import { ProfileSettingsDialog } from '../components/ProfileSettingsDialog'
 import { formatDate } from '../lib/utils'
 
@@ -29,6 +29,12 @@ interface TournamentHistory {
   rank: number
   totalParticipants: number
   note?: string
+  deck?: {
+    id: number
+    name: string
+    color: string
+    link?: string
+  }
 }
 
 interface DuelHistory {
@@ -46,6 +52,12 @@ interface DuelHistory {
   player2Note?: string
   player1MmrChange?: number | null
   player2MmrChange?: number | null
+  deck?: {
+    id: number
+    name: string
+    color: string
+    link?: string
+  }
 }
 
 export default function UserProfilePage() {
@@ -198,7 +210,27 @@ export default function UserProfilePage() {
                     </div>
                     <div className="flex justify-between items-center text-sm text-zinc-400">
                       <span>{item.tournamentDate.startsWith('Started:') ? item.tournamentDate : `Date: ${formatDate(item.tournamentDate)}`}</span>
-                      <span>Score: {item.score}</span>
+                      <div className="flex items-center gap-4">
+                        {item.deck && (
+                            <div className="flex items-center gap-1">
+                                <span className="text-zinc-500">Deck:</span>
+                                {item.deck.link ? (
+                                    <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="h-6 text-xs px-2 gap-1 border-white/10 bg-transparent hover:bg-white/5" 
+                                        style={{ color: item.deck.color }}
+                                        onClick={() => window.open(item.deck?.link, '_blank')}
+                                    >
+                                        {item.deck.name} <ExternalLink className="w-3 h-3" />
+                                    </Button>
+                                ) : (
+                                    <span className="text-xs" style={{ color: item.deck.color }}>{item.deck.name}</span>
+                                )}
+                            </div>
+                        )}
+                        <span>Score: {item.score}</span>
+                      </div>
                     </div>
                     {item.note && (
                       <div className="mt-2 text-sm text-zinc-500 bg-zinc-950/50 p-2 rounded border border-white/5">
@@ -264,6 +296,24 @@ export default function UserProfilePage() {
                         </div>
                         <span className="text-zinc-500">{formatDate(duel.createdAt)}</span>
                       </div>
+                      {duel.deck && (
+                          <div className="mt-2 text-xs flex justify-end items-center gap-1">
+                            <span className="text-zinc-500">Deck:</span>
+                            {duel.deck.link ? (
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="h-6 text-xs px-2 gap-1 border-white/10 bg-transparent hover:bg-white/5" 
+                                    style={{ color: duel.deck.color }}
+                                    onClick={() => window.open(duel.deck?.link, '_blank')}
+                                >
+                                    {duel.deck.name} <ExternalLink className="w-3 h-3" />
+                                </Button>
+                            ) : (
+                                <span style={{ color: duel.deck.color }}>{duel.deck.name}</span>
+                            )}
+                          </div>
+                      )}
                       {/* Display notes if they exist */}
                       {(duel.player1Note || duel.player2Note) && (
                         <div className="mt-2 text-sm text-zinc-500 bg-zinc-950/50 p-2 rounded border border-white/5 space-y-1">
