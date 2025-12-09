@@ -12,9 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DeckName Feature and DeckList URL
 - Deck Winrate Feature
 
-### Fixed
+### Changed
 
-- fix UserSearchSelect initialValue not working in admin panel
+- fix avatarURL for security reason
 
 ## [0.5.1] - 2025-12-08
 
