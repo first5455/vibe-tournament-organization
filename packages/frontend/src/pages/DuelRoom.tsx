@@ -461,10 +461,10 @@ export default function DuelRoom() {
           )}
           
           {/* Who Goes First UI */}
-          {(duel.status === 'ready' || duel.status === 'active') && (
+          {(duel.status === 'ready' || duel.status === 'active' || duel.status === 'completed') && (
              <div className="mt-4 flex flex-col items-center gap-1">
                 <span className="text-xs text-zinc-500 uppercase font-medium tracking-wider">Going First</span>
-                {(isAdmin || isParticipant) ? (
+                {(isAdmin || isParticipant) && duel.status !== 'completed' ? (
                     <div className="flex bg-zinc-900 border border-zinc-700 rounded-md p-0.5">
                          <button 
                             className={`px-3 py-1 text-xs rounded-sm transition-colors ${duel.firstPlayerId === duel.player1Id ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}

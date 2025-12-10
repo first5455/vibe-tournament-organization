@@ -803,6 +803,9 @@ export default function AdminPortal() {
                       <div className="flex items-center gap-2">
                         <UserAvatar username={d.player1Name} displayName={d.player1DisplayName} avatarUrl={d.player1Avatar} size="sm" />
                         <UserLabel username={d.player1Name} displayName={d.player1DisplayName} color={d.player1Color} />
+                        {d.firstPlayerId === d.player1Id && (
+                            <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1 rounded border border-zinc-700" title="Went First">1st</span>
+                        )}
                       </div>
                       {d.player1Note && (
                         <div className="text-xs text-zinc-500 italic ml-8 truncate max-w-[200px]" title={d.player1Note}>
@@ -831,6 +834,9 @@ export default function AdminPortal() {
                         <div className="flex items-center gap-2">
                           <UserAvatar username={d.player2Name} displayName={d.player2DisplayName} avatarUrl={d.player2Avatar} size="sm" />
                           <UserLabel username={d.player2Name} displayName={d.player2DisplayName} color={d.player2Color} />
+                          {d.firstPlayerId === d.player2Id && (
+                              <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1 rounded border border-zinc-700" title="Went First">1st</span>
+                          )}
                         </div>
                         {d.player2Note && (
                           <div className="text-xs text-zinc-500 italic ml-8 truncate max-w-[200px]" title={d.player2Note}>

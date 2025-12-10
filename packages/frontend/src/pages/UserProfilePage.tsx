@@ -59,7 +59,9 @@ interface DuelHistory {
     name: string
     color: string
     link?: string
+
   }
+  firstPlayerId?: number;
 }
 
 export default function UserProfilePage() {
@@ -369,6 +371,16 @@ export default function UserProfilePage() {
                           }`}>
                             {duel.status !== 'completed' ? duel.status : isWinner ? 'WIN' : isDraw ? 'DRAW' : 'LOSS'}
                           </span>
+                          {/* First Player Badge */}
+                          {duel.firstPlayerId && (
+                              <span className={`text-[10px] px-1 py-0.5 rounded border ${
+                                  duel.firstPlayerId === user.id 
+                                  ? 'bg-zinc-800 text-zinc-300 border-zinc-700' 
+                                  : 'text-zinc-600 border-zinc-800'
+                              }`}>
+                                  {duel.firstPlayerId === user.id ? 'YOU WENT 1ST' : 'OPP WENT 1ST'}
+                              </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex justify-between items-center text-sm">
