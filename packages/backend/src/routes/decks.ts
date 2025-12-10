@@ -6,19 +6,33 @@ import { eq, desc, and, or, sql, inArray } from 'drizzle-orm'
 export const deckRoutes = new Elysia({ prefix: '/decks' })
   .get('/', async ({ query, set }) => {
     const { userId } = query
-    if (!userId) {
-      set.status = 400
-      return { error: 'Missing userId' }
-    }
-
-    const userDecks = await db.select()
-      .from(decks)
-      .where(eq(decks.userId, parseInt(userId)))
-      .orderBy(desc(decks.createdAt))
-      .all()
     
-    // Calculate stats for each deck
-    const decksWithStats = await Promise.all(userDecks.map(async (deck) => {
+    let results;
+    if (userId) {
+      results = await db.select()
+        .from(decks)
+        .leftJoin(users, eq(decks.userId, users.id))
+        .where(eq(decks.userId, parseInt(userId)))
+        .orderBy(desc(decks.createdAt))
+        .all()
+    } else {
+      results = await db.select()
+        .from(decks)
+        .leftJoin(users, eq(decks.userId, users.id))
+        .orderBy(desc(decks.createdAt))
+        .limit(100)
+        .all()
+    }
+    
+    // Flatten and stats
+    const decksWithStats = await Promise.all(results.map(async (row) => {
+        const deck = {
+            ...row.decks,
+            username: row.users?.username,
+            displayName: row.users?.displayName,
+            userAvatarUrl: row.users?.avatarUrl
+        }
+
         let firstWins = 0
         let firstTotal = 0
         let secondWins = 0
@@ -136,11 +150,11 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
     return decksWithStats
   }, {
     query: t.Object({
-      userId: t.String()
+      userId: t.Optional(t.String())
     })
   })
   .post('/', async ({ body, set }) => {
-    const { userId, name, link, color } = body
+    const { requesterId, userId, name, link, color } = body
 
     // Validation? User exists?
     const user = await db.select().from(users).where(eq(users.id, userId)).get()
@@ -148,6 +162,23 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
       set.status = 404
       return { error: 'User not found' }
     }
+
+    // Auth and Permission Check
+    const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
+    if (!requester) {
+        set.status = 401
+        return { error: 'Unauthorized' }
+    }
+
+    const isAdmin = requester.role === 'admin'
+    const isOwner = userId === requesterId
+
+    // Only Admin or the User themselves can create a deck for a user
+    if (!isAdmin && !isOwner) {
+        set.status = 403
+        return { error: 'Forbidden: Cannot create deck for another user' }
+    }
+
 
     const result = await db.insert(decks).values({
       userId,
@@ -159,6 +190,7 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
     return { deck: result }
   }, {
     body: t.Object({
+      requesterId: t.Number(),
       userId: t.Number(),
       name: t.String(),
       link: t.Optional(t.String()),

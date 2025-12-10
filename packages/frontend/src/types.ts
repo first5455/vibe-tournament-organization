@@ -16,6 +16,7 @@ export interface Deck {
   link?: string | null
   color: string
   civilizations?: any[]
+  createdAt?: string
 }
 
 export interface Participant {

@@ -16,7 +16,17 @@ import {
 } from '../components/ui/dropdown-menu'
 import { UserSearchSelect } from '../components/UserSearchSelect'
 import { CreateUserDialog } from '../components/CreateUserDialog'
+
+import { DeckModal } from '../components/DeckModal'
 import { User, Deck } from '../types'
+
+interface AdminDeck extends Deck {
+  username?: string
+  displayName?: string
+  userAvatarUrl?: string
+  winRate?: number
+  totalGames?: number
+}
 
 const formatDate = (dateDict?: string) => {
   if (!dateDict) return ''
@@ -27,10 +37,12 @@ const formatDate = (dateDict?: string) => {
 
 export default function AdminPortal() {
   const { user, refreshUser } = useAuth()
-  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [tournaments, setTournaments] = useState<any[]>([])
+
   const [duels, setDuels] = useState<any[]>([])
+  const [decks, setDecks] = useState<AdminDeck[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingColorId, setEditingColorId] = useState<number | null>(null)
@@ -69,7 +81,13 @@ export default function AdminPortal() {
   const [participantsOpen, setParticipantsOpen] = useState(false)
   const [currentParticipants, setCurrentParticipants] = useState<any[]>([])
   const [showAddParticipant, setShowAddParticipant] = useState(false)
+
   const [showCreateUser, setShowCreateUser] = useState(false)
+
+  // Deck Management State
+  const [deckModalOpen, setDeckModalOpen] = useState(false)
+  const [editingDeck, setEditingDeck] = useState<AdminDeck | null>(null)
+  const [createDeckUserId, setCreateDeckUserId] = useState<number | null>(null)
 
   const navigate = useNavigate()
 
@@ -94,6 +112,9 @@ export default function AdminPortal() {
       } else if (activeTab === 'duels') {
         const data = await api(`/duels?admin=true&requesterId=${user?.id}`)
         setDuels(data)
+      } else if (activeTab === 'decks') {
+        const data = await api('/decks')
+        setDecks(data)
       }
     } catch (err: any) {
       setError(err.message)
@@ -507,7 +528,15 @@ export default function AdminPortal() {
           onClick={() => setActiveTab('duels')}
           className="whitespace-nowrap"
         >
+
           Duel Rooms
+        </Button>
+        <Button 
+          variant={activeTab === 'decks' ? 'secondary' : 'ghost'} 
+          onClick={() => setActiveTab('decks')}
+          className="whitespace-nowrap"
+        >
+          Decks
         </Button>
       </div>
 
@@ -809,42 +838,52 @@ export default function AdminPortal() {
                           </div>
                         )}
                         {d.player2DeckName && (
-                            <div className="ml-8 mt-1 flex items-center gap-1">
-                                 <span className="text-xs text-zinc-500 font-medium">Deck:</span>
-                                 {d.player2DeckLink ? (
-                                    <a href={d.player2DeckLink} target="_blank" rel="noreferrer" className="text-xs font-medium hover:underline" style={{ color: d.player2DeckColor || '#fff' }}>
-                                        {d.player2DeckName}
-                                    </a>
-                                ) : (
-                                    <span className="text-xs font-medium" style={{ color: d.player2DeckColor || '#fff' }}>
-                                        {d.player2DeckName}
-                                    </span>
-                                )}
-                            </div>
+                          <div className="ml-8 mt-1 flex items-center gap-1">
+                               <span className="text-xs text-zinc-500 font-medium">Deck:</span>
+                               {d.player2DeckLink ? (
+                                  <a href={d.player2DeckLink} target="_blank" rel="noreferrer" className="text-xs font-medium hover:underline" style={{ color: d.player2DeckColor || '#fff' }}>
+                                      {d.player2DeckName}
+                                  </a>
+                              ) : (
+                                  <span className="text-xs font-medium" style={{ color: d.player2DeckColor || '#fff' }}>
+                                      {d.player2DeckName}
+                                  </span>
+                              )}
+                          </div>
                         )}
                       </div>
                     ) : (
-                      <span className="text-zinc-600 italic">Waiting...</span>
+                      <span className="text-zinc-500 italic">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">{d.result || '-'}</td>
-                  <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-zinc-400 hover:text-white"
-                      onClick={() => openEditDuel(d)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                      onClick={() => deleteDuel(d.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <td className="px-4 py-3 font-mono">
+                    {d.status === 'completed' ? (
+                      <span className="font-bold">
+                        {d.player1Score} - {d.player2Score}
+                      </span>
+                    ) : (
+                      <span className="text-zinc-500">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-2">
+                        <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-zinc-400 hover:text-white"
+                        onClick={() => openEditDuel(d)}
+                        >
+                        <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => deleteDuel(d.id)}
+                        >
+                        <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -858,6 +897,166 @@ export default function AdminPortal() {
         </div>
       </div>
       )}
+
+      {activeTab === 'decks' && (
+        <div className="w-full">
+            <div className="flex justify-between items-center mb-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-bold text-white">All Decks</h2>
+                    <span className="text-zinc-500 text-sm">{decks.length} total</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-64">
+                         <UserSearchSelect 
+                             onSelect={(u) => setCreateDeckUserId(u.id)}
+                             placeholder="Select user to create deck..."
+                         />
+                    </div>
+                    <Button 
+                        disabled={!createDeckUserId}
+                        onClick={() => {
+                             setEditingDeck(null)
+                             setDeckModalOpen(true)
+                        }}
+                        className="bg-purple-600 hover:bg-purple-700"
+                    >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Create Deck
+                    </Button>
+                </div>
+            </div>
+
+            <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
+                <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
+                    <thead className="bg-zinc-900 text-zinc-200">
+                        <tr>
+                            <th className="px-4 py-3 font-medium">ID</th>
+                            <th className="px-4 py-3 font-medium">Name</th>
+                            <th className="px-4 py-3 font-medium">Owner</th>
+                            <th className="px-4 py-3 font-medium">Stats</th>
+                            <th className="px-4 py-3 font-medium">Created</th>
+                            <th className="px-4 py-3 font-medium text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                        {decks.map(deck => (
+                            <tr key={deck.id} className="hover:bg-zinc-900/80">
+                                <td className="px-4 py-3 font-mono">{deck.id}</td>
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: deck.color }}></div>
+                                        <span className="font-medium text-white">{deck.name}</span>
+                                        {deck.link && (
+                                            <a href={deck.link} target="_blank" rel="noreferrer" className="text-zinc-500 hover:text-blue-400">
+                                                <Users className="w-3 h-3" /> {/* Using Users icon as generic link icon for now or external link */}
+                                            </a>
+                                        )}
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                        <UserAvatar username={deck.username || '?'} displayName={deck.displayName} avatarUrl={deck.userAvatarUrl} size="sm" />
+                                        <div className="flex flex-col">
+                                            <span className="text-white font-medium">{deck.displayName || deck.username}</span>
+                                            <span className="text-xs text-zinc-500">#{deck.userId}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`font-bold ${
+                                            (deck.winRate || 0) >= 50 ? 'text-green-400' : 'text-zinc-500'
+                                        }`}>
+                                            {deck.winRate || 0}%
+                                        </span>
+                                        <span className="text-zinc-600 text-xs">
+                                            ({deck.totalGames || 0} games)
+                                        </span>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3">{formatDate(deck.createdAt)}</td>
+                                <td className="px-4 py-3 text-right">
+                                    <div className="flex justify-end gap-2">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="text-zinc-400 hover:text-white"
+                                            onClick={() => {
+                                                setEditingDeck(deck)
+                                                setDeckModalOpen(true)
+                                            }}
+                                        >
+                                            <Edit2 className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                            onClick={async () => {
+                                                if (!confirm('Delete this deck?')) return
+                                                try {
+                                                    await api(`/decks/${deck.id}`, {
+                                                        method: 'DELETE',
+                                                        body: JSON.stringify({ requesterId: user?.id })
+                                                    })
+                                                    loadData()
+                                                } catch (e: any) {
+                                                    alert(e.message)
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                         {decks.length === 0 && (
+                            <tr>
+                                <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">No decks found</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+            
+             <DeckModal 
+                isOpen={deckModalOpen}
+                onClose={() => setDeckModalOpen(false)}
+                initialData={editingDeck}
+                title={editingDeck ? 'Edit Deck' : 'Create Deck'}
+                onSubmit={async (data) => {
+                    try {
+                        if (editingDeck) {
+                            await api(`/decks/${editingDeck.id}`, {
+                                method: 'PUT',
+                                body: JSON.stringify({
+                                    requesterId: user?.id,
+                                    ...data
+                                })
+                            })
+                        } else {
+                            if (!createDeckUserId) return
+                            await api('/decks', {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    requesterId: user?.id,
+                                    userId: createDeckUserId,
+                                    ...data
+                                })
+                            })
+                        }
+                        setDeckModalOpen(false)
+                        setCreateDeckUserId(null)
+                        loadData()
+                    } catch (e: any) {
+                        alert(e.message)
+                    }
+                }}
+            />
+        </div>
+      )}
+
 
       {/* Edit Duel Dialog */}
       {editDuelOpen && editingDuel && (
