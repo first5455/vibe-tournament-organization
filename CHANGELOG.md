@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.6.4] - 2025-12-10
+
+### Changed
+
+- **Duel Room**: Added "Going First" indicator for all match statuses, including completed matches.
+- **Admin Portal**: Added "1st" badge to duel history table to show who played first.
+- **User Profile**: Added "YOU WENT 1ST" / "OPP WENT 1ST" badge to Duel History.
+
 ## [0.6.3] - 2025-12-10
 
 ### Changed
