@@ -5,7 +5,9 @@ import { useAuth } from '../lib/auth'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
 import { Button } from '../components/ui/button'
-import { Trophy, Swords, Calendar, MoreVertical, ExternalLink } from 'lucide-react'
+import { Trophy, Swords, Calendar, MoreVertical, ExternalLink, Plus, Layers } from 'lucide-react'
+import { DeckCard, DeckWithStats } from '../components/DeckCard'
+import { DeckModal } from '../components/DeckModal'
 import { ProfileSettingsDialog } from '../components/ProfileSettingsDialog'
 import { formatDate } from '../lib/utils'
 
@@ -66,7 +68,12 @@ export default function UserProfilePage() {
   const [user, setUser] = useState<UserProfile | null>(null)
   const [history, setHistory] = useState<TournamentHistory[]>([])
   const [duels, setDuels] = useState<DuelHistory[]>([])
+  const [decks, setDecks] = useState<DeckWithStats[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Deck Management State
+  const [isDeckModalOpen, setIsDeckModalOpen] = useState(false)
+  const [editingDeck, setEditingDeck] = useState<DeckWithStats | null>(null)
   
   const fetchData = async () => {
     if (!id) return
@@ -78,6 +85,14 @@ export default function UserProfilePage() {
       const historyRes = await api(`/users/${id}/history`)
       setHistory(historyRes.history)
       setDuels(historyRes.duels || [])
+
+      // Fetch decks
+      try {
+        const decksRes = await api(`/decks?userId=${id}`)
+        setDecks(decksRes)
+      } catch (e) {
+        console.error('Failed to fetch decks', e)
+      }
     } catch (error) {
       console.error('Failed to fetch user data:', error)
     } finally {
@@ -93,6 +108,46 @@ export default function UserProfilePage() {
   if (!user) return <div className="flex justify-center items-center h-96 text-red-500">User not found</div>
 
   const canEdit = currentUser?.id === user.id || currentUser?.role === 'admin'
+
+  const handleDeckSubmit = async (data: { name: string; link: string; color: string }) => {
+    try {
+        if (editingDeck) {
+            await api(`/decks/${editingDeck.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    requesterId: currentUser?.id,
+                    ...data
+                })
+            })
+        } else {
+            await api('/decks', {
+                method: 'POST',
+                body: JSON.stringify({
+                    requesterId: currentUser?.id,
+                    userId: user.id,
+                    ...data
+                })
+            })
+        }
+        setIsDeckModalOpen(false)
+        fetchData() // Refresh data
+    } catch (e) {
+        alert('Failed to save deck')
+    }
+  }
+
+  const handleDeleteDeck = async (deckId: number) => {
+    if (!confirm('Are you sure you want to delete this deck?')) return
+    try {
+        await api(`/decks/${deckId}`, {
+            method: 'DELETE',
+            body: JSON.stringify({ requesterId: currentUser?.id })
+        })
+        fetchData()
+    } catch (e) {
+        alert('Failed to delete deck')
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -183,6 +238,39 @@ export default function UserProfilePage() {
            </div>
            <Calendar className="w-8 h-8 text-blue-500" />
         </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Layers className="text-purple-500" />
+                Player Decks
+            </h2>
+            {canEdit && (
+                <Button onClick={() => { setEditingDeck(null); setIsDeckModalOpen(true) }} size="sm" className="bg-purple-600 hover:bg-purple-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Deck
+                </Button>
+            )}
+        </div>
+        
+        {decks.length === 0 ? (
+            <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-8 text-center text-zinc-500">
+                No decks created yet
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {decks.map(deck => (
+                    <DeckCard 
+                        key={deck.id} 
+                        deck={deck} 
+                        showActions={canEdit}
+                        onEdit={(d) => { setEditingDeck(d); setIsDeckModalOpen(true) }}
+                        onDelete={handleDeleteDeck}
+                    />
+                ))}
+            </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -343,6 +431,14 @@ export default function UserProfilePage() {
           </div>
         </div>
       </div>
+      <DeckModal 
+        isOpen={isDeckModalOpen} 
+        onClose={() => setIsDeckModalOpen(false)} 
+        onSubmit={handleDeckSubmit}
+        initialData={editingDeck}
+        title={editingDeck ? "Edit Deck" : `Create Deck for ${user.displayName || user.username}`}
+        submitLabel={editingDeck ? "Save Changes" : "Create Deck"}
+      />
     </div>
   )
 }

@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.6.2] - 2025-12-10
+
+### Added
+
+- **Decks Management**: Complete deck management system for users and admins.
+- **User Profile**: Added "Player Decks" section to view, create, edit, and delete personal decks.
+- **Admin Portal**: Added "Decks" tab to list all decks with owner info. Admins can create decks for users and manage any deck.
+- **Backend**: Updated `GET /decks` to support fetching all decks with owner details. Updated `POST /decks` to allow admins to create decks for other users.
+- **Components**: Added `DeckCard` and `DeckModal` for reusable deck display and editing.
+
+### Fixed
+
+- **Admin Portal**: Resolved JSX corruption and duplicate declaration issues in `AdminPortal.tsx`.
+
 ## [0.6.1] - 2025-12-10
 
 ### Changed
