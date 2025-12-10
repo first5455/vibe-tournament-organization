@@ -1,13 +1,13 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { duelRooms, users, decks } from '../db/schema'
+import { duelRooms, users, decks, games, userGameStats } from '../db/schema'
 import { eq, and, or, desc, aliasedTable, sql } from 'drizzle-orm'
 import { getRank } from '../utils'
 
 
 export const duelRoutes = new Elysia({ prefix: '/duels' })
   .get('/', async ({ query }) => {
-    const { admin, requesterId } = query
+    const { admin, requesterId, gameId } = query
     
     let showAll = false
     if (admin === 'true' && requesterId) {
@@ -49,28 +49,41 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       player2DeckName: d2.name,
       player2DeckColor: d2.color,
       player2DeckLink: d2.link,
+      gameName: games.name
     })
     .from(duelRooms)
     .leftJoin(users, eq(duelRooms.player1Id, users.id))
     .leftJoin(p2, eq(duelRooms.player2Id, p2.id))
     .leftJoin(d1, eq(duelRooms.player1DeckId, d1.id))
     .leftJoin(d2, eq(duelRooms.player2DeckId, d2.id))
+    .leftJoin(games, eq(duelRooms.gameId, games.id))
     .orderBy(desc(duelRooms.createdAt))
 
+    let conditions: any[] = []
+
     if (!showAll) {
-      // @ts-ignore
-      queryBuilder.where(or(eq(duelRooms.status, 'open'), eq(duelRooms.status, 'ready'), eq(duelRooms.status, 'active')))
+       conditions.push(or(eq(duelRooms.status, 'open'), eq(duelRooms.status, 'ready'), eq(duelRooms.status, 'active')))
+    }
+
+    if (gameId) {
+        conditions.push(eq(duelRooms.gameId, parseInt(gameId)))
+    }
+
+    if (conditions.length > 0) {
+        // @ts-ignore
+        queryBuilder.where(and(...conditions))
     }
 
     return await queryBuilder.all()
   }, {
     query: t.Object({
       admin: t.Optional(t.String()),
-      requesterId: t.Optional(t.String())
+      requesterId: t.Optional(t.String()),
+      gameId: t.Optional(t.String())
     })
   })
   .post('/', async ({ body, set }) => {
-    const { name, createdBy, player1Id, player2Id, player1Note, player2Note, player1DeckId, player2DeckId } = body
+    const { name, createdBy, player1Id, player2Id, player1Note, player2Note, player1DeckId, player2DeckId, gameId } = body
     
     try {
       const result = await db.insert(duelRooms).values({
@@ -82,6 +95,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
         status: player2Id ? 'ready' : 'open',
         player1Note,
         player2Note,
+        gameId
       }).returning().get()
       
       return { duel: result }
@@ -94,6 +108,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     body: t.Object({
       name: t.String(),
       createdBy: t.Number(),
+      gameId: t.Optional(t.Number()),
       player1Id: t.Optional(t.Number()),
       player2Id: t.Optional(t.Nullable(t.Number())),
       player1Note: t.Optional(t.Nullable(t.String())),
@@ -112,19 +127,32 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     }
 
     // Fetch player details
+    // Fetch player details
     const p1 = await db.select().from(users).where(eq(users.id, duel.player1Id)).get()
-    const p1Rank = p1 ? await getRank(p1.mmr) : null
+    let p1Mmr = 1000
+    if (p1 && duel.gameId) {
+        const stats = await db.select().from(userGameStats)
+            .where(and(eq(userGameStats.userId, p1.id), eq(userGameStats.gameId, duel.gameId))).get()
+        if (stats) p1Mmr = stats.mmr
+    }
+    const p1Rank = p1 ? await getRank(p1Mmr, duel.gameId || undefined) : null
     const p1Deck = duel.player1DeckId ? await db.select().from(decks).where(eq(decks.id, duel.player1DeckId)).get() : null
 
     const p2 = duel.player2Id ? await db.select().from(users).where(eq(users.id, duel.player2Id)).get() : null
-    const p2Rank = p2 ? await getRank(p2.mmr) : null
+    let p2Mmr = 1000
+    if (p2 && duel.gameId) {
+        const stats = await db.select().from(userGameStats)
+            .where(and(eq(userGameStats.userId, p2.id), eq(userGameStats.gameId, duel.gameId))).get()
+        if (stats) p2Mmr = stats.mmr
+    }
+    const p2Rank = p2 ? await getRank(p2Mmr, duel.gameId || undefined) : null
     const p2Deck = duel.player2DeckId ? await db.select().from(decks).where(eq(decks.id, duel.player2DeckId)).get() : null
 
     return { 
       duel: {
         ...duel,
-        player1: p1 ? { id: p1.id, username: p1.username, displayName: p1.displayName, avatarUrl: p1.avatarUrl, color: p1.color, mmr: p1.mmr, rank: p1Rank, deck: p1Deck } : null,
-        player2: p2 ? { id: p2.id, username: p2.username, displayName: p2.displayName, avatarUrl: p2.avatarUrl, color: p2.color, mmr: p2.mmr, rank: p2Rank, deck: p2Deck } : null,
+        player1: p1 ? { id: p1.id, username: p1.username, displayName: p1.displayName, avatarUrl: p1.avatarUrl, color: p1.color, mmr: p1Mmr, rank: p1Rank, deck: p1Deck } : null,
+        player2: p2 ? { id: p2.id, username: p2.username, displayName: p2.displayName, avatarUrl: p2.avatarUrl, color: p2.color, mmr: p2Mmr, rank: p2Rank, deck: p2Deck } : null,
       }
     }
   }, {
@@ -356,14 +384,14 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       .run()
 
     // MMR Update
-    if (duel.player1Id && duel.player2Id) {
-      const user1 = await db.select().from(users).where(eq(users.id, duel.player1Id)).get()
-      const user2 = await db.select().from(users).where(eq(users.id, duel.player2Id)).get()
+    if (duel.player1Id && duel.player2Id && duel.gameId) {
+      const user1Stats = await db.select().from(userGameStats).where(and(eq(userGameStats.userId, duel.player1Id), eq(userGameStats.gameId, duel.gameId))).get()
+      const user2Stats = await db.select().from(userGameStats).where(and(eq(userGameStats.userId, duel.player2Id), eq(userGameStats.gameId, duel.gameId))).get()
 
-      if (user1 && user2) {
+      if (user1Stats && user2Stats) {
         const K = 32
-        const r1 = user1.mmr
-        const r2 = user2.mmr
+        const r1 = user1Stats.mmr
+        const r2 = user2Stats.mmr
 
         const e1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400))
         const e2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400))
@@ -377,8 +405,31 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
         const change1 = newR1 - r1
         const change2 = newR2 - r2
 
-        await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
-        await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+        const isDraw = player1Score === player2Score
+
+        await db.update(userGameStats)
+            .set({ 
+                mmr: newR1, 
+                wins: user1Stats.wins + (s1 === 1 ? 1 : 0),
+                losses: user1Stats.losses + (s1 === 0 && !isDraw ? 1 : 0),
+                draws: user1Stats.draws + (isDraw ? 1 : 0),
+                duelWins: (user1Stats.duelWins || 0) + (s1 === 1 ? 1 : 0),
+                duelLosses: (user1Stats.duelLosses || 0) + (s1 === 0 && !isDraw ? 1 : 0),
+                duelDraws: (user1Stats.duelDraws || 0) + (isDraw ? 1 : 0)
+            })
+            .where(and(eq(userGameStats.userId, duel.player1Id), eq(userGameStats.gameId, duel.gameId))).run()
+
+        await db.update(userGameStats)
+            .set({ 
+                mmr: newR2, 
+                wins: user2Stats.wins + (s2 === 1 ? 1 : 0),
+                losses: user2Stats.losses + (s2 === 0 && !isDraw ? 1 : 0),
+                draws: user2Stats.draws + (isDraw ? 1 : 0),
+                duelWins: (user2Stats.duelWins || 0) + (s2 === 1 ? 1 : 0),
+                duelLosses: (user2Stats.duelLosses || 0) + (s2 === 0 && !isDraw ? 1 : 0),
+                duelDraws: (user2Stats.duelDraws || 0) + (isDraw ? 1 : 0)
+             })
+            .where(and(eq(userGameStats.userId, duel.player2Id), eq(userGameStats.gameId, duel.gameId))).run()
         
         // Update duel with MMR changes
         await db.update(duelRooms)
@@ -469,9 +520,9 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     }
 
     // Revert previous MMR change if exists
-    if (duel.player1MmrChange !== null && duel.player2MmrChange !== null) {
-       await db.run(sql`UPDATE users SET mmr = mmr - ${duel.player1MmrChange} WHERE id = ${duel.player1Id}`)
-       await db.run(sql`UPDATE users SET mmr = mmr - ${duel.player2MmrChange} WHERE id = ${duel.player2Id}`)
+    if (duel.player1MmrChange !== null && duel.player2MmrChange !== null && duel.gameId) {
+       await db.run(sql`UPDATE user_game_stats SET mmr = mmr - ${duel.player1MmrChange} WHERE user_id = ${duel.player1Id} AND game_id = ${duel.gameId}`)
+       await db.run(sql`UPDATE user_game_stats SET mmr = mmr - ${duel.player2MmrChange} WHERE user_id = ${duel.player2Id} AND game_id = ${duel.gameId}`)
     }
 
     const winnerId = player1Score > player2Score ? duel.player1Id : (player2Score > player1Score ? duel.player2Id! : null)
@@ -480,14 +531,16 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     let change1 = 0
     let change2 = 0
     
-    if (duel.player2Id) {
-       const user1 = await db.select().from(users).where(eq(users.id, duel.player1Id)).get()
-       const user2 = await db.select().from(users).where(eq(users.id, duel.player2Id)).get()
+    if (duel.player2Id && duel.gameId) {
+       const user1Stats = await db.select().from(userGameStats)
+            .where(and(eq(userGameStats.userId, duel.player1Id), eq(userGameStats.gameId, duel.gameId))).get()
+       const user2Stats = await db.select().from(userGameStats)
+            .where(and(eq(userGameStats.userId, duel.player2Id), eq(userGameStats.gameId, duel.gameId))).get()
 
-       if (user1 && user2) {
+       if (user1Stats && user2Stats) {
           const K = 32
-          const r1 = user1.mmr
-          const r2 = user2.mmr
+          const r1 = user1Stats.mmr
+          const r2 = user2Stats.mmr
 
           const e1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400))
           const e2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400))
@@ -501,8 +554,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
           change1 = newR1 - r1
           change2 = newR2 - r2
 
-          await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
-          await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+          await db.update(userGameStats).set({ mmr: newR1 }).where(and(eq(userGameStats.userId, duel.player1Id), eq(userGameStats.gameId, duel.gameId))).run()
+          await db.update(userGameStats).set({ mmr: newR2 }).where(and(eq(userGameStats.userId, duel.player2Id), eq(userGameStats.gameId, duel.gameId))).run()
        }
     }
 
@@ -567,31 +620,32 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
         const p2Id = player2Id || duel.player2Id
         
         // 1. Revert previous MMR change if it exists
-        if (duel.player1MmrChange !== null && duel.player2MmrChange !== null) {
-            // Fetch current users to be safe, though we just need to update
-            // We revert by subtracting the change
-             await db.run(sql`UPDATE users SET mmr = mmr - ${duel.player1MmrChange} WHERE id = ${duel.player1Id}`)
-             await db.run(sql`UPDATE users SET mmr = mmr - ${duel.player2MmrChange} WHERE id = ${duel.player2Id}`)
-             
-             // Clear change in updateData until we recalc
-             updateData.player1MmrChange = null
-             updateData.player2MmrChange = null
+        if (duel.player1MmrChange !== null && duel.player2MmrChange !== null && duel.gameId) {
+             // Revert by subtracting the change from userGameStats
+              await db.run(sql`UPDATE user_game_stats SET mmr = mmr - ${duel.player1MmrChange} WHERE user_id = ${duel.player1Id} AND game_id = ${duel.gameId}`)
+              await db.run(sql`UPDATE user_game_stats SET mmr = mmr - ${duel.player2MmrChange} WHERE user_id = ${duel.player2Id} AND game_id = ${duel.gameId}`)
+              
+              // Clear change in updateData until we recalc
+              updateData.player1MmrChange = null
+              updateData.player2MmrChange = null
         }
 
         // Ensure p2 exists for a result
-        if (p2Id) {
+        if (p2Id && duel.gameId) {
           const winnerId = player1Score > player2Score ? p1Id : (player2Score > player1Score ? p2Id : null)
           updateData.result = `${player1Score}-${player2Score}`
           updateData.winnerId = winnerId
           
           // 2. Calculate New MMR
-          const user1 = await db.select().from(users).where(eq(users.id, p1Id)).get()
-          const user2 = await db.select().from(users).where(eq(users.id, p2Id)).get()
+          const user1Stats = await db.select().from(userGameStats)
+                .where(and(eq(userGameStats.userId, p1Id), eq(userGameStats.gameId, duel.gameId))).get()
+          const user2Stats = await db.select().from(userGameStats)
+                .where(and(eq(userGameStats.userId, p2Id), eq(userGameStats.gameId, duel.gameId))).get()
 
-          if (user1 && user2) {
+          if (user1Stats && user2Stats) {
             const K = 32
-            const r1 = user1.mmr // This is now the "reverted" or "current" mmr which should be correct base
-            const r2 = user2.mmr
+            const r1 = user1Stats.mmr
+            const r2 = user2Stats.mmr
 
             const e1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400))
             const e2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400))
@@ -606,8 +660,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
             const change2 = newR2 - r2
             
             // Apply new MMR
-            await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
-            await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+            await db.update(userGameStats).set({ mmr: newR1 }).where(and(eq(userGameStats.userId, p1Id), eq(userGameStats.gameId, duel.gameId))).run()
+            await db.update(userGameStats).set({ mmr: newR2 }).where(and(eq(userGameStats.userId, p2Id), eq(userGameStats.gameId, duel.gameId))).run()
             
             updateData.player1MmrChange = change1
             updateData.player2MmrChange = change2

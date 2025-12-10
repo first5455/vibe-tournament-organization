@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
 export const users = sqliteTable('users', {
@@ -15,6 +15,34 @@ export const users = sqliteTable('users', {
   avatarUrl: text('avatar_url'),
 })
 
+// Games Table
+export const games = sqliteTable('games', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  slug: text('slug').unique(),
+  description: text('description'),
+  imageUrl: text('image_url'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+})
+
+// User Game Stats (MMR per game)
+export const userGameStats = sqliteTable('user_game_stats', {
+  userId: integer('user_id').references(() => users.id).notNull(),
+  gameId: integer('game_id').references(() => games.id).notNull(),
+  mmr: integer('mmr').default(1000).notNull(),
+  wins: integer('wins').default(0).notNull(),
+  losses: integer('losses').default(0).notNull(),
+  draws: integer('draws').default(0).notNull(),
+  duelWins: integer('duel_wins').default(0).notNull(),
+  duelLosses: integer('duel_losses').default(0).notNull(),
+  duelDraws: integer('duel_draws').default(0).notNull(),
+  tournamentWins: integer('tournament_wins').default(0).notNull(),
+  tournamentLosses: integer('tournament_losses').default(0).notNull(),
+  tournamentDraws: integer('tournament_draws').default(0).notNull(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.userId, t.gameId] }),
+}))
+
 export const decks = sqliteTable('decks', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').references(() => users.id).notNull(),
@@ -22,6 +50,7 @@ export const decks = sqliteTable('decks', {
   link: text('link'),
   color: text('color').default('#ffffff').notNull(),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  gameId: integer('game_id').references(() => games.id),
 })
 
 export const tournaments = sqliteTable('tournaments', {
@@ -35,6 +64,7 @@ export const tournaments = sqliteTable('tournaments', {
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   startDate: text('start_date'),
   endDate: text('end_date'),
+  gameId: integer('game_id').references(() => games.id),
 })
 
 export const participants = sqliteTable('participants', {
@@ -81,5 +111,6 @@ export const duelRooms = sqliteTable('duel_rooms', {
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   player1DeckId: integer('player1_deck_id').references(() => decks.id),
   player2DeckId: integer('player2_deck_id').references(() => decks.id),
+  gameId: integer('game_id').references(() => games.id),
 })
 

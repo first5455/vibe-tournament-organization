@@ -1,13 +1,15 @@
 import { db } from './db'
-import { users } from './db/schema'
-import { sql } from 'drizzle-orm'
+import { users, userGameStats } from './db/schema'
+import { sql, and, eq } from 'drizzle-orm'
 
-export async function getRank(mmr: number): Promise<number> {
+export async function getRank(mmr: number, gameId?: number): Promise<number> {
+  if (!gameId) return 0;
+
   const result = await db.select({
     count: sql<number>`count(*)`
   })
-  .from(users)
-  .where(sql`${users.mmr} > ${mmr}`)
+  .from(userGameStats)
+  .where(and(eq(userGameStats.gameId, gameId), sql`${userGameStats.mmr} > ${mmr}`))
   .get()
 
   return (result?.count || 0) + 1

@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
 import { useRefresh } from '../hooks/useRefresh'
+import { useGame } from '../contexts/GameContext'
 
 interface Duel {
   id: number
@@ -48,9 +49,14 @@ export default function DuelDashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
+  const { selectedGame } = useGame()
+
   const loadDuels = async () => {
+    if (!selectedGame) return
+
     try {
-      const data = await api('/duels')
+      setIsLoading(true)
+      const data = await api(`/duels?gameId=${selectedGame.id}`)
       setDuels(data)
     } catch (err) {
       console.error('Failed to load duels', err)
@@ -62,14 +68,18 @@ export default function DuelDashboard() {
   const { handleRefresh, isCoolingDown } = useRefresh(loadDuels)
 
   useEffect(() => {
-    loadDuels()
-  }, [])
+    if (selectedGame) {
+      loadDuels()
+    }
+  }, [selectedGame])
 
   useEffect(() => {
     const fetchDecks = async () => {
-      if (user?.id) {
+      // Decks should also be filtered by game if backend logic requires it.
+      // Assuming GET /decks supports gameId filtering
+      if (user?.id && selectedGame) {
         try {
-          const decks = await api(`/decks?userId=${user.id}`)
+          const decks = await api(`/decks?userId=${user.id}&gameId=${selectedGame.id}`)
           setUserDecks(decks)
         } catch (e) {
           console.error('Failed to fetch decks', e)
@@ -77,10 +87,10 @@ export default function DuelDashboard() {
       }
     }
     fetchDecks()
-  }, [user])
+  }, [user, selectedGame])
 
   const createDuel = async () => {
-    if (!user) return
+    if (!user || !selectedGame) return
 
     try {
       let roomName = newName.trim()
@@ -95,7 +105,8 @@ export default function DuelDashboard() {
         body: JSON.stringify({ 
           name: roomName, 
           createdBy: user.id,
-          player1DeckId: selectedDeckId
+          player1DeckId: selectedDeckId,
+          gameId: selectedGame.id
         }),
       })
       setIsCreating(false)

@@ -9,6 +9,7 @@ import { matchRoutes } from './routes/matches'
 import { adminRoutes } from './routes/admin'
 import { duelRoutes } from './routes/duels'
 import { deckRoutes } from './routes/decks'
+import { gamesRoutes } from './routes/games'
 
 const app = new Elysia()
   .use(swagger())
@@ -20,6 +21,7 @@ const app = new Elysia()
   .use(adminRoutes)
   .use(duelRoutes)
   .use(deckRoutes)
+  .use(gamesRoutes)
   .get('/time', () => {
     const now = new Date()
     const options: Intl.DateTimeFormatOptions = {

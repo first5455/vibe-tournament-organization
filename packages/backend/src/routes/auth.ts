@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users } from '../db/schema'
+import { users, games, userGameStats } from '../db/schema'
 import { eq } from 'drizzle-orm'
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
@@ -30,6 +30,19 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       securityQuestion: body.securityQuestion,
       securityAnswerHash,
     }).returning().get()
+
+    // Initialize MMR for all games
+    const allGames = await db.select().from(games).all()
+    for (const game of allGames) {
+        await db.insert(userGameStats).values({
+            userId: result.id,
+            gameId: game.id,
+            mmr: 1000,
+            wins: 0,
+            losses: 0,
+            draws: 0
+        }).run()
+    }
 
     return { user: { id: result.id, username: result.username, displayName: result.displayName, role: result.role, color: result.color, avatarUrl: result.avatarUrl } }
   }, {

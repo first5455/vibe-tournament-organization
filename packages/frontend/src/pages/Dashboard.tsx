@@ -8,6 +8,7 @@ import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useRefresh } from '../hooks/useRefresh'
 import { formatDate } from '../lib/utils'
+import { useGame } from '../contexts/GameContext'
 
 interface Tournament {
   id: number
@@ -34,13 +35,20 @@ export default function Dashboard() {
   const [newType, setNewType] = useState<'swiss' | 'round_robin'>('swiss')
   const { user } = useAuth()
 
+  const { selectedGame } = useGame()
+
   useEffect(() => {
-    loadTournaments()
-  }, [])
+    if (selectedGame) {
+      loadTournaments()
+    }
+  }, [selectedGame])
 
   const loadTournaments = async () => {
+    if (!selectedGame) return
+
     try {
-      const data = await api('/tournaments')
+      setIsLoading(true)
+      const data = await api(`/tournaments?gameId=${selectedGame.id}`)
       setTournaments(data)
     } catch (err) {
       console.error('Failed to load tournaments', err)
@@ -52,7 +60,7 @@ export default function Dashboard() {
   const { handleRefresh, isCoolingDown } = useRefresh(loadTournaments)
 
   const createTournament = async () => {
-    if (!newName) return
+    if (!newName || !selectedGame) return
 
     try {
       await api('/tournaments', {
@@ -60,7 +68,8 @@ export default function Dashboard() {
         body: JSON.stringify({ 
           name: newName, 
           createdBy: user?.id,
-          type: newType
+          type: newType,
+          gameId: selectedGame.id
         }),
       })
       setIsCreating(false)

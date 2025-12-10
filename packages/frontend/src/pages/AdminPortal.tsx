@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useNavigate, Link } from 'react-router-dom'
-import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2, Users, UserPlus, RefreshCw } from 'lucide-react'
+import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2, Users, UserPlus, RefreshCw, Plus } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +16,8 @@ import {
 } from '../components/ui/dropdown-menu'
 import { UserSearchSelect } from '../components/UserSearchSelect'
 import { CreateUserDialog } from '../components/CreateUserDialog'
+import { useGame } from '../contexts/GameContext'
+import { EditMMRDialog } from '../components/EditMMRDialog'
 
 import { DeckModal } from '../components/DeckModal'
 import { User, Deck } from '../types'
@@ -37,15 +39,29 @@ const formatDate = (dateDict?: string) => {
 
 export default function AdminPortal() {
   const { user, refreshUser } = useAuth()
-  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks'>('users')
+  const { refreshGames } = useGame()
+  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks' | 'games'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [tournaments, setTournaments] = useState<any[]>([])
 
   const [duels, setDuels] = useState<any[]>([])
   const [decks, setDecks] = useState<AdminDeck[]>([])
+  const [games, setGames] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingColorId, setEditingColorId] = useState<number | null>(null)
+  const [filterGameId, setFilterGameId] = useState<string>('all')
+  
+  // Games Management State
+  const [gameModalOpen, setGameModalOpen] = useState(false)
+  const [editingGame, setEditingGame] = useState<any>(null)
+  const [gameForm, setGameForm] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    imageUrl: ''
+  })
+
   const [tempColor, setTempColor] = useState('')
   const [editDuelOpen, setEditDuelOpen] = useState(false)
   const [editingDuel, setEditingDuel] = useState<any>(null)
@@ -83,6 +99,8 @@ export default function AdminPortal() {
   const [showAddParticipant, setShowAddParticipant] = useState(false)
 
   const [showCreateUser, setShowCreateUser] = useState(false)
+  const [editMMRDialogIsOpen, setEditMMRDialogIsOpen] = useState(false)
+  const [editMMRUser, setEditMMRUser] = useState<User | null>(null)
 
   // Deck Management State
   const [deckModalOpen, setDeckModalOpen] = useState(false)
@@ -97,24 +115,37 @@ export default function AdminPortal() {
       return
     }
     loadData()
-  }, [user, activeTab])
+  }, [user, activeTab, filterGameId])
 
   const loadData = async () => {
     setLoading(true)
     setError('')
     try {
       if (activeTab === 'users') {
-        const data = await api(`/users?requesterId=${user?.id}`)
+        const query = filterGameId !== 'all' ? `&gameId=${filterGameId}` : ''
+        const data = await api(`/users?requesterId=${user?.id}${query}`)
         setUsers(data.users)
       } else if (activeTab === 'tournaments') {
-        const data = await api('/tournaments')
+        const query = filterGameId !== 'all' ? `?gameId=${filterGameId}` : ''
+        const data = await api(`/tournaments${query}`)
         setTournaments(data)
       } else if (activeTab === 'duels') {
-        const data = await api(`/duels?admin=true&requesterId=${user?.id}`)
+        const query = filterGameId !== 'all' ? `&gameId=${filterGameId}` : ''
+        const data = await api(`/duels?admin=true&requesterId=${user?.id}${query}`)
         setDuels(data)
       } else if (activeTab === 'decks') {
-        const data = await api('/decks')
+        const query = filterGameId !== 'all' ? `?gameId=${filterGameId}` : ''
+        const data = await api(`/decks${query}`)
         setDecks(data)
+      } else if (activeTab === 'games') {
+        const data = await api('/games')
+        setGames(data)
+      }
+      
+      // Always fetch games for filter list if we don't have them
+      if (games.length === 0) {
+          const gamesData = await api('/games')
+          setGames(gamesData)
       }
     } catch (err: any) {
       setError(err.message)
@@ -201,32 +232,11 @@ export default function AdminPortal() {
     }
   }
 
-  const editMMR = async (targetUser: User) => {
-    const newMMR = prompt(`Enter new MMR for ${targetUser.username}:`, (targetUser.mmr || 1000).toString())
-    if (newMMR === null) return
-    
-    const mmrValue = parseInt(newMMR)
-    if (isNaN(mmrValue)) {
-      alert('Invalid MMR value')
-      return
-    }
-
-    try {
-      await api(`/users/${targetUser.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ 
-          requesterId: user?.id,
-          mmr: mmrValue
-        })
-      })
-      loadData()
-      if (user?.id === targetUser.id) {
-        refreshUser()
-      }
-    } catch (err: any) {
-      alert(err.message)
-    }
+  const editMMR = (targetUser: User) => {
+    setEditMMRUser(targetUser)
+    setEditMMRDialogIsOpen(true)
   }
+
 
   const startEditColor = (targetUser: User) => {
     setEditingColorId(targetUser.id)
@@ -508,6 +518,17 @@ export default function AdminPortal() {
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
+          
+          <select
+            className="bg-zinc-900 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            value={filterGameId}
+            onChange={(e) => setFilterGameId(e.target.value)}
+          >
+            <option value="all">All Games</option>
+            {games.map(g => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -540,6 +561,13 @@ export default function AdminPortal() {
           className="whitespace-nowrap"
         >
           Decks
+        </Button>
+        <Button 
+          variant={activeTab === 'games' ? 'secondary' : 'ghost'} 
+          onClick={() => setActiveTab('games')}
+          className="whitespace-nowrap"
+        >
+          Games
         </Button>
       </div>
 
@@ -592,7 +620,7 @@ export default function AdminPortal() {
                       {u.role}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono">{u.mmr}</td>
+                  <td className="px-4 py-3 font-mono">{u.mmr === 0 ? '-' : u.mmr}</td>
                   <td className="px-4 py-3">{formatDate(u.createdAt)}</td>
                   <td className="px-4 py-3 text-right">
                     {editingColorId === u.id ? (
@@ -688,6 +716,7 @@ export default function AdminPortal() {
                 <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Created By</th>
                 <th className="px-4 py-3 font-medium">Participants</th>
+                <th className="px-4 py-3 font-medium">Game</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
@@ -717,6 +746,7 @@ export default function AdminPortal() {
                     </div>
                   </td>
                   <td className="px-4 py-3">{t.participantCount}</td>
+                  <td className="px-4 py-3 text-zinc-300">{t.gameName}</td>
                   <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
                     <Button 
                       variant="ghost" 
@@ -779,6 +809,7 @@ export default function AdminPortal() {
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Player 1</th>
                 <th className="px-4 py-3 font-medium">Player 2</th>
+                <th className="px-4 py-3 font-medium">Game</th>
                 <th className="px-4 py-3 font-medium">Result</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
@@ -865,6 +896,7 @@ export default function AdminPortal() {
                       <span className="text-zinc-500 italic">-</span>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-zinc-300">{d.gameName}</td>
                   <td className="px-4 py-3 font-mono">
                     {d.status === 'completed' ? (
                       <span className="font-bold">
@@ -1327,11 +1359,181 @@ export default function AdminPortal() {
       )}
 
 
+      {activeTab === 'games' && (
+        <div className="w-full">
+          <div className="flex justify-between items-center mb-4">
+             <h2 className="text-xl font-bold text-white">Games</h2>
+             <Button onClick={() => {
+               setEditingGame(null)
+               setGameForm({ name: '', slug: '', description: '', imageUrl: '' })
+               setGameModalOpen(true)
+             }}>
+               <Plus className="mr-2 h-4 w-4" />
+               Add Game
+             </Button>
+          </div>
+          <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
+            <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
+            <thead className="bg-zinc-900 text-zinc-200">
+              <tr>
+                <th className="px-4 py-3 font-medium">ID</th>
+                <th className="px-4 py-3 font-medium">Image</th>
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">URL Identifier</th>
+                <th className="px-4 py-3 font-medium">Description</th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800">
+              {games.map((g) => (
+                <tr key={g.id} className="hover:bg-zinc-900/80">
+                  <td className="px-4 py-3 font-mono">{g.id}</td>
+                  <td className="px-4 py-3">
+                    {g.imageUrl && <img src={g.imageUrl} alt={g.name} className="h-8 w-8 rounded object-cover" />}
+                  </td>
+                  <td className="px-4 py-3 font-bold text-white">{g.name}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{g.slug}</td>
+                  <td className="px-4 py-3 truncate max-w-xs">{g.description}</td>
+                  <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-zinc-400 hover:text-white"
+                      onClick={() => {
+                        setEditingGame(g)
+                        setGameForm({
+                          name: g.name,
+                          slug: g.slug,
+                          description: g.description || '',
+                          imageUrl: g.imageUrl || ''
+                        })
+                        setGameModalOpen(true)
+                      }}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      onClick={async () => {
+                        if (!confirm('Are you sure you want to delete this game?')) return
+                        try {
+                          await api(`/games/${g.id}?requesterId=${user?.id}`, { method: 'DELETE' })
+                          loadData()
+                          await refreshGames()
+                        } catch (err: any) {
+                          alert(err.message)
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+              {games.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">No games found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      )}
+
+      {/* Game Modal */}
+      {gameModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-xl">
+            <h2 className="mb-4 text-xl font-bold text-white">{editingGame ? 'Edit Game' : 'Add Game'}</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">Name</label>
+                <input
+                  type="text"
+                  value={gameForm.name}
+                  onChange={(e) => setGameForm({ ...gameForm, name: e.target.value })}
+                  className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">URL Identifier</label>
+                <input
+                  type="text"
+                  value={gameForm.slug}
+                  onChange={(e) => setGameForm({ ...gameForm, slug: e.target.value })}
+                  className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">Description</label>
+                <textarea
+                  value={gameForm.description}
+                  onChange={(e) => setGameForm({ ...gameForm, description: e.target.value })}
+                  className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">Image URL</label>
+                <input
+                  type="text"
+                  value={gameForm.imageUrl}
+                  onChange={(e) => setGameForm({ ...gameForm, imageUrl: e.target.value })}
+                  className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="ghost" onClick={() => setGameModalOpen(false)}>Cancel</Button>
+                <Button onClick={async () => {
+                  try {
+                    if (editingGame) {
+                      await api(`/games/${editingGame.id}?requesterId=${user?.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(gameForm)
+                      })
+                    } else {
+                      await api(`/games?requesterId=${user?.id}`, {
+                        method: 'POST',
+                        body: JSON.stringify(gameForm)
+                      })
+                    }
+                    setGameModalOpen(false)
+                    loadData()
+                    await refreshGames()
+                  } catch (err: any) {
+                    alert(err.message)
+                  }
+                }}>{editingGame ? 'Save Changes' : 'Create Game'}</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Dialog */}
       <CreateUserDialog 
         isOpen={showCreateUser} 
-        onClose={() => setShowCreateUser(false)} 
-        onSuccess={() => loadData()}
+        onClose={() => setShowCreateUser(false)}
+        onSuccess={() => {
+          setShowCreateUser(false)
+          loadData()
+        }}
         requesterId={user?.id || 0}
+      />
+      <EditMMRDialog 
+        isOpen={editMMRDialogIsOpen}
+        onClose={() => setEditMMRDialogIsOpen(false)}
+        onSuccess={() => {
+            loadData()
+            refreshUser()
+        }}
+        user={editMMRUser}
+        games={games}
+        requesterId={user?.id || 0}
+        initialGameId={filterGameId}
       />
     </div>
   )

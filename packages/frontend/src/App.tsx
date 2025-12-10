@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
+import { GameProvider, useGame } from './contexts/GameContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -13,12 +14,25 @@ import AdminPortal from './pages/AdminPortal'
 import DuelDashboard from './pages/DuelDashboard'
 import DuelRoom from './pages/DuelRoom'
 import DecksPage from './pages/DecksPage'
+import GameSelectPage from './pages/GameSelectPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
+  const { selectedGame, isLoading: gameLoading } = useGame()
+  const location = useLocation()
   
-  if (isLoading) return <div className="flex h-screen items-center justify-center text-zinc-500">Loading...</div>
+  if (authLoading || gameLoading) return <div className="flex h-screen items-center justify-center text-zinc-500">Loading...</div>
+  
   if (!user) return <Navigate to="/login" />
+
+  // If logged in, but no game selected, and not already on selection page, redirect.
+  // Note: We might want to allow some admin pages without game selection? For now strict.
+  if (!selectedGame && location.pathname !== '/select-game') {
+      return <Navigate to="/select-game" />
+  }
+
+  // If game IS selected, and we try to go to select-game, maybe allow it (to switch) or redirect home?
+  // Usually we allow it so they can switch. But if they are just navigating, maybe leave it.
   
   return <>{children}</>
 }
@@ -35,63 +49,71 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/tournaments/:id" element={
-              <ProtectedRoute>
-                <TournamentView />
-              </ProtectedRoute>
-            } />
-            <Route path="/leaderboard" element={
-              <ProtectedRoute>
-                <Leaderboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/users/:id" element={
-              <ProtectedRoute>
-                <UserProfilePage />
-              </ProtectedRoute>
-            } />
-            <Route path="/decks" element={
-              <ProtectedRoute>
-                <DecksPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/admin" element={
-              <AdminRoute>
-                <AdminPortal />
-              </AdminRoute>
-            } />
-            <Route path="/duels" element={
-              <ProtectedRoute>
-                <DuelDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/duels/:id" element={
-              <ProtectedRoute>
-                <DuelRoom />
-              </ProtectedRoute>
-            } />
-            
-            {/* Add other protected routes here */}
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <GameProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              
+              <Route path="/select-game" element={
+                <ProtectedRoute>
+                  <GameSelectPage />
+                </ProtectedRoute>
+              } />
+
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/tournaments/:id" element={
+                <ProtectedRoute>
+                  <TournamentView />
+                </ProtectedRoute>
+              } />
+              <Route path="/leaderboard" element={
+                <ProtectedRoute>
+                  <Leaderboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/users/:id" element={
+                <ProtectedRoute>
+                  <UserProfilePage />
+                </ProtectedRoute>
+              } />
+              <Route path="/decks" element={
+                <ProtectedRoute>
+                  <DecksPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <AdminRoute>
+                  <AdminPortal />
+                </AdminRoute>
+              } />
+              <Route path="/duels" element={
+                <ProtectedRoute>
+                  <DuelDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/duels/:id" element={
+                <ProtectedRoute>
+                  <DuelRoom />
+                </ProtectedRoute>
+              } />
+              
+              {/* Add other protected routes here */}
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </GameProvider>
     </AuthProvider>
   )
 }

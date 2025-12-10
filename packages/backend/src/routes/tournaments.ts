@@ -1,11 +1,11 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { tournaments, participants, users, matches, decks } from '../db/schema'
+import { tournaments, participants, users, matches, decks, games, userGameStats } from '../db/schema'
 import { eq, and, or, isNull, sql, getTableColumns } from 'drizzle-orm'
 
 export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/', async ({ body, set }) => {
-    const { name, createdBy } = body
+    const { name, createdBy, gameId } = body
     
     try {
       // console.log('Creating tournament:', { name, createdBy, type: (body as any).type })
@@ -13,7 +13,8 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
         name,
         createdBy,
         status: 'pending',
-        type: (body as any).type || 'swiss'
+        type: (body as any).type || 'swiss',
+        gameId
       }).returning().get()
       // console.log('Tournament created:', result)
       return { tournament: result }
@@ -28,25 +29,40 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     body: t.Object({
       name: t.String(),
       createdBy: t.Number(),
-      type: t.Optional(t.String())
+      type: t.Optional(t.String()),
+      gameId: t.Optional(t.Number())
     })
   })
-  .get('/', async () => {
+  .get('/', async ({ query }) => {
+    const gameId = query.gameId ? parseInt(query.gameId) : undefined
+
+    let conditions = undefined
+    if (gameId) {
+        conditions = eq(tournaments.gameId, gameId)
+    }
+
     const result = await db.select({
       ...getTableColumns(tournaments),
       participantCount: sql<number>`count(${participants.id})`.mapWith(Number),
       createdByName: users.username,
       createdByDisplayName: users.displayName,
       createdByColor: users.color,
-      createdByAvatarUrl: users.avatarUrl
+      createdByAvatarUrl: users.avatarUrl,
+      gameName: games.name
     })
     .from(tournaments)
     .leftJoin(participants, eq(tournaments.id, participants.tournamentId))
     .leftJoin(users, eq(tournaments.createdBy, users.id))
+    .leftJoin(games, eq(tournaments.gameId, games.id))
+    .where(conditions)
     .groupBy(tournaments.id)
     .all()
     
     return result
+  }, {
+    query: t.Object({
+        gameId: t.Optional(t.String())
+    })
   })
   .get('/:id', async ({ params, set }) => {
     const id = parseInt(params.id)
@@ -550,14 +566,15 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       const p1 = await db.select().from(participants).where(eq(participants.id, m.player1Id!)).get()
       const p2 = await db.select().from(participants).where(eq(participants.id, m.player2Id!)).get()
 
-      if (p1?.userId && p2?.userId) {
-        const user1 = await db.select().from(users).where(eq(users.id, p1.userId)).get()
-        const user2 = await db.select().from(users).where(eq(users.id, p2.userId)).get()
+      if (p1?.userId && p2?.userId && tournament.gameId) {
+        const gameId = tournament.gameId
+        const user1Stats = await db.select().from(userGameStats).where(and(eq(userGameStats.userId, p1.userId), eq(userGameStats.gameId, gameId))).get()
+        const user2Stats = await db.select().from(userGameStats).where(and(eq(userGameStats.userId, p2.userId), eq(userGameStats.gameId, gameId))).get()
 
-        if (user1 && user2) {
+        if (user1Stats && user2Stats) {
           const K = 32
-          const r1 = user1.mmr
-          const r2 = user2.mmr
+          const r1 = user1Stats.mmr
+          const r2 = user2Stats.mmr
 
           const e1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400))
           const e2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400))
@@ -572,16 +589,29 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
           const change1 = newR1 - r1
           const change2 = newR2 - r2
 
-          await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
-          await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+          await db.update(userGameStats)
+            .set({ 
+                mmr: newR1, 
+                losses: user1Stats.losses + 1,
+                tournamentLosses: (user1Stats.tournamentLosses || 0) + 1
+            })
+            .where(and(eq(userGameStats.userId, user1Stats.userId), eq(userGameStats.gameId, user1Stats.gameId)))
+            .run()
+          
+          await db.update(userGameStats)
+            .set({ 
+                mmr: newR2, 
+                losses: user2Stats.losses + 1,
+                tournamentLosses: (user2Stats.tournamentLosses || 0) + 1
+            })
+            .where(and(eq(userGameStats.userId, user2Stats.userId), eq(userGameStats.gameId, user2Stats.gameId)))
+            .run()
           
           // Store MMR Change
           await db.update(matches)
             .set({ player1MmrChange: change1, player2MmrChange: change2 })
             .where(eq(matches.id, m.id))
             .run()
-          
-          // console.log(`Auto-resolve MMR Update: ${user1.username} (${r1} -> ${newR1}), ${user2.username} (${r2} -> ${newR2})`)
         }
       }
     }
@@ -658,14 +688,15 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       const p1 = await db.select().from(participants).where(eq(participants.id, m.player1Id!)).get()
       const p2 = await db.select().from(participants).where(eq(participants.id, m.player2Id!)).get()
 
-      if (p1?.userId && p2?.userId) {
-        const user1 = await db.select().from(users).where(eq(users.id, p1.userId)).get()
-        const user2 = await db.select().from(users).where(eq(users.id, p2.userId)).get()
+      if (p1?.userId && p2?.userId && tournament.gameId) {
+        const gameId = tournament.gameId
+        const user1Stats = await db.select().from(userGameStats).where(and(eq(userGameStats.userId, p1.userId), eq(userGameStats.gameId, gameId))).get()
+        const user2Stats = await db.select().from(userGameStats).where(and(eq(userGameStats.userId, p2.userId), eq(userGameStats.gameId, gameId))).get()
 
-        if (user1 && user2) {
+        if (user1Stats && user2Stats) {
           const K = 32
-          const r1 = user1.mmr
-          const r2 = user2.mmr
+          const r1 = user1Stats.mmr
+          const r2 = user2Stats.mmr
 
           const e1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400))
           const e2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400))
@@ -679,8 +710,15 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
           const change1 = newR1 - r1
           const change2 = newR2 - r2
 
-          await db.update(users).set({ mmr: newR1 }).where(eq(users.id, user1.id)).run()
-          await db.update(users).set({ mmr: newR2 }).where(eq(users.id, user2.id)).run()
+          await db.update(userGameStats)
+            .set({ mmr: newR1, losses: user1Stats.losses + 1 })
+            .where(and(eq(userGameStats.userId, user1Stats.userId), eq(userGameStats.gameId, user1Stats.gameId)))
+            .run()
+            
+          await db.update(userGameStats)
+            .set({ mmr: newR2, losses: user2Stats.losses + 1 })
+            .where(and(eq(userGameStats.userId, user2Stats.userId), eq(userGameStats.gameId, user2Stats.gameId)))
+            .run()
           
           // Store MMR Change
           await db.update(matches)
