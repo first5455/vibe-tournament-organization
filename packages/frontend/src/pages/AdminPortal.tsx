@@ -507,56 +507,123 @@ export default function AdminPortal() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold text-white">Admin Portal</h1>
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            className="bg-red-600 hover:bg-red-700 text-white"
-            size="sm"
-            onClick={async () => {
-              if (!confirm('WARNING: This will delete ALL tournaments, matches, and participants. This action cannot be undone. Are you sure?')) return
-              try {
-                await api(`/admin/data?requesterId=${user?.id}`, { method: 'DELETE' })
-                alert('All data deleted successfully')
-                loadData()
-              } catch (err: any) {
-                alert(err.message)
-              }
-            }}
-          >
-            Delete All History Data
-          </Button>
-          <Button 
-            variant="secondary" 
-            size="sm"
-            onClick={async () => {
-              if (!confirm('WARNING: This will reset the MMR of ALL users to 1000. This action cannot be undone. Are you sure?')) return
-              try {
-                await api(`/admin/reset-leaderboard?requesterId=${user?.id}`, { method: 'POST' })
-                alert('Leaderboard reset successfully')
-                loadData()
-              } catch (err: any) {
-                alert(err.message)
-              }
-            }}
-          >
-            Reset Leaderboard
-          </Button>
-          <Button onClick={loadData} variant="outline" size="sm" disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          
-          <select
-            className="bg-zinc-900 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            value={filterGameId}
-            onChange={(e) => setFilterGameId(e.target.value)}
-          >
-            <option value="all">All Games</option>
-            {games.map(g => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-            ))}
-          </select>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <h1 className="text-3xl font-bold text-white">Admin Portal</h1>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-zinc-400">Context:</span>
+            <select
+              className="bg-zinc-900 border border-zinc-700 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[150px]"
+              value={filterGameId}
+              onChange={(e) => setFilterGameId(e.target.value)}
+            >
+              <option value="all">All Games (Global)</option>
+              {games.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+            <Button onClick={loadData} variant="outline" size="sm" disabled={loading}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
+
+        {/* Data Management Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border border-zinc-800 rounded-lg p-4 bg-zinc-900/30">
+            {/* Global Actions */}
+            <div className="space-y-2">
+                <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-2">
+                    {filterGameId === 'all' ? 'System-Wide Actions' : 'Global Actions'}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                    <Button 
+                        className="bg-red-900/50 hover:bg-red-800 text-red-200 border border-red-900"
+                        size="sm"
+                        onClick={async () => {
+                        if (!confirm('CRITICAL WARNING:\nThis will delete ALL matches, tournaments, and history for ALL GAMES.\nUser accounts will be preserved but their stats reset.\n\nAre you sure you want to proceed?')) return
+                        try {
+                            await api(`/admin/data?requesterId=${user?.id}`, { method: 'DELETE' })
+                            alert('System-wide data wipe successful')
+                            loadData()
+                        } catch (err: any) {
+                            alert(err.message)
+                        }
+                        }}
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete ALL History
+                    </Button>
+                    <Button 
+                        variant="secondary" 
+                        size="sm"
+                        className="border border-zinc-700"
+                        onClick={async () => {
+                        if (!confirm('WARNING: This will reset MMR for ALL users in ALL games to 1000.\n\nAre you sure?')) return
+                        try {
+                            await api(`/admin/reset-leaderboard?requesterId=${user?.id}`, { method: 'POST' })
+                            alert('Global Leaderboard reset successful')
+                            loadData()
+                        } catch (err: any) {
+                            alert(err.message)
+                        }
+                        }}
+                    >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Reset All MMR
+                    </Button>
+                </div>
+            </div>
+
+            {/* Game Specific Actions */}
+            <div className={`space-y-2 ${filterGameId === 'all' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider mb-2">
+                   {filterGameId === 'all' ? 'Select a Game to Enable' : `Actions for ${games.find(g=>g.id.toString()===filterGameId)?.name || 'Game'}`}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                    <Button 
+                        className="bg-orange-900/50 hover:bg-orange-800 text-orange-200 border border-orange-900"
+                        size="sm"
+                        disabled={filterGameId === 'all'}
+                        onClick={async () => {
+                            if (filterGameId === 'all') return
+                            const gameName = games.find(g => g.id.toString() === filterGameId)?.name
+                            if (!confirm(`WARNING:\nThis will delete history only for "${gameName}".\nMatches and Tournaments for this game will be wiped.\nUser MMR for this game will be reset.\n\nAre you sure?`)) return
+                            try {
+                                await api(`/admin/data?requesterId=${user?.id}&gameId=${filterGameId}`, { method: 'DELETE' })
+                                alert(`History for ${gameName} deleted successfully`)
+                                loadData()
+                            } catch (err: any) {
+                                alert(err.message)
+                            }
+                        }}
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Wipe Game History
+                    </Button>
+                    <Button 
+                        variant="secondary"
+                        size="sm"
+                        className="border border-zinc-700"
+                        disabled={filterGameId === 'all'}
+                        onClick={async () => {
+                            if (filterGameId === 'all') return
+                            const gameName = games.find(g => g.id.toString() === filterGameId)?.name
+                            if (!confirm(`This will reset MMR for all users in "${gameName}" to 1000.\n\nAre you sure?`)) return
+                            try {
+                                await api(`/admin/reset-leaderboard?requesterId=${user?.id}&gameId=${filterGameId}`, { method: 'POST' })
+                                alert(`MMR for ${gameName} reset successfully`)
+                                loadData()
+                            } catch (err: any) {
+                                alert(err.message)
+                            }
+                        }}
+                    >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Reset Game MMR
+                    </Button>
+                </div>
+            </div>
         </div>
       </div>
 
@@ -655,7 +722,11 @@ export default function AdminPortal() {
                       {u.role}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono">{u.mmr === 0 ? '-' : u.mmr}</td>
+                  <td className="px-4 py-3 font-mono">
+                    {filterGameId !== 'all' && u.stats 
+                        ? (u.stats.find(s => s.gameId === parseInt(filterGameId))?.mmr ?? '-') 
+                        : '-'}
+                  </td>
                   <td className="px-4 py-3">{formatDate(u.createdAt)}</td>
                   <td className="px-4 py-3 text-right">
                     {editingColorId === u.id ? (

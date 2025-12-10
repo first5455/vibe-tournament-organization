@@ -6,7 +6,6 @@ export const users = sqliteTable('users', {
   username: text('username').notNull().unique(),
   displayName: text('display_name'),
   passwordHash: text('password_hash').notNull(),
-  mmr: integer('mmr').default(1000).notNull(),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   securityQuestion: text('security_question'),
   securityAnswerHash: text('security_answer_hash'),
@@ -65,6 +64,7 @@ export const tournaments = sqliteTable('tournaments', {
   startDate: text('start_date'),
   endDate: text('end_date'),
   gameId: integer('game_id').references(() => games.id),
+  winnerId: integer('winner_id').references(() => users.id),
 })
 
 export const participants = sqliteTable('participants', {

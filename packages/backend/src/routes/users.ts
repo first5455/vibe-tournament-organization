@@ -18,9 +18,12 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       avatarUrl: users.avatarUrl,
     })
     .from(users)
-    .where(or(
-      sql`lower(${users.username}) like lower(${searchPattern})`,
-      sql`lower(${users.displayName}) like lower(${searchPattern})`
+    .where(and(
+        or(
+          sql`lower(${users.username}) like lower(${searchPattern})`,
+          sql`lower(${users.displayName}) like lower(${searchPattern})`
+        ),
+        sql`${users.passwordHash} != 'deleted'`
     ))
     .limit(10)
     .all()
@@ -54,7 +57,6 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       passwordHash,
       role: 'user', // Default role
       color: '#3f3f46',
-      mmr: 1000
     }).returning().get()
 
     // Initialize MMR for all games
@@ -93,24 +95,26 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         })
         .from(users)
         .innerJoin(userGameStats, eq(users.id, userGameStats.userId))
-        .where(eq(userGameStats.gameId, gameId))
+        .where(and(
+            eq(userGameStats.gameId, gameId),
+            sql`${users.passwordHash} != 'deleted'`
+        ))
         .orderBy(desc(userGameStats.mmr))
         .limit(10)
     }
 
     // Fallback or global view (maybe sum of all MMRs? or just raw user table for backward compat until migration)
-    // Fallback or global view 
     // If no gameId provided, we can either return empty MMR or default to first game?
     // Let's return 0 as "No Game Selected"
     return await db.select({
       id: users.id,
       username: users.username,
       displayName: users.displayName,
-      mmr: sql<number>`0`,
       color: users.color,
       avatarUrl: users.avatarUrl,
     })
     .from(users)
+    .where(sql`${users.passwordHash} != 'deleted'`)
     .limit(10)
   }, {
     query: t.Object({
@@ -122,17 +126,17 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       id: users.id,
       username: users.username,
       displayName: users.displayName,
-      mmr: sql<number>`0`,
       createdAt: users.createdAt,
       role: users.role,
       color: users.color,
       avatarUrl: users.avatarUrl,
+      passwordHash: users.passwordHash,
     })
     .from(users)
     .where(eq(users.id, parseInt(params.id)))
     .get()
 
-    if (!user) {
+    if (!user || user.passwordHash === 'deleted') {
       set.status = 404
       return { error: 'User not found' }
     }
@@ -157,7 +161,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     .where(eq(userGameStats.userId, user.id))
     .all()
 
-    const rank = await getRank(user.mmr)
+    // Rank is game-specific. We return 0 here as legacy support.
+    const rank = 0 
 
     return { user: { ...user, rank, stats } }
 
@@ -327,11 +332,12 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       username: users.username,
       displayName: users.displayName,
       role: users.role,
-      mmr: gameId ? sql<number>`COALESCE(${userGameStats.mmr}, 1000)` : sql<number>`0`,
       createdAt: users.createdAt,
       color: users.color,
       avatarUrl: users.avatarUrl,
+      mmr: gameId ? userGameStats.mmr : sql<number>`0`
     }).from(users)
+    .where(sql`${users.passwordHash} != 'deleted'`)
 
     if (gameId) {
         userQuery.leftJoin(userGameStats, and(eq(userGameStats.userId, users.id), eq(userGameStats.gameId, parseInt(gameId))))
@@ -339,7 +345,17 @@ export const userRoutes = new Elysia({ prefix: '/users' })
 
     const allUsers = await userQuery.all()
 
-    return { users: allUsers }
+    // Map to simplified stats structure for frontend
+    const usersWithStats = allUsers.map(u => ({
+        ...u,
+        stats: gameId && u.mmr ? [{
+            gameId: parseInt(gameId),
+            mmr: u.mmr,
+            wins: 0, losses: 0, draws: 0 // placeholders
+        }] : []
+    }))
+
+    return { users: usersWithStats }
   }, {
     query: t.Object({
       requesterId: t.String(),
@@ -402,10 +418,12 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       updates.passwordHash = await Bun.password.hash(password)
     }
 
-    await db.update(users)
-      .set(updates)
-      .where(eq(users.id, parseInt(params.id)))
-      .run()
+    if (Object.keys(updates).length > 0) {
+        await db.update(users)
+        .set(updates)
+        .where(eq(users.id, parseInt(params.id)))
+        .run()
+    }
 
     const updatedUser = await db.select().from(users).where(eq(users.id, parseInt(params.id))).get()
     return { user: updatedUser }
@@ -440,8 +458,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     // Soft delete: Anonymize the user to preserve history
     await db.update(users)
       .set({
-        username: `Deleted User ${userId}`,
-        displayName: `Deleted User ${userId}`,
+        // username: kept as is
+        // displayName: kept as is
         passwordHash: 'deleted', // Invalidate login
         avatarUrl: null,
         color: '#3f3f46', // Zinc-700 (neutral color)

@@ -5,11 +5,12 @@ interface UserAvatarProps {
   displayName?: string | null
   avatarUrl?: string | null
   className?: string
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 }
 
 export function UserAvatar({ username, displayName, avatarUrl, className, size = 'md' }: UserAvatarProps) {
   const sizeClasses = {
+    xs: 'h-6 w-6 text-xs',
     sm: 'h-16 w-16 text-base',
     md: 'h-[4.5rem] w-[4.5rem] text-lg',
     lg: 'h-32 w-32 text-xl',

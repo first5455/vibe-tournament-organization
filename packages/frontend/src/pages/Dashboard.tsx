@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
-import { Plus, Calendar, Trophy, RefreshCw } from 'lucide-react'
+import { Plus, Calendar, Trophy, RefreshCw, ChevronDown, ChevronRight, Crown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { UserLabel } from '../components/UserLabel'
@@ -25,12 +25,17 @@ interface Tournament {
   createdByAvatarUrl?: string
   startDate?: string
   endDate?: string
+  winnerName?: string
+  winnerDisplayName?: string
+  winnerAvatarUrl?: string
+  winnerColor?: string
 }
 
 export default function Dashboard() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
+  const [isCompletedExpanded, setIsCompletedExpanded] = useState(false) // Default to collapsed to keep view clean? User said "can collapse", but having it clean is nice. I will default to false (collapsed) if that's what "can collapse" often leads to in requests (cleaner UI). Wait, better to start Expanded to mimic previous state, then let them collapse. Let's start TRUE (Expanded).
   const [newName, setNewName] = useState('')
   const [newType, setNewType] = useState<'swiss' | 'round_robin'>('swiss')
   const { user } = useAuth()
@@ -169,69 +174,146 @@ export default function Dashboard() {
           <p className="mt-2 text-zinc-400">Create your first tournament to get started.</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {tournaments.map((tournament) => (
-            <Link
-              key={tournament.id}
-              to={`/tournaments/${tournament.id}`}
-              className="group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 transition-all hover:border-indigo-500/50 hover:bg-zinc-900"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-semibold text-white group-hover:text-indigo-400">
-                    {tournament.name}
-                  </h3>
-                  <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${
-                      tournament.status === 'active' ? 'bg-green-500/10 text-green-400' :
-                      tournament.status === 'completed' ? 'bg-zinc-800 text-zinc-400' :
-                      'bg-indigo-500/10 text-indigo-400'
-                    }`}>
-                      {tournament.status}
-                    </span>
-                    <span>•</span>
-                    <span>
-                      {tournament.status === 'completed' || (tournament.status === 'active' && tournament.currentRound === tournament.totalRounds) 
-                        ? 'Final Round' 
-                        : `Round ${tournament.currentRound}/${tournament.totalRounds}`}
-                    </span>
-                    <span>•</span>
-                    <span className="capitalize">{tournament.type.replace('_', ' ')}</span>
-                  </div>
-                  {tournament.createdByName && (
-                    <div className="mt-1 text-xs text-zinc-500 flex items-center gap-2">
-                      <UserAvatar username={tournament.createdByName} displayName={tournament.createdByDisplayName} avatarUrl={tournament.createdByAvatarUrl} size="sm" className="h-4 w-4" />
-                      <span className="flex items-center gap-1">
-                        by <UserLabel username={tournament.createdByName} displayName={tournament.createdByDisplayName} color={tournament.createdByColor} />
-                      </span>
-                    </div>
-                  )}
-                </div>
+        <div className="space-y-12">
+          {/* Active & Pending Tournaments */}
+          <section>
+            <h2 className="mb-4 text-xl font-bold text-white">Active Tournaments</h2>
+            {tournaments.filter(t => t.status !== 'completed').length === 0 ? (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center">
+                <p className="text-zinc-400">No active tournaments running right now.</p>
               </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {tournaments
+                  .filter(t => t.status !== 'completed')
+                  .map((tournament) => (
+                    <Link
+                      key={tournament.id}
+                      to={`/tournaments/${tournament.id}`}
+                      className="group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 transition-all hover:border-indigo-500/50 hover:bg-zinc-900"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-white group-hover:text-indigo-400">
+                            {tournament.name}
+                          </h3>
+                          <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold uppercase ${
+                              tournament.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                              'bg-yellow-500/20 text-yellow-400'
+                            }`}>
+                              {tournament.status}
+                            </span>
+                            <span>•</span>
+                            <span className="capitalize">{tournament.type.replace('_', ' ')}</span>
+                          </div>
+                          {tournament.createdByName && (
+                            <div className="mt-1 text-xs text-zinc-500 flex items-center gap-2">
+                              <UserAvatar username={tournament.createdByName} displayName={tournament.createdByDisplayName} avatarUrl={tournament.createdByAvatarUrl} size="sm" className="h-4 w-4" />
+                              <span className="flex items-center gap-1">
+                                by <UserLabel username={tournament.createdByName} displayName={tournament.createdByDisplayName} color={tournament.createdByColor} />
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 flex items-center gap-4 text-sm text-zinc-500">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          <span>Created: {formatDate(tournament.createdAt)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Trophy className="h-4 w-4" />
+                          <span>Players: {tournament.participantCount}</span>
+                        </div>
+                      </div>
+                    </Link>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Completed Tournaments */}
+          {tournaments.filter(t => t.status === 'completed').length > 0 && (
+            <section>
+              <button 
+                onClick={() => setIsCompletedExpanded(!isCompletedExpanded)}
+                className="flex items-center gap-2 mb-4 text-xl font-bold text-white hover:text-indigo-400 transition-colors"
+              >
+                {isCompletedExpanded ? <ChevronDown className="h-6 w-6" /> : <ChevronRight className="h-6 w-6" />}
+                Completed Tournaments
+              </button>
               
-              <div className="mt-4 flex items-center gap-4 text-sm text-zinc-500">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  {tournament.status === 'pending' ? (
-                    <span>Created: {formatDate(tournament.createdAt)}</span>
-                  ) : (
-                    <div className="flex flex-col gap-0.5">
-                      {tournament.startDate && (
-                        <span>Started: {formatDate(tournament.startDate)}</span>
+              {isCompletedExpanded && (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {tournaments
+                  .filter(t => t.status === 'completed')
+                  .map((tournament) => (
+                    <Link
+                      key={tournament.id}
+                      to={`/tournaments/${tournament.id}`}
+                      className="group relative overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 transition-all hover:border-zinc-700 hover:bg-zinc-900"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-semibold text-zinc-300 group-hover:text-white">
+                            {tournament.name}
+                          </h3>
+                          <div className="mt-2 flex items-center gap-2 text-xs text-zinc-400">
+                            <span className="inline-flex items-center rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-bold uppercase text-zinc-500">
+                              Completed
+                            </span>
+                            <span>•</span>
+                            <span className="capitalize">{tournament.type.replace('_', ' ')}</span>
+                          </div>
+                   
+                        </div>
+                      </div>
+                      
+                      {tournament.winnerName && (
+                        <div className="mt-4 flex items-center gap-2 rounded-lg bg-yellow-500/10 p-2 text-yellow-500">
+                          <Crown className="h-4 w-4" />
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="font-medium text-xs uppercase tracking-wider opacity-75">Winner</span>
+                            <div className="flex items-center gap-1.5 font-semibold">
+                              <UserAvatar 
+                                username={tournament.winnerName} 
+                                displayName={tournament.winnerDisplayName} 
+                                avatarUrl={tournament.winnerAvatarUrl} 
+                                size="xs" 
+                                className="h-5 w-5" 
+                              />
+                              <UserLabel 
+                                username={tournament.winnerName} 
+                                displayName={tournament.winnerDisplayName} 
+                                color={tournament.winnerColor} 
+                              />
+                            </div>
+                          </div>
+                        </div>
                       )}
-                      {tournament.endDate && (
-                        <span>Ended: {formatDate(tournament.endDate)}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Trophy className="h-4 w-4" />
-                  <span>Players: {tournament.participantCount}</span>
-                </div>
+
+                      <div className="mt-4 flex items-center gap-4 text-sm text-zinc-500">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          <div className="flex flex-col gap-0.5">
+                            {tournament.endDate && (
+                              <span>Ended: {formatDate(tournament.endDate)}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Trophy className="h-4 w-4" />
+                          <span>Players: {tournament.participantCount}</span>
+                        </div>
+                      </div>
+                    </Link>
+                ))}
               </div>
-            </Link>
-          ))}
+              )}
+            </section>
+          )}
         </div>
       )}
     </div>

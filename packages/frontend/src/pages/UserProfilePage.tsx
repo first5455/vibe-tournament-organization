@@ -172,7 +172,7 @@ export default function UserProfilePage() {
 
   // Determine Game Specific Stats
   const gameStats = user.stats?.find(s => s.gameId === activeGame?.id)
-  const displayMmr = gameStats?.mmr ?? (activeGame ? 1000 : user.mmr) // Fallback to 1000 if game selected but no stats, or user.mmr if no game (though activeGame should be there)
+  const displayMmr = gameStats?.mmr ?? 1000
   // For rank, we might need to fetch it specifically or rely on backend to provide it in stats? 
   // currently backend provides 'rank' on user root (legacy).
   // Ideally we should display 'N/A' or '-' if we don't know the rank for this game.

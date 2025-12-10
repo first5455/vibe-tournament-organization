@@ -48,12 +48,17 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       createdByDisplayName: users.displayName,
       createdByColor: users.color,
       createdByAvatarUrl: users.avatarUrl,
-      gameName: games.name
+      gameName: games.name,
+      winnerName: sql<string>`winner.username`,
+      winnerDisplayName: sql<string>`winner.display_name`,
+      winnerAvatarUrl: sql<string>`winner.avatar_url`,
+      winnerColor: sql<string>`winner.color`
     })
     .from(tournaments)
     .leftJoin(participants, eq(tournaments.id, participants.tournamentId))
     .leftJoin(users, eq(tournaments.createdBy, users.id))
     .leftJoin(games, eq(tournaments.gameId, games.id))
+    .leftJoin(sql`users as winner`, eq(tournaments.winnerId, sql`winner.id`))
     .where(conditions)
     .groupBy(tournaments.id)
     .all()
@@ -78,10 +83,15 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       createdByName: users.username,
       createdByDisplayName: users.displayName,
       createdByColor: users.color,
-      createdByAvatarUrl: users.avatarUrl
+      createdByAvatarUrl: users.avatarUrl,
+      winnerName: sql<string>`winner.username`,
+      winnerDisplayName: sql<string>`winner.display_name`,
+      winnerAvatarUrl: sql<string>`winner.avatar_url`,
+      winnerColor: sql<string>`winner.color`
     })
     .from(tournaments)
     .leftJoin(users, eq(tournaments.createdBy, users.id))
+    .leftJoin(sql`users as winner`, eq(tournaments.winnerId, sql`winner.id`))
     .where(eq(tournaments.id, id))
     .get()
     
@@ -729,10 +739,33 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       }
     }
 
+    // Calculate winner
+    const tournamentParticipants = await db.select().from(participants)
+      .where(eq(participants.tournamentId, tournamentId))
+      .all()
+    
+    // Sort by score desc, then tiebreakers if implemented (simplified to score for now)
+    // Adding rudimentary Tiebreaker sort (Buchholz) if property exists
+    tournamentParticipants.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      // Tiebreaker check
+      const tbA = (a.tieBreakers as any)?.buchholz || 0
+      const tbB = (b.tieBreakers as any)?.buchholz || 0
+      return tbB - tbA
+    })
+
+    const winner = tournamentParticipants.length > 0 ? tournamentParticipants[0] : null
+    // Only set winner if they are a registered user (userId is not null)
+    // Guests cannot be "winners" in the DB sense of linking to a user profile, 
+    // unless we relax FK or use participants.id. But schema uses users.id. 
+    // If winner is guest, winnerId will be null.
+    const winnerId = winner?.userId || null
+
     await db.update(tournaments)
       .set({ 
         status: 'completed',
-        endDate: new Date().toISOString()
+        endDate: new Date().toISOString(),
+        winnerId
       })
       .where(eq(tournaments.id, tournamentId))
       .run()

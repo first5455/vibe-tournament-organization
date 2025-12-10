@@ -5,8 +5,15 @@ export interface User {
   role: string
   avatarUrl?: string | null
   color?: string | null
-  mmr?: number
   createdAt?: string
+  stats?: {
+    gameId: number
+    gameName: string
+    mmr: number
+    wins: number
+    losses: number
+    draws: number
+  }[]
 }
 
 export interface Deck {

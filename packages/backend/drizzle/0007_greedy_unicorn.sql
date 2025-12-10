@@ -1,0 +1,1 @@
+ALTER TABLE `tournaments` ADD `winner_id` integer REFERENCES users(id);
