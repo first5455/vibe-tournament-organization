@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, participants, tournaments, duelRooms, matches, decks } from '../db/schema'
-import { eq, desc, sql, or } from 'drizzle-orm'
+import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games } from '../db/schema'
+import { eq, desc, sql, or, and } from 'drizzle-orm'
 import { getRank } from '../utils'
 
 
@@ -57,6 +57,19 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       mmr: 1000
     }).returning().get()
 
+    // Initialize MMR for all games
+    const allGames = await db.select().from(games).all()
+    for (const game of allGames) {
+        await db.insert(userGameStats).values({
+            userId: result.id,
+            gameId: game.id,
+            mmr: 1000,
+            wins: 0,
+            losses: 0,
+            draws: 0
+        }).run()
+    }
+
     return { user: result }
   }, {
     body: t.Object({
@@ -66,25 +79,50 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       displayName: t.Optional(t.String())
     })
   })
-  .get('/leaderboard', async () => {
+  .get('/leaderboard', async ({ query }) => {
+    const gameId = query.gameId ? parseInt(query.gameId) : undefined
+
+    if (gameId) {
+        return await db.select({
+            id: users.id,
+            username: users.username,
+            displayName: users.displayName,
+            mmr: userGameStats.mmr, // Use game specific MMR
+            color: users.color,
+            avatarUrl: users.avatarUrl,
+        })
+        .from(users)
+        .innerJoin(userGameStats, eq(users.id, userGameStats.userId))
+        .where(eq(userGameStats.gameId, gameId))
+        .orderBy(desc(userGameStats.mmr))
+        .limit(10)
+    }
+
+    // Fallback or global view (maybe sum of all MMRs? or just raw user table for backward compat until migration)
+    // Fallback or global view 
+    // If no gameId provided, we can either return empty MMR or default to first game?
+    // Let's return 0 as "No Game Selected"
     return await db.select({
       id: users.id,
       username: users.username,
       displayName: users.displayName,
-      mmr: users.mmr,
+      mmr: sql<number>`0`,
       color: users.color,
       avatarUrl: users.avatarUrl,
     })
     .from(users)
-    .orderBy(desc(users.mmr))
     .limit(10)
+  }, {
+    query: t.Object({
+        gameId: t.Optional(t.String())
+    })
   })
   .get('/:id', async ({ params, set }) => {
     const user = await db.select({
       id: users.id,
       username: users.username,
       displayName: users.displayName,
-      mmr: users.mmr,
+      mmr: sql<number>`0`,
       createdAt: users.createdAt,
       role: users.role,
       color: users.color,
@@ -99,17 +137,43 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       return { error: 'User not found' }
     }
 
+    // Fetch game stats
+    const stats = await db.select({
+        gameId: userGameStats.gameId,
+        gameName: games.name,
+        mmr: userGameStats.mmr,
+        wins: userGameStats.wins,
+        losses: userGameStats.losses,
+        draws: userGameStats.draws,
+        duelWins: userGameStats.duelWins,
+        duelLosses: userGameStats.duelLosses,
+        duelDraws: userGameStats.duelDraws,
+        tournamentWins: userGameStats.tournamentWins,
+        tournamentLosses: userGameStats.tournamentLosses,
+        tournamentDraws: userGameStats.tournamentDraws
+    })
+    .from(userGameStats)
+    .leftJoin(games, eq(userGameStats.gameId, games.id))
+    .where(eq(userGameStats.userId, user.id))
+    .all()
+
     const rank = await getRank(user.mmr)
 
-    return { user: { ...user, rank } }
+    return { user: { ...user, rank, stats } }
 
   }, {
     params: t.Object({
       id: t.String()
     })
   })
-  .get('/:id/history', async ({ params, set }) => {
+  .get('/:id/history', async ({ params, query, set }) => {
     const id = parseInt(params.id)
+    const gameId = query.gameId ? parseInt(query.gameId) : undefined
+
+    let tournamentConditions: any = eq(participants.userId, id)
+    if (gameId) {
+        tournamentConditions = and(eq(participants.userId, id), eq(tournaments.gameId, gameId))
+    }
 
     // Fetch tournament history
     const userParticipations = await db.select({
@@ -124,7 +188,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     })
     .from(participants)
     .innerJoin(tournaments, eq(participants.tournamentId, tournaments.id))
-    .where(eq(participants.userId, id))
+    .where(tournamentConditions)
     .orderBy(desc(tournaments.startDate))
     .all()
 
@@ -167,6 +231,11 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     }))
 
     // Fetch duel history
+    let duelConditions: any = or(eq(duelRooms.player1Id, id), eq(duelRooms.player2Id, id))
+    if (gameId) {
+        duelConditions = and(or(eq(duelRooms.player1Id, id), eq(duelRooms.player2Id, id)), eq(duelRooms.gameId, gameId))
+    }
+
     const userDuels = await db.select({
       id: duelRooms.id,
       name: duelRooms.name,
@@ -185,7 +254,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       firstPlayerId: duelRooms.firstPlayerId,
     })
     .from(duelRooms)
-    .where(or(eq(duelRooms.player1Id, id), eq(duelRooms.player2Id, id)))
+    .where(duelConditions)
     .orderBy(desc(duelRooms.createdAt))
     .all()
 
@@ -235,10 +304,13 @@ export const userRoutes = new Elysia({ prefix: '/users' })
   }, {
     params: t.Object({
       id: t.String()
+    }),
+    query: t.Object({
+        gameId: t.Optional(t.String())
     })
   })
   .get('/', async ({ query, set }) => {
-    const { requesterId } = query
+    const { requesterId, gameId } = query
     if (!requesterId) {
       set.status = 401
       return { error: 'Unauthorized' }
@@ -250,21 +322,28 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       return { error: 'Forbidden' }
     }
 
-    const allUsers = await db.select({
+    let userQuery = db.select({
       id: users.id,
       username: users.username,
       displayName: users.displayName,
       role: users.role,
-      mmr: users.mmr,
+      mmr: gameId ? sql<number>`COALESCE(${userGameStats.mmr}, 1000)` : sql<number>`0`,
       createdAt: users.createdAt,
       color: users.color,
       avatarUrl: users.avatarUrl,
-    }).from(users).all()
+    }).from(users)
+
+    if (gameId) {
+        userQuery.leftJoin(userGameStats, and(eq(userGameStats.userId, users.id), eq(userGameStats.gameId, parseInt(gameId))))
+    }
+
+    const allUsers = await userQuery.all()
 
     return { users: allUsers }
   }, {
     query: t.Object({
-      requesterId: t.String()
+      requesterId: t.String(),
+      gameId: t.Optional(t.String())
     })
   })
   .put('/:id', async ({ params, body, set }) => {
@@ -288,7 +367,33 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     // Only admin can update role and mmr
     if (isAdmin) {
       if (role) updates.role = role
-      if (mmr !== undefined) updates.mmr = mmr
+      
+      // Update MMR
+      if (mmr !== undefined) {
+          if (body.gameId) {
+              // Update game specific MMR
+              const existingStat = await db.select().from(userGameStats)
+                  .where(and(eq(userGameStats.userId, parseInt(params.id)), eq(userGameStats.gameId, body.gameId)))
+                  .get()
+
+              if (existingStat) {
+                  await db.update(userGameStats)
+                      .set({ mmr })
+                      .where(and(eq(userGameStats.userId, parseInt(params.id)), eq(userGameStats.gameId, body.gameId)))
+                      .run()
+              } else {
+                  await db.insert(userGameStats).values({
+                      userId: parseInt(params.id),
+                      gameId: body.gameId,
+                      mmr,
+                      wins: 0,
+                      losses: 0,
+                      draws: 0
+                  }).run()
+              }
+          }
+          // Legacy MMR update removed
+      }
     }
 
     if (color) updates.color = color
@@ -315,6 +420,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       password: t.Optional(t.String()),
       role: t.Optional(t.String()),
       mmr: t.Optional(t.Number()),
+      gameId: t.Optional(t.Number()),
       color: t.Optional(t.String()),
       avatarUrl: t.Optional(t.String())
     })

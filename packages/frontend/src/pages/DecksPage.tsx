@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { useGame } from '../contexts/GameContext'
 import { Button } from '../components/ui/button'
 import { Plus } from 'lucide-react'
 import { DeckCard, DeckWithStats } from '../components/DeckCard'
@@ -12,18 +13,23 @@ export default function DecksPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   
+  const { selectedGame } = useGame()
+  
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingDeck, setEditingDeck] = useState<DeckWithStats | null>(null)
 
   useEffect(() => {
-    fetchDecks()
-  }, [user])
+    if (selectedGame) {
+      fetchDecks()
+    }
+  }, [user, selectedGame])
 
   const fetchDecks = async () => {
-    if (!user) return
+    if (!user || !selectedGame) return
     try {
-      const data = await api(`/decks?userId=${user.id}`)
+      setIsLoading(true)
+      const data = await api(`/decks?userId=${user.id}&gameId=${selectedGame.id}`)
       setDecks(data)
     } catch (err: any) {
       setError('Failed to fetch decks')
@@ -43,11 +49,12 @@ export default function DecksPage() {
   }
 
   const handleSubmit = async (data: { name: string; link: string; color: string }) => {
+    if (!selectedGame) return
     setError('')
     
     try {
       if (editingDeck) {
-        // Edit
+        // Edit - Update gameId shouldn't be allowed or needed usually unless migrating
         await api(`/decks/${editingDeck.id}`, {
           method: 'PUT',
           body: JSON.stringify({
@@ -62,6 +69,7 @@ export default function DecksPage() {
           body: JSON.stringify({
             requesterId: user?.id,
             userId: user?.id,
+            gameId: selectedGame.id,
             ...data
           })
         })

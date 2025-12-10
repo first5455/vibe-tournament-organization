@@ -5,24 +5,29 @@ import { eq, desc, and, or, sql, inArray } from 'drizzle-orm'
 
 export const deckRoutes = new Elysia({ prefix: '/decks' })
   .get('/', async ({ query, set }) => {
-    const { userId } = query
+    const { userId, gameId } = query
     
-    let results;
+    let conditions = undefined
+    const constraints: any[] = []
+
     if (userId) {
-      results = await db.select()
+        constraints.push(eq(decks.userId, parseInt(userId)))
+    }
+    if (gameId) {
+        constraints.push(eq(decks.gameId, parseInt(gameId)))
+    }
+
+    if (constraints.length > 0) {
+        conditions = and(...constraints)
+    }
+
+    let results = await db.select()
         .from(decks)
         .leftJoin(users, eq(decks.userId, users.id))
-        .where(eq(decks.userId, parseInt(userId)))
-        .orderBy(desc(decks.createdAt))
-        .all()
-    } else {
-      results = await db.select()
-        .from(decks)
-        .leftJoin(users, eq(decks.userId, users.id))
+        .where(conditions)
         .orderBy(desc(decks.createdAt))
         .limit(100)
         .all()
-    }
     
     // Flatten and stats
     const decksWithStats = await Promise.all(results.map(async (row) => {
@@ -150,11 +155,12 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
     return decksWithStats
   }, {
     query: t.Object({
-      userId: t.Optional(t.String())
+      userId: t.Optional(t.String()),
+      gameId: t.Optional(t.String())
     })
   })
   .post('/', async ({ body, set }) => {
-    const { requesterId, userId, name, link, color } = body
+    const { requesterId, userId, name, link, color, gameId } = body
 
     // Validation? User exists?
     const user = await db.select().from(users).where(eq(users.id, userId)).get()
@@ -184,7 +190,8 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
       userId,
       name,
       link,
-      color: color || '#ffffff'
+      color: color || '#ffffff',
+      gameId
     }).returning().get()
 
     return { deck: result }
@@ -194,7 +201,8 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
       userId: t.Number(),
       name: t.String(),
       link: t.Optional(t.String()),
-      color: t.Optional(t.String())
+      color: t.Optional(t.String()),
+      gameId: t.Optional(t.Number())
     })
   })
   .put('/:id', async ({ params, body, set }) => {

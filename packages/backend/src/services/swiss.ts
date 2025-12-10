@@ -1,5 +1,5 @@
 import { db } from '../db'
-import { participants, matches, users } from '../db/schema'
+import { participants, matches, users, tournaments, userGameStats } from '../db/schema'
 import { eq, and, desc, or, isNotNull } from 'drizzle-orm'
 
 interface Player {
@@ -15,21 +15,29 @@ interface Pairing {
 }
 
 export async function generatePairings(tournamentId: number, roundNumber: number) {
+  // Get tournament gameId
+  const tournament = await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).get()
+  if (!tournament || !tournament.gameId) {
+      throw new Error('Tournament or Game ID not found')
+  }
+  const gameId = tournament.gameId
+
   // 1. Get all active participants with their details (Score + MMR for sorting)
   const playersData = await db.select({
     id: participants.id,
     userId: participants.userId,
     score: participants.score,
-    mmr: users.mmr,
+    mmr: userGameStats.mmr,
     dropped: participants.dropped
   })
   .from(participants)
-  .leftJoin(users, eq(participants.userId, users.id))
+  .leftJoin(users, eq(participants.userId, users.id)) // Keep users join if needed for something else, or remove if not. Actually we need userId to join userGameStats.
+  .leftJoin(userGameStats, and(eq(participants.userId, userGameStats.userId), eq(userGameStats.gameId, gameId)))
   .where(and(
     eq(participants.tournamentId, tournamentId), 
     eq(participants.dropped, false)
   ))
-  .orderBy(desc(participants.score), desc(users.mmr)) 
+  .orderBy(desc(participants.score), desc(userGameStats.mmr)) 
   .all()
 
   const players: Player[] = playersData.map(p => ({

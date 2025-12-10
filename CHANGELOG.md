@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.0] - 2025-12-10
+
+### Added
+
+- **Multi-Game Support**: Introduced `GameContext` to support multiple games (e.g., Union Arena, One Piece).
+- **Game-Specific MMR**: Replaced global MMR with per-game MMR (`user_game_stats` table). All ranks and matchmaking now respect the currently selected game.
+- **Split Stats**: User profiles now display separate wins/losses for Tournaments and Duels per game.
+- **Game Switcher**: Added a dropdown in the header to switch between active games.
+- **Admin Management**: Added "Games" tab in Admin Portal to manage supported games.
+- **Migration**: Added `migrate_games` script to safely transition legacy data to the transition to multi-game schema without data loss.
+
 ## [0.6.4] - 2025-12-10
 
 ### Changed

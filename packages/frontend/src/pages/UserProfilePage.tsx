@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
+import { useGame } from '../contexts/GameContext'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
 import { Button } from '../components/ui/button'
@@ -21,6 +22,20 @@ interface UserProfile {
   avatarUrl?: string
   createdAt: string
   rank?: number
+  stats?: {
+      gameId: number
+      gameName: string
+      mmr: number
+      wins: number
+      losses: number
+      draws: number
+      duelWins?: number
+      duelLosses?: number
+      duelDraws?: number
+      tournamentWins?: number
+      tournamentLosses?: number
+      tournamentDraws?: number
+  }[]
 }
 
 interface TournamentHistory {
@@ -67,6 +82,7 @@ interface DuelHistory {
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
   const { user: currentUser } = useAuth()
+  const { selectedGame: activeGame } = useGame() // Alias to activeGame to minimize changes
   const [user, setUser] = useState<UserProfile | null>(null)
   const [history, setHistory] = useState<TournamentHistory[]>([])
   const [duels, setDuels] = useState<DuelHistory[]>([])
@@ -84,13 +100,14 @@ export default function UserProfilePage() {
       const userRes = await api(`/users/${id}`)
       setUser(userRes.user)
 
-      const historyRes = await api(`/users/${id}/history`)
+      const queryParams = activeGame ? `?gameId=${activeGame.id}` : ''
+      const historyRes = await api(`/users/${id}/history${queryParams}`)
       setHistory(historyRes.history)
       setDuels(historyRes.duels || [])
 
       // Fetch decks
       try {
-        const decksRes = await api(`/decks?userId=${id}`)
+        const decksRes = await api(`/decks?userId=${id}${activeGame ? `&gameId=${activeGame.id}` : ''}`)
         setDecks(decksRes)
       } catch (e) {
         console.error('Failed to fetch decks', e)
@@ -104,7 +121,7 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     fetchData()
-  }, [id])
+  }, [id, activeGame])
 
   if (loading) return <div className="flex justify-center items-center h-96 text-zinc-500">Loading profile...</div>
   if (!user) return <div className="flex justify-center items-center h-96 text-red-500">User not found</div>
@@ -118,6 +135,7 @@ export default function UserProfilePage() {
                 method: 'PUT',
                 body: JSON.stringify({
                     requesterId: currentUser?.id,
+                    gameId: activeGame?.id,
                     ...data
                 })
             })
@@ -127,6 +145,7 @@ export default function UserProfilePage() {
                 body: JSON.stringify({
                     requesterId: currentUser?.id,
                     userId: user.id,
+                    gameId: activeGame?.id,
                     ...data
                 })
             })
@@ -151,6 +170,15 @@ export default function UserProfilePage() {
     }
   }
 
+  // Determine Game Specific Stats
+  const gameStats = user.stats?.find(s => s.gameId === activeGame?.id)
+  const displayMmr = gameStats?.mmr ?? (activeGame ? 1000 : user.mmr) // Fallback to 1000 if game selected but no stats, or user.mmr if no game (though activeGame should be there)
+  // For rank, we might need to fetch it specifically or rely on backend to provide it in stats? 
+  // currently backend provides 'rank' on user root (legacy).
+  // Ideally we should display 'N/A' or '-' if we don't know the rank for this game.
+  // The backend `GET /users/:id` doesn't calculate game specific rank yet. 
+  // But we can just show MMR.
+
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       {/* Header */}
@@ -174,14 +202,20 @@ export default function UserProfilePage() {
             <div className="flex items-center gap-2 bg-zinc-800/50 px-3 py-1 rounded-full">
               <Trophy className="w-4 h-4 text-yellow-500" />
               <span className="font-medium text-white">
-                {user.rank && <span className="text-zinc-400 mr-2">#{user.rank} •</span>}
-                {user.mmr} MMR
+                {/* {user.rank && <span className="text-zinc-400 mr-2">#{user.rank} •</span>} */} 
+                {/* Rank is currently global legacy, hiding it to avoid confusion or we need to fetch it per game */}
+                {displayMmr} MMR
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               <span>Joined {formatDate(user.createdAt)}</span>
             </div>
+             {activeGame && (
+                  <div className="flex items-center gap-2 ml-2 px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded text-xs border border-blue-500/20">
+                      Game: {activeGame.name}
+                  </div>
+              )}
           </div>
         </div>
       </div>
@@ -192,12 +226,18 @@ export default function UserProfilePage() {
            <div className="space-y-1">
              <p className="text-sm text-zinc-400">Tournament Winrate</p>
              <p className="text-2xl font-bold text-white">
-               {history.filter(h => h.status === 'completed').length > 0 
-                 ? `${Math.round((history.filter(h => h.status === 'completed' && h.rank === 1).length / history.filter(h => h.status === 'completed').length) * 100)}%` 
-                 : '-'}
+               {gameStats?.tournamentWins !== undefined && (gameStats.tournamentWins + (gameStats.tournamentLosses||0)) > 0
+                 ? `${Math.round((gameStats.tournamentWins / (gameStats.tournamentWins + (gameStats.tournamentLosses||0))) * 100)}%`
+                 : history.filter(h => h.status === 'completed').length > 0
+                     ? `${Math.round((history.filter(h => h.status === 'completed' && h.rank === 1).length / history.filter(h => h.status === 'completed').length) * 100)}%`
+                     : '-'}
              </p>
              <p className="text-sm text-zinc-500">
-               {history.filter(h => h.status === 'completed').length} Played ({history.filter(h => h.status === 'completed' && h.rank === 1).length} Win - {history.filter(h => h.status === 'completed').length - history.filter(h => h.status === 'completed' && h.rank === 1).length} Loss)
+               {gameStats?.tournamentWins !== undefined ? (
+                   `${(gameStats.tournamentWins + (gameStats.tournamentLosses||0))} Played (${gameStats.tournamentWins} Win - ${gameStats.tournamentLosses} Loss)`
+               ) : (
+                   `${history.filter(h => h.status === 'completed').length} Played (${history.filter(h => h.status === 'completed' && h.rank === 1).length} Win - ${history.filter(h => h.status === 'completed').length - history.filter(h => h.status === 'completed' && h.rank === 1).length} Loss)`
+               )}
              </p>
            </div>
            <Trophy className="w-8 h-8 text-yellow-500" />
@@ -206,12 +246,18 @@ export default function UserProfilePage() {
            <div className="space-y-1">
              <p className="text-sm text-zinc-400">Duel Winrate</p>
              <p className="text-2xl font-bold text-white">
-               {duels.filter(d => d.status === 'completed').length > 0
-                 ? `${Math.round((duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length / duels.filter(d => d.status === 'completed').length) * 100)}%`
-                 : '-'}
+               {gameStats?.duelWins !== undefined && (gameStats.duelWins + (gameStats.duelLosses||0)) > 0
+                  ? `${Math.round((gameStats.duelWins / (gameStats.duelWins + (gameStats.duelLosses||0))) * 100)}%`
+                  : duels.filter(d => d.status === 'completed').length > 0
+                    ? `${Math.round((duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length / duels.filter(d => d.status === 'completed').length) * 100)}%`
+                    : '-'}
              </p>
              <p className="text-sm text-zinc-500">
-               {duels.filter(d => d.status === 'completed').length} Played ({duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length} Win - {duels.filter(d => d.status === 'completed').length - duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length} Loss)
+               {gameStats?.duelWins !== undefined ? (
+                   `${(gameStats.duelWins + (gameStats.duelLosses||0))} Played (${gameStats.duelWins} Win - ${gameStats.duelLosses} Loss)`
+               ) : (
+                   `${duels.filter(d => d.status === 'completed').length} Played (${duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length} Win - {duels.filter(d => d.status === 'completed').length - duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length} Loss)`
+               )}
              </p>
            </div>
            <Swords className="w-8 h-8 text-red-500" />
@@ -222,6 +268,7 @@ export default function UserProfilePage() {
              <p className="text-2xl font-bold text-white">
                {(() => {
                  const today = new Date().toLocaleDateString()
+                 // Duels are already filtered by gameId from API if activeGame is set
                  const todaysDuels = duels.filter(d => new Date(d.createdAt).toLocaleDateString() === today && d.status === 'completed')
                  if (todaysDuels.length === 0) return '-'
                  const wins = todaysDuels.filter(d => d.winnerId === user.id).length

@@ -6,6 +6,7 @@ import { UserAvatar } from '../components/UserAvatar'
 import { Button } from '../components/ui/button'
 import { useRefresh } from '../hooks/useRefresh'
 import { useFocusRevalidate } from '../hooks/useFocusRevalidate'
+import { useGame } from '../contexts/GameContext'
 
 interface User {
   id: number
@@ -20,9 +21,14 @@ export default function Leaderboard() {
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
+  const { selectedGame } = useGame()
+
   const loadLeaderboard = async () => {
+    if (!selectedGame) return
+
     try {
-      const data = await api('/users/leaderboard')
+      setIsLoading(true)
+      const data = await api(`/users/leaderboard?gameId=${selectedGame.id}`)
       setUsers(data)
     } catch (err) {
       console.error('Failed to load leaderboard', err)
@@ -34,17 +40,21 @@ export default function Leaderboard() {
   const { handleRefresh, isCoolingDown } = useRefresh(loadLeaderboard)
 
   useEffect(() => {
-    loadLeaderboard()
+    if (selectedGame) {
+      loadLeaderboard()
+    }
 
     // WebSocket connection
     let ws: WebSocket | null = null
-    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true') {
+    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true' && selectedGame) {
       try {
         ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
         
         ws.onmessage = (event) => {
           const data = JSON.parse(event.data)
           if (data.type === 'UPDATE_LEADERBOARD') {
+            // Potentially filter updates by gameId if payload has it?
+            // For now simple refresh
             loadLeaderboard()
           }
         }
@@ -53,10 +63,10 @@ export default function Leaderboard() {
       }
     }
 
-    return () => {
+   return () => {
       if (ws) ws.close()
     }
-  }, [])
+  }, [selectedGame])
 
   useFocusRevalidate(loadLeaderboard, 30000)
 

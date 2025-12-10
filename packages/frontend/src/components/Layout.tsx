@@ -5,6 +5,7 @@ import { Button } from './ui/button'
 import { Trophy, Users, LogOut, LayoutDashboard, Menu, X, Shield, Swords } from 'lucide-react'
 import { UserLabel } from './UserLabel'
 import { UserAvatar } from './UserAvatar'
+import { GameSwitcher } from './GameSwitcher'
 import pkg from '../../package.json'
 
 export default function Layout() {
@@ -15,7 +16,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-indigo-500/30 flex flex-col">
       <nav className="border-b border-white/10 bg-zinc-900/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-8">
               <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -25,6 +26,10 @@ export default function Layout() {
                   <span className="text-[10px] text-zinc-500 font-mono">v{pkg.version}</span>
                 </div>
               </Link>
+              
+              <div className="hidden md:block">
+                <GameSwitcher />
+              </div>
               
               {user && (
                 <div className="hidden md:flex items-center gap-1">
@@ -167,12 +172,12 @@ export default function Layout() {
         )}
       </nav>
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-8 flex-1">
         <Outlet />
       </main>
 
       <footer className="border-t border-white/10 bg-zinc-900/50 backdrop-blur-xl py-6 mt-auto">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-zinc-500 text-sm">
+        <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-zinc-500 text-sm">
           <p>© 2025 VibeTourney. Open Source under <a href="http://www.wtfpl.net/" target="_blank" rel="noreferrer" className="underline hover:text-white">WTFPL</a> License.</p>
           <a 
             href="https://github.com/first5455/vibe-tournament-organization" 
