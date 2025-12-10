@@ -16,18 +16,32 @@ interface EditMMRDialogProps {
 
 export function EditMMRDialog({ isOpen, onClose, onSuccess, user, games, requesterId, initialGameId }: EditMMRDialogProps) {
   const [mmr, setMmr] = useState<string>('')
-  const [selectedGameId, setSelectedGameId] = useState<string>('all')
+  const [selectedGameId, setSelectedGameId] = useState<string>('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
     if (isOpen && user) {
-      setMmr((user.mmr || 1000).toString())
+      let initialMmr = 1000
+      let gId = ''
+
       if (initialGameId && initialGameId !== 'all') {
-        setSelectedGameId(initialGameId)
-      } else {
-        setSelectedGameId('all')
+        gId = initialGameId
+        if (user.stats) {
+            const stat = user.stats.find(s => s.gameId === parseInt(initialGameId))
+            if (stat) initialMmr = stat.mmr
+        }
+      } else if (games.length > 0) {
+         // Default to first game if 'all' or nothing selected
+         gId = games[0].id.toString()
+         if (user.stats) {
+            const stat = user.stats.find(s => s.gameId === games[0].id)
+            if (stat) initialMmr = stat.mmr
+         }
       }
+
+      setMmr(initialMmr.toString())
+      setSelectedGameId(gId)
     }
   }, [isOpen, user, initialGameId])
 
@@ -44,8 +58,10 @@ export function EditMMRDialog({ isOpen, onClose, onSuccess, user, games, request
         mmr: parseInt(mmr)
       }
       
-      if (selectedGameId !== 'all') {
+      if (selectedGameId && selectedGameId !== 'all') {
           body.gameId = parseInt(selectedGameId)
+      } else {
+          throw new Error("Please select a game")
       }
 
       await api(`/users/${user.id}`, {
@@ -84,12 +100,12 @@ export function EditMMRDialog({ isOpen, onClose, onSuccess, user, games, request
                 value={selectedGameId}
                 onChange={(e) => setSelectedGameId(e.target.value)}
             >
-                <option value="all">Global / Legacy</option>
+                <option value="" disabled>Select a Game</option>
                 {games.map(g => (
                     <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
             </select>
-            <p className="text-xs text-zinc-500">Select a game to update game-specific MMR, or Global for legacy.</p>
+            <p className="text-xs text-zinc-500">MMR is now strictly game-specific.</p>
           </div>
 
           <div className="space-y-2">

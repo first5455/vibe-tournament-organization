@@ -58,7 +58,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     const { username } = body
     const user = await db.select().from(users).where(eq(users.username, username)).get()
     
-    if (!user || !user.securityQuestion) {
+    if (!user || !user.securityQuestion || user.passwordHash === 'deleted') {
       set.status = 404
       return { error: 'User not found or no security question set' }
     }
@@ -73,7 +73,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     const { username, securityAnswer, newPassword } = body
     
     const user = await db.select().from(users).where(eq(users.username, username)).get()
-    if (!user || !user.securityAnswerHash) {
+    if (!user || !user.securityAnswerHash || user.passwordHash === 'deleted') {
       set.status = 404
       return { error: 'User not found or recovery not set up' }
     }
@@ -102,7 +102,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     const { username, password } = body
 
     const user = await db.select().from(users).where(eq(users.username, username)).get()
-    if (!user) {
+    if (!user || user.passwordHash === 'deleted') {
       set.status = 401
       return { error: 'Invalid credentials' }
     }

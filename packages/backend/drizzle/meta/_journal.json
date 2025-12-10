@@ -36,6 +36,27 @@
       "when": 1765377044998,
       "tag": "0004_motionless_hawkeye",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1765379911783,
+      "tag": "0005_nebulous_diamondback",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1765386423598,
+      "tag": "0006_smiling_bastion",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1765388217872,
+      "tag": "0007_greedy_unicorn",
+      "breakpoints": true
     }
   ]
 }

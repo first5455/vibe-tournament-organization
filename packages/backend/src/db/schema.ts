@@ -6,7 +6,6 @@ export const users = sqliteTable('users', {
   username: text('username').notNull().unique(),
   displayName: text('display_name'),
   passwordHash: text('password_hash').notNull(),
-  mmr: integer('mmr').default(1000).notNull(),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   securityQuestion: text('security_question'),
   securityAnswerHash: text('security_answer_hash'),
@@ -65,6 +64,7 @@ export const tournaments = sqliteTable('tournaments', {
   startDate: text('start_date'),
   endDate: text('end_date'),
   gameId: integer('game_id').references(() => games.id),
+  winnerId: integer('winner_id').references(() => users.id),
 })
 
 export const participants = sqliteTable('participants', {
@@ -112,5 +112,11 @@ export const duelRooms = sqliteTable('duel_rooms', {
   player1DeckId: integer('player1_deck_id').references(() => decks.id),
   player2DeckId: integer('player2_deck_id').references(() => decks.id),
   gameId: integer('game_id').references(() => games.id),
+})
+
+export const systemSettings = sqliteTable('system_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 })
 

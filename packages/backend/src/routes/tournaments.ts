@@ -8,7 +8,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     const { name, createdBy, gameId } = body
     
     try {
-      // console.log('Creating tournament:', { name, createdBy, type: (body as any).type })
+
       const result = await db.insert(tournaments).values({
         name,
         createdBy,
@@ -16,7 +16,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
         type: (body as any).type || 'swiss',
         gameId
       }).returning().get()
-      // console.log('Tournament created:', result)
+
       return { tournament: result }
     } catch (e) {
       console.error('Failed to create tournament:', e)
@@ -48,12 +48,17 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       createdByDisplayName: users.displayName,
       createdByColor: users.color,
       createdByAvatarUrl: users.avatarUrl,
-      gameName: games.name
+      gameName: games.name,
+      winnerName: sql<string>`winner.username`,
+      winnerDisplayName: sql<string>`winner.display_name`,
+      winnerAvatarUrl: sql<string>`winner.avatar_url`,
+      winnerColor: sql<string>`winner.color`
     })
     .from(tournaments)
     .leftJoin(participants, eq(tournaments.id, participants.tournamentId))
     .leftJoin(users, eq(tournaments.createdBy, users.id))
     .leftJoin(games, eq(tournaments.gameId, games.id))
+    .leftJoin(sql`users as winner`, eq(tournaments.winnerId, sql`winner.id`))
     .where(conditions)
     .groupBy(tournaments.id)
     .all()
@@ -66,7 +71,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   })
   .get('/:id', async ({ params, set }) => {
     const id = parseInt(params.id)
-    // console.log('Fetching tournament:', id)
+
     
     if (isNaN(id)) {
       set.status = 400
@@ -78,10 +83,15 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       createdByName: users.username,
       createdByDisplayName: users.displayName,
       createdByColor: users.color,
-      createdByAvatarUrl: users.avatarUrl
+      createdByAvatarUrl: users.avatarUrl,
+      winnerName: sql<string>`winner.username`,
+      winnerDisplayName: sql<string>`winner.display_name`,
+      winnerAvatarUrl: sql<string>`winner.avatar_url`,
+      winnerColor: sql<string>`winner.color`
     })
     .from(tournaments)
     .leftJoin(users, eq(tournaments.createdBy, users.id))
+    .leftJoin(sql`users as winner`, eq(tournaments.winnerId, sql`winner.id`))
     .where(eq(tournaments.id, id))
     .get()
     
@@ -97,7 +107,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/:id/join', async ({ params, body, set }) => {
     const tournamentId = parseInt(params.id)
     const { userId, deckId } = body
-    console.log('Join attempt:', { tournamentId, userId, deckId })
+
 
     
     // Check if tournament exists and is pending
@@ -142,7 +152,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/:id/guests', async ({ params, body, set }) => {
     const tournamentId = parseInt(params.id)
     const { name, createdBy } = body
-    // console.log('Adding guest:', { tournamentId, name, createdBy })
+
 
     const tournament = await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).get()
     if (!tournament) {
@@ -499,7 +509,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       .run()
 
     // Generate pairings for round 1
-    // console.log('Starting tournament:', tournamentId, 'Type:', tournament.type)
+
     try {
       if (tournament.type === 'round_robin') {
         const { generatePairings } = await import('../services/round_robin')
@@ -554,7 +564,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     for (const m of unfinishedMatches) {
       if (m.isBye) continue // Byes are already handled or don't need resolution
 
-      // console.log(`Auto-resolving match ${m.id} as 0-0`)
+
       
       // Update match result
       await db.update(matches)
@@ -677,7 +687,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     for (const m of unfinishedMatches) {
       if (m.isBye) continue
 
-      // console.log(`Auto-resolving match ${m.id} as 0-0 on stop`)
+
       
       await db.update(matches)
         .set({ result: '0-0', winnerId: null })
@@ -729,10 +739,33 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       }
     }
 
+    // Calculate winner
+    const tournamentParticipants = await db.select().from(participants)
+      .where(eq(participants.tournamentId, tournamentId))
+      .all()
+    
+    // Sort by score desc, then tiebreakers if implemented (simplified to score for now)
+    // Adding rudimentary Tiebreaker sort (Buchholz) if property exists
+    tournamentParticipants.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score
+      // Tiebreaker check
+      const tbA = (a.tieBreakers as any)?.buchholz || 0
+      const tbB = (b.tieBreakers as any)?.buchholz || 0
+      return tbB - tbA
+    })
+
+    const winner = tournamentParticipants.length > 0 ? tournamentParticipants[0] : null
+    // Only set winner if they are a registered user (userId is not null)
+    // Guests cannot be "winners" in the DB sense of linking to a user profile, 
+    // unless we relax FK or use participants.id. But schema uses users.id. 
+    // If winner is guest, winnerId will be null.
+    const winnerId = winner?.userId || null
+
     await db.update(tournaments)
       .set({ 
         status: 'completed',
-        endDate: new Date().toISOString()
+        endDate: new Date().toISOString(),
+        winnerId
       })
       .where(eq(tournaments.id, tournamentId))
       .run()

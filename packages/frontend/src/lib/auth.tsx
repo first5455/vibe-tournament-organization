@@ -57,7 +57,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(updated)
               }
             })
-            .catch(err => console.error('Failed to refresh user on load:', err))
+            .catch(err => {
+              console.error('Failed to refresh user on load:', err)
+              // If we fail to fetch user (e.g. 404 because deleted), logout
+              localStorage.removeItem('token')
+              localStorage.removeItem('user')
+              localStorage.removeItem('sessionExpiry')
+              setUser(null)
+            })
         } else {
           // Invalid user data, clear it
           localStorage.removeItem('token')

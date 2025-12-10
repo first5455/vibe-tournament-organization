@@ -589,9 +589,9 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     }
 
     const requester = await db.select().from(users).where(eq(users.id, userId)).get()
-    console.log('Admin Update Request:', { userId, requester })
+
     if (!requester || requester.role !== 'admin') {
-      // console.log('Unauthorized: Requester role is', requester?.role)
+
       set.status = 403
       return { error: `Unauthorized: User ${userId} role is ${requester?.role}` }
     }
