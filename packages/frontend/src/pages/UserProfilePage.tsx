@@ -280,7 +280,7 @@ export default function UserProfilePage() {
             <Trophy className="text-indigo-500" />
             Tournament History
           </h2>
-          <div className="bg-zinc-900/50 border border-white/5 rounded-xl overflow-hidden">
+          <div className="bg-zinc-900/50 border border-white/5 rounded-xl overflow-hidden max-h-[600px] overflow-y-auto custom-scrollbar">
             {history.length === 0 ? (
               <div className="p-8 text-center text-zinc-500">No tournament history yet</div>
             ) : (
@@ -338,7 +338,7 @@ export default function UserProfilePage() {
             <Swords className="text-red-500" />
             Duel History
           </h2>
-          <div className="bg-zinc-900/50 border border-white/5 rounded-xl overflow-hidden">
+          <div className="bg-zinc-900/50 border border-white/5 rounded-xl overflow-hidden max-h-[600px] overflow-y-auto custom-scrollbar">
             {duels.length === 0 ? (
               <div className="p-8 text-center text-zinc-500">No duel history yet</div>
             ) : (
