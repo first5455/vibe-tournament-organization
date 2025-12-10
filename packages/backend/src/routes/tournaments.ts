@@ -8,7 +8,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     const { name, createdBy, gameId } = body
     
     try {
-      // console.log('Creating tournament:', { name, createdBy, type: (body as any).type })
+
       const result = await db.insert(tournaments).values({
         name,
         createdBy,
@@ -16,7 +16,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
         type: (body as any).type || 'swiss',
         gameId
       }).returning().get()
-      // console.log('Tournament created:', result)
+
       return { tournament: result }
     } catch (e) {
       console.error('Failed to create tournament:', e)
@@ -66,7 +66,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   })
   .get('/:id', async ({ params, set }) => {
     const id = parseInt(params.id)
-    // console.log('Fetching tournament:', id)
+
     
     if (isNaN(id)) {
       set.status = 400
@@ -97,7 +97,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/:id/join', async ({ params, body, set }) => {
     const tournamentId = parseInt(params.id)
     const { userId, deckId } = body
-    console.log('Join attempt:', { tournamentId, userId, deckId })
+
 
     
     // Check if tournament exists and is pending
@@ -142,7 +142,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/:id/guests', async ({ params, body, set }) => {
     const tournamentId = parseInt(params.id)
     const { name, createdBy } = body
-    // console.log('Adding guest:', { tournamentId, name, createdBy })
+
 
     const tournament = await db.select().from(tournaments).where(eq(tournaments.id, tournamentId)).get()
     if (!tournament) {
@@ -499,7 +499,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       .run()
 
     // Generate pairings for round 1
-    // console.log('Starting tournament:', tournamentId, 'Type:', tournament.type)
+
     try {
       if (tournament.type === 'round_robin') {
         const { generatePairings } = await import('../services/round_robin')
@@ -554,7 +554,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     for (const m of unfinishedMatches) {
       if (m.isBye) continue // Byes are already handled or don't need resolution
 
-      // console.log(`Auto-resolving match ${m.id} as 0-0`)
+
       
       // Update match result
       await db.update(matches)
@@ -677,7 +677,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     for (const m of unfinishedMatches) {
       if (m.isBye) continue
 
-      // console.log(`Auto-resolving match ${m.id} as 0-0 on stop`)
+
       
       await db.update(matches)
         .set({ result: '0-0', winnerId: null })
