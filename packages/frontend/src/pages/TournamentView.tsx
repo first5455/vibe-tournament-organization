@@ -45,6 +45,7 @@ export default function TournamentView() {
   const [score1, setScore1] = useState('')
   const [score2, setScore2] = useState('')
   const [firstPlayerId, setFirstPlayerId] = useState<number | undefined>(undefined)
+  const [viewRound, setViewRound] = useState<number>(0)
 
   const loadTournament = async () => {
     if (!id) return
@@ -56,6 +57,8 @@ export default function TournamentView() {
       try {
         const { tournament } = await api(`/tournaments/${id}`)
         setTournament(tournament)
+        // Set initial view round if not set or if we are just loading for the first time
+        if (viewRound === 0) setViewRound(tournament.currentRound)
       } catch (e: any) {
         console.error('Failed to fetch tournament:', e)
         setError(e.message || 'Failed to load tournament details')
@@ -641,15 +644,41 @@ export default function TournamentView() {
         </div>
       ) : (
         <div className="space-y-4">
+      ) : (
+        <div className="space-y-4">
              {(() => {
-                const roundMatches = matches.filter(m => m.roundNumber === tournament.currentRound)
-                const isCurrentRound = true
+                const displayRound = viewRound || tournament.currentRound
+                const roundMatches = matches.filter(m => m.roundNumber === displayRound)
+                const isCurrentRound = displayRound === tournament.currentRound
                 
                 return (
                  <>
-                  <h2 className="text-xl font-semibold text-white mb-4">
-                    {tournament.currentRound === tournament.totalRounds ? 'Final Round Matches' : 'Current Round Matches'}
-                  </h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-white">
+                      {isCurrentRound 
+                        ? (tournament.currentRound === tournament.totalRounds ? 'Final Round Matches' : `Current Round (${tournament.currentRound}) Matches`) 
+                        : `Round ${displayRound} Matches`}
+                    </h2>
+                    
+                    {tournament.currentRound > 1 && (
+                      <div className="flex gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+                        {Array.from({ length: tournament.currentRound }, (_, i) => i + 1).map(round => (
+                          <button
+                            key={round}
+                            onClick={() => setViewRound(round)}
+                            className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                              displayRound === round 
+                                ? 'bg-indigo-600 text-white shadow-sm' 
+                                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                            }`}
+                          >
+                            R{round}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                 <div className="grid gap-4 md:grid-cols-2">
                   {roundMatches.map(match => (
                     <MatchCard
