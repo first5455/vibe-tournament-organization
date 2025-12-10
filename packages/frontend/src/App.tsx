@@ -46,72 +46,112 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+import { useEffect, useState } from 'react'
+import { api } from './lib/api'
+import { MaintenancePage } from './pages/MaintenancePage'
+
+function AppContent() {
+  const { user, isLoading } = useAuth()
+  const [maintenance, setMaintenance] = useState<{ enabled: boolean, message: string } | null>(null)
+  const [checkingMaintenance, setCheckingMaintenance] = useState(true)
+  const location = useLocation()
+
+  const checkMaintenance = async () => {
+      try {
+          const data = await api('/settings')
+          setMaintenance({ 
+            enabled: data.maintenanceMode, 
+            message: data.maintenanceMessage 
+          })
+      } catch (err) {
+          console.error("Failed to fetch settings", err)
+      } finally {
+          setCheckingMaintenance(false)
+      }
+  }
+
+  useEffect(() => {
+    checkMaintenance()
+  }, [location.pathname]) // Check on mount and navigation only
+
+  if (isLoading || checkingMaintenance) return <div className="flex h-screen items-center justify-center text-zinc-500">Loading...</div>
+
+  // Maintenance Check
+  if (maintenance?.enabled && user?.role !== 'admin') {
+      return <MaintenancePage message={maintenance.message} />
+  }
+
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        
+        <Route path="/select-game" element={
+          <ProtectedRoute>
+            <GameSelectPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/tournaments/:id" element={
+          <ProtectedRoute>
+            <TournamentView />
+          </ProtectedRoute>
+        } />
+        <Route path="/leaderboard" element={
+          <ProtectedRoute>
+            <Leaderboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } />
+        <Route path="/users/:id" element={
+          <ProtectedRoute>
+            <UserProfilePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/decks" element={
+          <ProtectedRoute>
+            <DecksPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin" element={
+          <AdminRoute>
+            <AdminPortal />
+          </AdminRoute>
+        } />
+        <Route path="/duels" element={
+          <ProtectedRoute>
+            <DuelDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/duels/:id" element={
+          <ProtectedRoute>
+            <DuelRoom />
+          </ProtectedRoute>
+        } />
+        
+        {/* Add other protected routes here */}
+      </Route>
+    </Routes>
+  )
+}
+
 function App() {
   return (
     <AuthProvider>
       <GameProvider>
         <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              
-              <Route path="/select-game" element={
-                <ProtectedRoute>
-                  <GameSelectPage />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/tournaments/:id" element={
-                <ProtectedRoute>
-                  <TournamentView />
-                </ProtectedRoute>
-              } />
-              <Route path="/leaderboard" element={
-                <ProtectedRoute>
-                  <Leaderboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              <Route path="/users/:id" element={
-                <ProtectedRoute>
-                  <UserProfilePage />
-                </ProtectedRoute>
-              } />
-              <Route path="/decks" element={
-                <ProtectedRoute>
-                  <DecksPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin" element={
-                <AdminRoute>
-                  <AdminPortal />
-                </AdminRoute>
-              } />
-              <Route path="/duels" element={
-                <ProtectedRoute>
-                  <DuelDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/duels/:id" element={
-                <ProtectedRoute>
-                  <DuelRoom />
-                </ProtectedRoute>
-              } />
-              
-              {/* Add other protected routes here */}
-            </Route>
-          </Routes>
+           <AppContent />
         </BrowserRouter>
       </GameProvider>
     </AuthProvider>

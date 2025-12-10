@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useNavigate, Link } from 'react-router-dom'
-import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2, Users, UserPlus, RefreshCw, Plus } from 'lucide-react'
+import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2, Users, UserPlus, RefreshCw, Plus, Settings } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,7 +40,7 @@ const formatDate = (dateDict?: string) => {
 export default function AdminPortal() {
   const { user, refreshUser } = useAuth()
   const { refreshGames } = useGame()
-  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks' | 'games'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks' | 'games' | 'settings'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [tournaments, setTournaments] = useState<any[]>([])
 
@@ -61,6 +61,28 @@ export default function AdminPortal() {
     description: '',
     imageUrl: ''
   })
+
+  // Settings State
+  const [settingsForm, setSettingsForm] = useState({
+    maintenanceMode: false,
+    maintenanceMessage: ''
+  })
+
+  const saveSettings = async () => {
+    try {
+        await api('/settings', {
+            method: 'POST',
+            body: JSON.stringify({
+                userId: user?.id,
+                maintenanceMode: settingsForm.maintenanceMode,
+                maintenanceMessage: settingsForm.maintenanceMessage
+            })
+        })
+        alert('Settings saved successfully')
+    } catch (err: any) {
+        alert(err.message)
+    }
+  }
 
   const [tempColor, setTempColor] = useState('')
   const [editDuelOpen, setEditDuelOpen] = useState(false)
@@ -140,6 +162,12 @@ export default function AdminPortal() {
       } else if (activeTab === 'games') {
         const data = await api('/games')
         setGames(data)
+      } else if (activeTab === 'settings') {
+        const data = await api('/settings')
+        setSettingsForm({
+            maintenanceMode: data.maintenanceMode,
+            maintenanceMessage: data.maintenanceMessage
+        })
       }
       
       // Always fetch games for filter list if we don't have them
@@ -568,6 +596,13 @@ export default function AdminPortal() {
           className="whitespace-nowrap"
         >
           Games
+        </Button>
+        <Button 
+          variant={activeTab === 'settings' ? 'secondary' : 'ghost'} 
+          onClick={() => setActiveTab('settings')}
+          className="whitespace-nowrap"
+        >
+          Settings
         </Button>
       </div>
 
@@ -1534,6 +1569,469 @@ export default function AdminPortal() {
         games={games}
         requesterId={user?.id || 0}
         initialGameId={filterGameId}
+      />
+
+      {activeTab === 'settings' && (
+        <div className="max-w-2xl mx-auto space-y-6">
+            <h2 className="text-xl font-bold text-white mb-6">System Settings</h2>
+            
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                             <Shield className="h-5 w-5 text-indigo-500" />
+                             Maintenance Mode
+                        </h3>
+                        <p className="text-sm text-zinc-400 mt-1">
+                            When enabled, only administrators can access the site. All other users will be redirected to the maintenance page.
+                        </p>
+                    </div>
+                    <div className="flex items-center">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                className="sr-only peer"
+                                checked={settingsForm.maintenanceMode}
+                                onChange={(e) => setSettingsForm({...settingsForm, maintenanceMode: e.target.checked})}
+                            />
+                            <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Maintenance Message</label>
+                    <textarea 
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={settingsForm.maintenanceMessage}
+                        onChange={(e) => setSettingsForm({...settingsForm, maintenanceMessage: e.target.value})}
+                        placeholder="Enter a message to display to users..."
+                    />
+                </div>
+
+                <div className="pt-4 border-t border-zinc-800 flex justify-end">
+                    <Button onClick={saveSettings}>
+                        Save Settings
+                    </Button>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {/* Modals and Dialogs */}
+      {/* Create User Dialog */}
+      <CreateUserDialog 
+        isOpen={showCreateUser} 
+        onClose={() => setShowCreateUser(false)}
+        onSuccess={loadData}
+        requesterId={user?.id || 0}
+      />
+      
+      {/* Edit MMR Dialog */}
+      <EditMMRDialog
+        isOpen={editMMRDialogIsOpen}
+        onClose={() => setEditMMRDialogIsOpen(false)}
+        user={editMMRUser}
+        onSuccess={loadData}
+        games={games}
+        requesterId={user?.id || 0}
+        initialGameId={filterGameId}
+      />
+
+      {/* Edit Tournament Dialog */}
+      {editingTournament && (
+        <div className={`fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 ${editTournamentOpen ? '' : 'hidden'}`}>
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-md w-full space-y-4">
+            <h2 className="text-xl font-bold text-white">Edit Tournament</h2>
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-400">Name</label>
+              <input
+                type="text"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                value={editTournamentForm.name}
+                onChange={(e) => setEditTournamentForm({ ...editTournamentForm, name: e.target.value })}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setEditTournamentOpen(false)}>Cancel</Button>
+              <Button onClick={saveTournament}>Save</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage Participants Dialog */}
+      {managingParticipants && (
+        <div className={`fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 ${participantsOpen ? '' : 'hidden'}`}>
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-2xl w-full max-h-[80vh] flex flex-col space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold text-white">Manage Participants: {managingParticipants.name}</h2>
+              <Button variant="ghost" size="icon" onClick={() => setParticipantsOpen(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                 <Button variant="secondary" className="w-full" onClick={() => setShowAddParticipant(!showAddParticipant)}>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Add Registered User
+                 </Button>
+                 {showAddParticipant && (
+                    <div className="absolute top-full left-0 w-full mt-2 z-10 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl p-2">
+                        <UserSearchSelect 
+                            onSelect={addRegisteredParticipant}
+                            placeholder="Search user to add..."
+                        />
+                    </div>
+                 )}
+              </div>
+              <Button variant="outline" onClick={addGuestParticipant}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Guest
+              </Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto min-h-[300px]">
+              <table className="w-full text-left text-sm text-zinc-400">
+                <thead className="bg-zinc-950 sticky top-0">
+                  <tr>
+                    <th className="px-4 py-2">ID</th>
+                    <th className="px-4 py-2">Name</th>
+                    <th className="px-4 py-2">Type</th>
+                    <th className="px-4 py-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {currentParticipants.map(p => (
+                    <tr key={p.id}>
+                      <td className="px-4 py-2">{p.id}</td>
+                      <td className="px-4 py-2 font-medium text-white">
+                        {p.userId ? (
+                           <div className="flex items-center gap-2">
+                             <UserAvatar username={p.username} avatarUrl={p.userAvatarUrl} size="sm" className="h-6 w-6" />
+                             {p.displayName || p.username}
+                           </div>
+                        ) : (
+                            <span className="italic">{p.guestName} (Guest)</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2">{p.userId ? 'User' : 'Guest'}</td>
+                      <td className="px-4 py-2 text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-red-400 hover:text-red-300"
+                          onClick={() => removeParticipant(p.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                  {currentParticipants.length === 0 && (
+                    <tr>
+                        <td colSpan={4} className="text-center py-8 text-zinc-500">No participants yet</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Duel Dialog */}
+      {createDuelOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-md w-full space-y-4">
+            <h2 className="text-xl font-bold text-white">Create Duel Room</h2>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-400">Room Name</label>
+                <input
+                  type="text"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                  placeholder="Leave empty for auto-generated name"
+                  value={createDuelForm.name}
+                  onChange={(e) => setCreateDuelForm({ ...createDuelForm, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-400">Player 1 (Required)</label>
+                <div className="w-full">
+                    <UserSearchSelect 
+                        onSelect={(u) => setCreateDuelForm({ ...createDuelForm, player1Id: u.id })}
+                        placeholder="Search Player 1..."
+                        initialValue={createDuelForm.player1Id ? (users.find(u => u.id === createDuelForm.player1Id)?.displayName || users.find(u => u.id === createDuelForm.player1Id)?.username) : undefined}
+                    />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-400">Player 2 (Optional)</label>
+                <div className="w-full">
+                     <UserSearchSelect 
+                        onSelect={(u) => setCreateDuelForm({ ...createDuelForm, player2Id: u.id })}
+                        placeholder="Search Player 2..."
+                        initialValue={createDuelForm.player2Id ? (users.find(u => u.id === createDuelForm.player2Id)?.displayName || users.find(u => u.id === createDuelForm.player2Id)?.username) : undefined}
+                    />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setCreateDuelOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateDuel}>Create</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Duel Dialog */}
+      {editDuelOpen && editingDuel && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-white">Edit Duel: {editingDuel.name}</h2>
+            
+            <div className="space-y-4">
+               {/* Participants */}
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <label className="text-sm text-zinc-400">Player 1</label>
+                      <UserSearchSelect 
+                          onSelect={(u) => { 
+                              setEditDuelForm({ ...editDuelForm, player1Id: u.id }) 
+                              // Refresh decks if player changes
+                              api(`/decks?userId=${u.id}`).then(setPlayer1Decks).catch(console.error)
+                          }}
+                          placeholder="Player 1"
+                          initialValue={editDuelForm.player1Id ? (users.find(u => u.id === editDuelForm.player1Id)?.displayName || users.find(u => u.id === editDuelForm.player1Id)?.username) : undefined}
+                      />
+                  </div>
+                   <div className="space-y-2">
+                      <label className="text-sm text-zinc-400">Player 2</label>
+                      <UserSearchSelect 
+                          onSelect={(u) => { 
+                              setEditDuelForm({ ...editDuelForm, player2Id: u.id })
+                               // Refresh decks if player changes
+                              api(`/decks?userId=${u.id}`).then(setPlayer2Decks).catch(console.error)
+                          }}
+                          placeholder="Player 2"
+                           initialValue={editDuelForm.player2Id ? (users.find(u => u.id === editDuelForm.player2Id)?.displayName || users.find(u => u.id === editDuelForm.player2Id)?.username) : undefined}
+                      />
+                  </div>
+               </div>
+
+                {/* Decks */}
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <label className="text-sm text-zinc-400">P1 Deck</label>
+                      <select 
+                          className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white text-sm"
+                          value={editDuelForm.player1DeckId || ''}
+                          onChange={(e) => setEditDuelForm({ ...editDuelForm, player1DeckId: e.target.value ? parseInt(e.target.value) : undefined })}
+                      >
+                          <option value="">Select Deck...</option>
+                          {player1Decks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                  </div>
+                   <div className="space-y-2">
+                      <label className="text-sm text-zinc-400">P2 Deck</label>
+                       <select 
+                          className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white text-sm"
+                          value={editDuelForm.player2DeckId || ''}
+                          onChange={(e) => setEditDuelForm({ ...editDuelForm, player2DeckId: e.target.value ? parseInt(e.target.value) : undefined })}
+                      >
+                          <option value="">Select Deck...</option>
+                          {player2Decks.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                  </div>
+               </div>
+
+               {/* Status */}
+               <div className="space-y-2">
+                   <label className="text-sm text-zinc-400">Status</label>
+                   <select 
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                        value={editDuelForm.status}
+                        onChange={(e) => setEditDuelForm({ ...editDuelForm, status: e.target.value })}
+                   >
+                       <option value="open">Open</option>
+                       <option value="ready">Ready</option>
+                       <option value="active">Active</option>
+                       <option value="completed">Completed</option>
+                   </select>
+               </div>
+
+               {/* Scores (if completed) */}
+               {editDuelForm.status === 'completed' && (
+                   <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-950 rounded-lg border border-zinc-800">
+                      <div className="space-y-2">
+                          <label className="text-sm text-zinc-400">P1 Score</label>
+                          <input 
+                              type="number" 
+                              className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                              value={editDuelForm.player1Score}
+                              onChange={(e) => setEditDuelForm({ ...editDuelForm, player1Score: parseInt(e.target.value) || 0 })}
+                          />
+                      </div>
+                      <div className="space-y-2">
+                          <label className="text-sm text-zinc-400">P2 Score</label>
+                           <input 
+                              type="number" 
+                              className="w-full bg-zinc-900 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                              value={editDuelForm.player2Score}
+                              onChange={(e) => setEditDuelForm({ ...editDuelForm, player2Score: parseInt(e.target.value) || 0 })}
+                          />
+                      </div>
+                   </div>
+               )}
+
+               {/* Notes */}
+               <div className="space-y-2">
+                    <label className="text-sm text-zinc-400">Player 1 Note</label>
+                    <input 
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                        value={editDuelForm.player1Note}
+                        onChange={(e) => setEditDuelForm({ ...editDuelForm, player1Note: e.target.value })}
+                    />
+               </div>
+               <div className="space-y-2">
+                    <label className="text-sm text-zinc-400">Player 2 Note</label>
+                    <input 
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                        value={editDuelForm.player2Note}
+                        onChange={(e) => setEditDuelForm({ ...editDuelForm, player2Note: e.target.value })}
+                    />
+               </div>
+
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-zinc-800">
+              <Button variant="ghost" onClick={() => setEditDuelOpen(false)}>Cancel</Button>
+              <Button onClick={handleSaveDuel}>Save Changes</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Game Management Dialogs */}
+      {/* Create/Edit Game Modal */}
+      {gameModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-md w-full space-y-4">
+            <h2 className="text-xl font-bold text-white">{editingGame ? 'Edit Game' : 'Create Game'}</h2>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-400">Name</label>
+                <input
+                  type="text"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                  value={gameForm.name}
+                  onChange={(e) => {
+                      // Auto-slug
+                      const val = e.target.value;
+                      if (!editingGame) {
+                          setGameForm(prev => ({ 
+                              ...prev, 
+                              name: val, 
+                              slug: val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') 
+                          }))
+                      } else {
+                          setGameForm(prev => ({ ...prev, name: val }))
+                      }
+                  }}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-400">URL Identifier (Slug)</label>
+                <input
+                  type="text"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                  value={gameForm.slug}
+                  onChange={(e) => setGameForm({ ...gameForm, slug: e.target.value })}
+                />
+                <p className="text-xs text-zinc-500">Unique identifier for URLs (e.g. 'one-piece')</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-400">Description</label>
+                <textarea
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white min-h-[80px]"
+                  value={gameForm.description}
+                  onChange={(e) => setGameForm({ ...gameForm, description: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm text-zinc-400">Image URL</label>
+                <input
+                  type="text"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white"
+                  value={gameForm.imageUrl}
+                  onChange={(e) => setGameForm({ ...gameForm, imageUrl: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => {
+                  setGameModalOpen(false)
+                  setEditingGame(null)
+                  setGameForm({ name: '', slug: '', description: '', imageUrl: '' })
+              }}>Cancel</Button>
+              <Button onClick={async () => {
+                  if (!gameForm.name || !gameForm.slug) {
+                      alert('Name and Slug are required')
+                      return;
+                  }
+                  try {
+                      if (editingGame) {
+                        await api(`/games/${editingGame.id}`, {
+                            method: 'PUT',
+                            body: JSON.stringify({...gameForm, requesterId: user?.id })
+                        })
+                      } else {
+                        await api('/games', {
+                            method: 'POST',
+                            body: JSON.stringify({...gameForm, requesterId: user?.id })
+                        })
+                      }
+                      setGameModalOpen(false)
+                      setEditingGame(null)
+                      setGameForm({ name: '', slug: '', description: '', imageUrl: '' })
+                      loadData()
+                  } catch (e: any) {
+                      alert(e.message)
+                  }
+              }}>{editingGame ? 'Save Changes' : 'Create Game'}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Deck Modal */}
+      <DeckModal
+        isOpen={deckModalOpen}
+        onClose={() => setDeckModalOpen(false)}
+        initialData={editingDeck}
+        title={editingDeck ? 'Edit Deck' : 'Create Deck'}
+        submitLabel={editingDeck ? 'Save Changes' : 'Create Deck'}
+        onSubmit={async (data) => {
+            try {
+                if (editingDeck) {
+                    await api(`/decks/${editingDeck.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ ...data, requesterId: user?.id })
+                    })
+                } else {
+                    await api('/decks', {
+                        method: 'POST',
+                        body: JSON.stringify({ ...data, userId: createDeckUserId, requesterId: user?.id })
+                    })
+                }
+                setDeckModalOpen(false)
+                loadData()
+            } catch (err: any) {
+                alert(err.message)
+            }
+        }}
       />
     </div>
   )

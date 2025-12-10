@@ -114,3 +114,9 @@ export const duelRooms = sqliteTable('duel_rooms', {
   gameId: integer('game_id').references(() => games.id),
 })
 
+export const systemSettings = sqliteTable('system_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+})
+
