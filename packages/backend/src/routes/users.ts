@@ -449,6 +449,21 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       return { error: 'Forbidden' }
     }
 
+    // Owner Role Protection
+    const ownerRoleSetting = await db.select().from(systemSettings).where(eq(systemSettings.key, 'owner_role_id')).get()
+    if (ownerRoleSetting) {
+        const ownerRoleId = parseInt(ownerRoleSetting.value)
+        const targetUser = await db.select().from(users).where(eq(users.id, parseInt(params.id))).get()
+        
+        if (targetUser && targetUser.roleId === ownerRoleId) {
+             const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
+             if (!requester || requester.roleId !== ownerRoleId) {
+                 set.status = 403
+                 return { error: 'Protected User: Only members of the Owner Role can modify other Owners.' }
+             }
+        }
+    }
+
     const updates: any = {}
     if (username) updates.username = username
     if (displayName) updates.displayName = displayName
@@ -528,7 +543,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     })
   })
   .delete('/:id', async ({ params, body, set }) => {
-    const { requesterId } = body
+    const { requesterId, hardDelete } = body
     
     const requesterPermissions = await db.select({
       roleName: roles.name,
@@ -548,8 +563,50 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       return { error: 'Forbidden' }
     }
 
+    // Owner Role Protection
+    const ownerRoleSetting = await db.select().from(systemSettings).where(eq(systemSettings.key, 'owner_role_id')).get()
+    if (ownerRoleSetting) {
+        const ownerRoleId = parseInt(ownerRoleSetting.value)
+        const targetUser = await db.select().from(users).where(eq(users.id, parseInt(params.id))).get()
+        
+        if (targetUser && targetUser.roleId === ownerRoleId) {
+             const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
+             if (!requester || requester.roleId !== ownerRoleId) {
+                 set.status = 403
+                 return { error: 'Protected User: Only members of the Owner Role can delete other Owners.' }
+             }
+        }
+    }
 
     const userId = parseInt(params.id)
+
+    if (hardDelete) {
+        // 1. Reassign Tournaments (CreatedBy must be valid user, assign to requester)
+        await db.update(tournaments).set({ createdBy: requesterId }).where(eq(tournaments.createdBy, userId)).run()
+        await db.update(tournaments).set({ winnerId: null }).where(eq(tournaments.winnerId, userId)).run()
+
+        // 2. Anonymize Participants (Preserve tournament structure but remove user link)
+        await db.update(participants)
+            .set({ userId: null, guestName: 'Deleted User' })
+            .where(eq(participants.userId, userId))
+            .run()
+
+        // 3. Delete Decks
+        await db.delete(decks).where(eq(decks.userId, userId)).run()
+
+        // 4. Delete Stats
+        await db.delete(userGameStats).where(eq(userGameStats.userId, userId)).run()
+
+        // 5. Delete Duel History (Nuclear option as requested)
+        await db.delete(duelRooms).where(or(eq(duelRooms.player1Id, userId), eq(duelRooms.player2Id, userId))).run()
+
+        // 6. Delete User
+        await db.delete(users).where(eq(users.id, userId)).run()
+
+        return { success: true }
+    }
+    
+    // Fetch default role for reset
     
     // Fetch default role for reset
     let defaultRoleId: number | undefined
@@ -581,6 +638,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       id: t.String()
     }),
     body: t.Object({
-      requesterId: t.Number()
+      requesterId: t.Number(),
+      hardDelete: t.Optional(t.Boolean())
     })
   })
