@@ -852,6 +852,7 @@ export default function AdminPortal() {
                 <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Created By</th>
                 <th className="px-4 py-3 font-medium">Participants</th>
+                <th className="px-4 py-3 font-medium">Winner</th>
                 <th className="px-4 py-3 font-medium">Game</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
@@ -882,6 +883,16 @@ export default function AdminPortal() {
                     </div>
                   </td>
                   <td className="px-4 py-3">{t.participantCount}</td>
+                  <td className="px-4 py-3">
+                    {t.winnerName ? (
+                        <div className="flex items-center gap-2">
+                        <UserAvatar username={t.winnerName} displayName={t.winnerDisplayName} avatarUrl={t.winnerAvatarUrl} size="sm" />
+                        <UserLabel username={t.winnerName} displayName={t.winnerDisplayName} color={t.winnerColor} />
+                        </div>
+                    ) : (
+                        <span className="text-zinc-500 italic">-</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-zinc-300">{t.gameName}</td>
                   <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
                     {(hasPermission('tournaments.manage')) && (
@@ -1042,7 +1053,7 @@ export default function AdminPortal() {
                   <td className="px-4 py-3 font-mono">
                     {d.status === 'completed' ? (
                       <span className="font-bold">
-                        {d.player1Score} - {d.player2Score}
+                        {d.result || '-'}
                       </span>
                     ) : (
                       <span className="text-zinc-500">-</span>
