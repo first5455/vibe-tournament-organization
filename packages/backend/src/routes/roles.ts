@@ -35,8 +35,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     // Permission Check
     const requesterPermissions = await db.select({
         roleName: roles.name,
-        permissionSlug: permissions.slug,
-        userRole: users.role
+        permissionSlug: permissions.slug
     })
     .from(users)
     .leftJoin(roles, eq(users.roleId, roles.id))
@@ -73,8 +72,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     // Permission Check
     const requesterPermissions = await db.select({
         roleName: roles.name,
-        permissionSlug: permissions.slug,
-        userRole: users.role
+        permissionSlug: permissions.slug
     })
     .from(users)
     .leftJoin(roles, eq(users.roleId, roles.id))
@@ -120,8 +118,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     // Permission Check
     const requesterPermissions = await db.select({
         roleName: roles.name,
-        permissionSlug: permissions.slug,
-        userRole: users.role
+        permissionSlug: permissions.slug
     })
     .from(users)
     .leftJoin(roles, eq(users.roleId, roles.id))
@@ -167,8 +164,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
       // Permission Check
       const requesterPermissions = await db.select({
           roleName: roles.name,
-          permissionSlug: permissions.slug,
-          userRole: users.role
+          permissionSlug: permissions.slug
       })
       .from(users)
       .leftJoin(roles, eq(users.roleId, roles.id))
