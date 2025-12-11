@@ -38,10 +38,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, hasPermission } = useAuth()
   
   if (isLoading) return <div className="flex h-screen items-center justify-center text-zinc-500">Loading...</div>
-  if (!user || user.role !== 'admin') return <Navigate to="/" />
+  if (!user || !hasPermission('admin.access')) return <Navigate to="/" />
   
   return <>{children}</>
 }
@@ -51,7 +51,7 @@ import { api } from './lib/api'
 import { MaintenancePage } from './pages/MaintenancePage'
 
 function AppContent() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, hasPermission } = useAuth()
   const [maintenance, setMaintenance] = useState<{ enabled: boolean, message: string } | null>(null)
   const [checkingMaintenance, setCheckingMaintenance] = useState(true)
   const location = useLocation()
@@ -77,7 +77,7 @@ function AppContent() {
   if (isLoading || checkingMaintenance) return <div className="flex h-screen items-center justify-center text-zinc-500">Loading...</div>
 
   // Maintenance Check
-  if (maintenance?.enabled && user?.role !== 'admin') {
+  if (maintenance?.enabled && !hasPermission('admin.access')) {
       return <MaintenancePage message={maintenance.message} />
   }
 

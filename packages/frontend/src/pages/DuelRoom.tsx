@@ -55,7 +55,7 @@ interface Duel {
 export default function DuelRoom() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, hasPermission } = useAuth()
   const [duel, setDuel] = useState<Duel | null>(null)
   const [loading, setLoading] = useState(true)
   const [userDecks, setUserDecks] = useState<Deck[]>([])
@@ -311,7 +311,7 @@ export default function DuelRoom() {
 
   const isPlayer1 = user?.id === duel.player1?.id
   const isPlayer2 = user?.id === duel.player2?.id
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = hasPermission('duels.manage')
   const isParticipant = isPlayer1 || isPlayer2
   const canJoin = user && !isParticipant && duel.status === 'open' && !duel.player2
 
@@ -352,10 +352,10 @@ export default function DuelRoom() {
             <Button variant="destructive" onClick={handleDelete}>Delete Room</Button>
           )}
           {(isPlayer1 || isAdmin) && duel.status === 'ready' && (
-            <Button variant="primary" onClick={handleStart} className="bg-green-600 hover:bg-green-700">Start Match</Button>
+            <Button onClick={handleStart}>Start Match</Button>
           )}
           {isPlayer2 && duel.status === 'ready' && (
-            <Button variant="outline" onClick={handleLeave}>Leave Room</Button>
+            <Button variant="destructive" onClick={handleLeave}>Leave Room</Button>
           )}
           {canJoin && (
             <div className="flex items-center gap-2">
@@ -373,14 +373,14 @@ export default function DuelRoom() {
                     ))}
                   </select>
                 )}
-              <Button onClick={handleJoin} className="bg-indigo-600 hover:bg-indigo-700">Join Duel</Button>
+              <Button onClick={handleJoin}>Join Duel</Button>
             </div>
           )}
           {isAdmin && duel.status === 'completed' && (
             <Button variant="outline" onClick={handleOpenEditResult}>Edit Result</Button>
           )}
           {(isParticipant || isAdmin) && duel.status === 'completed' && (
-            <Button className="bg-orange-600 hover:bg-orange-700" onClick={handleRematch}>Rematch</Button>
+            <Button onClick={handleRematch}>Rematch</Button>
           )}
         </div>
       </div>

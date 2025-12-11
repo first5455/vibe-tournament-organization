@@ -6,8 +6,11 @@ interface User {
   username: string
   displayName?: string
   role: 'user' | 'admin'
+  assignedRole?: { id: number, name: string } | null
+  permissions?: string[]
   color?: string
   avatarUrl?: string
+  tokenVersion?: number
 }
 
 interface AuthContextType {
@@ -26,11 +29,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const savedUser = localStorage.getItem('user')
-    const expiry = localStorage.getItem('sessionExpiry')
-    
-    if (token && savedUser) {
+    const initAuth = async () => {
+      const token = localStorage.getItem('token')
+      const savedUser = localStorage.getItem('user')
+      const expiry = localStorage.getItem('sessionExpiry')
+      
+      if (!token || !savedUser) {
+        setIsLoading(false)
+        return
+      }
+
       // Check expiry
       if (expiry && new Date().getTime() > parseInt(expiry)) {
         // Expired
@@ -44,27 +52,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const parsedUser = JSON.parse(savedUser)
         if (parsedUser && typeof parsedUser.id === 'number') {
+          // Set initial user from storage to avoid flickering if possible, 
+          // but relying on it for permissions is risky if stale. 
+          // We will set it, but keep loading true until verified.
           setUser(parsedUser)
+          
           // Auto-refresh: Extend session if valid
           localStorage.setItem('sessionExpiry', (new Date().getTime() + 7 * 24 * 60 * 60 * 1000).toString())
           
           // Refresh user data from server to ensure it's up to date
-          api(`/users/${parsedUser.id}`)
-            .then(res => {
-              if (res.user) {
-                const updated = res.user
-                localStorage.setItem('user', JSON.stringify(updated))
-                setUser(updated)
-              }
-            })
-            .catch(err => {
-              console.error('Failed to refresh user on load:', err)
-              // If we fail to fetch user (e.g. 404 because deleted), logout
-              localStorage.removeItem('token')
-              localStorage.removeItem('user')
-              localStorage.removeItem('sessionExpiry')
-              setUser(null)
-            })
+          try {
+            const res = await api(`/users/${parsedUser.id}`)
+            if (res.user) {
+              const updated = res.user
+              localStorage.setItem('user', JSON.stringify(updated))
+              setUser(updated)
+            }
+          } catch (err) {
+            console.error('Failed to refresh user on load:', err)
+            // If we fail to fetch user (e.g. 404 because deleted), logout
+            localStorage.removeItem('token')
+            localStorage.removeItem('user')
+            localStorage.removeItem('sessionExpiry')
+            setUser(null)
+          }
         } else {
           // Invalid user data, clear it
           localStorage.removeItem('token')
@@ -73,9 +84,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         localStorage.removeItem('token')
         localStorage.removeItem('user')
+      } finally {
+        setIsLoading(false)
       }
+
     }
-    setIsLoading(false)
+
+    initAuth()
+
+    // Refresh on window focus
+    const onFocus = () => {
+        const user = localStorage.getItem('user')
+        if (user) refreshUser()
+    }
+    window.addEventListener('focus', onFocus)
+    
+    return () => {
+        window.removeEventListener('focus', onFocus)
+    }
   }, [])
 
   const login = (token: string, user: User) => {
@@ -106,6 +132,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api(`/users/${user.id}`)
       if (res.user) {
         const updated = res.user
+        
+        // Check for force logout (only if we have a version tracked)
+        if (user.tokenVersion !== undefined && updated.tokenVersion !== undefined && user.tokenVersion !== updated.tokenVersion) {
+            logout()
+            return
+        }
+
         localStorage.setItem('user', JSON.stringify(updated))
         setUser(updated)
       }
@@ -124,5 +157,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (!context) throw new Error('useAuth must be used within an AuthProvider')
-  return context
+  
+  const hasPermission = (permission: string) => {
+      if (!context.user) return false
+      return context.user.permissions?.includes(permission) || false
+  }
+
+  return { ...context, hasPermission }
 }

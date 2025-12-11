@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
+import { RoleManagement } from '../components/admin/RoleManagement'
+import { ChangeRoleDialog } from '../components/admin/ChangeRoleDialog'
 import { useAuth } from '../lib/auth'
 import { Button } from '../components/ui/button'
 import { UserLabel } from '../components/UserLabel'
@@ -38,9 +40,9 @@ const formatDate = (dateDict?: string) => {
 
 
 export default function AdminPortal() {
-  const { user, refreshUser } = useAuth()
+  const { user, refreshUser, hasPermission, isLoading: authLoading } = useAuth()
   const { refreshGames } = useGame()
-  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks' | 'games' | 'settings'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks' | 'games' | 'settings' | 'roles'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [tournaments, setTournaments] = useState<any[]>([])
 
@@ -68,6 +70,7 @@ export default function AdminPortal() {
     maintenanceMessage: ''
   })
 
+  // Settings Save Handler
   const saveSettings = async () => {
     try {
         await api('/settings', {
@@ -127,17 +130,30 @@ export default function AdminPortal() {
   // Deck Management State
   const [deckModalOpen, setDeckModalOpen] = useState(false)
   const [editingDeck, setEditingDeck] = useState<AdminDeck | null>(null)
+
   const [createDeckUserId, setCreateDeckUserId] = useState<number | null>(null)
+
+  const [changeRoleOpen, setChangeRoleOpen] = useState(false)
+  const [userToChangeRole, setUserToChangeRole] = useState<User | null>(null)
 
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    console.log('AdminPortal Effect:', { authLoading, user, permissions: user?.permissions })
+    if (authLoading) return
+
+    if (!user) {
+      navigate('/login')
+      return
+    }
+
+    const canAccess = hasPermission('admin.access')
+    if (!canAccess) {
       navigate('/')
       return
     }
     loadData()
-  }, [user, activeTab, filterGameId])
+  }, [user, authLoading, activeTab, filterGameId])
 
   const loadData = async () => {
     setLoading(true)
@@ -221,26 +237,7 @@ export default function AdminPortal() {
     }
   }
 
-  const toggleRole = async (targetUser: User) => {
-    const newRole = targetUser.role === 'admin' ? 'user' : 'admin'
-    if (!confirm(`Change role to ${newRole}?`)) return
-    
-    try {
-      await api(`/users/${targetUser.id}`, {
-        method: 'PUT',
-        body: JSON.stringify({ 
-          requesterId: user?.id,
-          role: newRole 
-        })
-      })
-      loadData()
-      if (user?.id === targetUser.id) {
-        refreshUser()
-      }
-    } catch (err: any) {
-      alert(err.message)
-    }
-  }
+
 
   const changePassword = async (targetUser: User) => {
     const newPassword = prompt(`Enter new password for ${targetUser.username}:`)
@@ -537,6 +534,8 @@ export default function AdminPortal() {
                     {filterGameId === 'all' ? 'System-Wide Actions' : 'Global Actions'}
                 </h3>
                 <div className="flex flex-wrap gap-2">
+                  {hasPermission('settings.manage') && (
+                    <>
                     <Button 
                         className="bg-red-900/50 hover:bg-red-800 text-red-200 border border-red-900"
                         size="sm"
@@ -572,6 +571,8 @@ export default function AdminPortal() {
                         <RefreshCw className="mr-2 h-4 w-4" />
                         Reset All MMR
                     </Button>
+                    </>
+                  )}
                 </div>
             </div>
 
@@ -665,6 +666,13 @@ export default function AdminPortal() {
           Games
         </Button>
         <Button 
+          variant={activeTab === 'roles' ? 'secondary' : 'ghost'} 
+          onClick={() => setActiveTab('roles')}
+          className="whitespace-nowrap"
+        >
+          Roles
+        </Button>
+        <Button 
           variant={activeTab === 'settings' ? 'secondary' : 'ghost'} 
           onClick={() => setActiveTab('settings')}
           className="whitespace-nowrap"
@@ -678,15 +686,30 @@ export default function AdminPortal() {
           {error}
         </div>
       )}
+      {activeTab === 'roles' && (
+        <RoleManagement />
+      )}
+      
+      <ChangeRoleDialog 
+        isOpen={changeRoleOpen} 
+        onClose={() => setChangeRoleOpen(false)} 
+        user={userToChangeRole}
+        onSuccess={() => {
+            loadData()
+            refreshUser()
+        }}
+      />
 
       {activeTab === 'users' && (
         <div className="w-full">
           <div className="flex justify-between items-center mb-4">
              <h2 className="text-xl font-bold text-white">Users</h2>
-             <Button onClick={() => setShowCreateUser(true)}>
-               <UserPlus className="mr-2 h-4 w-4" />
-               Create User
-             </Button>
+             {(hasPermission('users.manage')) && (
+               <Button onClick={() => setShowCreateUser(true)}>
+                 <UserPlus className="mr-2 h-4 w-4" />
+                 Create User
+               </Button>
+             )}
           </div>
           <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
             <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
@@ -764,38 +787,45 @@ export default function AdminPortal() {
                         <DropdownMenuContent align="end" side={index >= users.length - 3 ? 'top' : 'bottom'}>
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          {u.id !== user?.id && (
-                            <DropdownMenuItem onClick={() => toggleRole(u)}>
+                          {u.id !== user?.id && (hasPermission('users.manage')) && (
+                            <DropdownMenuItem onClick={() => {
+                                setUserToChangeRole(u)
+                                setChangeRoleOpen(true)
+                            }}>
                               <Shield className="mr-2 h-4 w-4" />
-                              {u.role === 'admin' ? 'Demote to User' : 'Promote to Admin'}
+                              Change Role
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem onClick={() => changePassword(u)}>
-                            <Key className="mr-2 h-4 w-4" />
-                            Reset Password
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => editMMR(u)}>
-                            <Trophy className="mr-2 h-4 w-4" />
-                            Edit MMR
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => startEditColor(u)}>
-                            <Palette className="mr-2 h-4 w-4" />
-                            Edit Color
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => editAvatar(u)}>
-                            <ImageIcon className="mr-2 h-4 w-4" />
-                            Edit Avatar
-                          </DropdownMenuItem>
-                          {u.id !== user?.id && (
+                          {(hasPermission('users.manage')) && (
                             <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                variant="destructive"
-                                onClick={() => deleteUser(u.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete User
+                              <DropdownMenuItem onClick={() => changePassword(u)}>
+                                <Key className="mr-2 h-4 w-4" />
+                                Reset Password
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => editMMR(u)}>
+                                <Trophy className="mr-2 h-4 w-4" />
+                                Edit MMR
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => startEditColor(u)}>
+                                <Palette className="mr-2 h-4 w-4" />
+                                Edit Color
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => editAvatar(u)}>
+                                <ImageIcon className="mr-2 h-4 w-4" />
+                                Edit Avatar
+                              </DropdownMenuItem>
+                              {u.id !== user?.id && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    variant="destructive"
+                                    onClick={() => deleteUser(u.id)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete User
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </>
                           )}
                         </DropdownMenuContent>
@@ -854,32 +884,36 @@ export default function AdminPortal() {
                   <td className="px-4 py-3">{t.participantCount}</td>
                   <td className="px-4 py-3 text-zinc-300">{t.gameName}</td>
                   <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-zinc-400 hover:text-white"
-                      title="Edit Tournament"
-                      onClick={() => openEditTournament(t)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-zinc-400 hover:text-white"
-                      title="Manage Participants"
-                      onClick={() => openManageParticipants(t)}
-                    >
-                      <Users className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                      onClick={() => deleteTournament(t.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {(hasPermission('tournaments.manage')) && (
+                      <>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-zinc-400 hover:text-white"
+                          title="Edit Tournament"
+                          onClick={() => openEditTournament(t)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-zinc-400 hover:text-white"
+                          title="Manage Participants"
+                          onClick={() => openManageParticipants(t)}
+                        >
+                          <Users className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          onClick={() => deleteTournament(t.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -897,14 +931,16 @@ export default function AdminPortal() {
       {activeTab === 'duels' && (
         <div className="w-full">
           <div className="flex justify-end mb-4">
-            <Button onClick={() => {
-              setCreateDuelForm({
-                name: '',
-                player1Id: null,
-                player2Id: null
-              })
-              setCreateDuelOpen(true)
-            }}>Create Duel Room</Button>
+            {(hasPermission('duels.manage')) && (
+              <Button onClick={() => {
+                setCreateDuelForm({
+                  name: '',
+                  player1Id: null,
+                  player2Id: null
+                })
+                setCreateDuelOpen(true)
+              }}>Create Duel Room</Button>
+            )}
           </div>
           <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
             <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
@@ -1013,7 +1049,8 @@ export default function AdminPortal() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
+                    {(hasPermission('duels.manage')) && (
+                      <div className="flex justify-end gap-2">
                         <Button 
                         variant="ghost" 
                         size="icon" 
@@ -1030,7 +1067,8 @@ export default function AdminPortal() {
                         >
                         <Trash2 className="h-4 w-4" />
                         </Button>
-                    </div>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -1123,38 +1161,40 @@ export default function AdminPortal() {
                                 </td>
                                 <td className="px-4 py-3">{formatDate(deck.createdAt)}</td>
                                 <td className="px-4 py-3 text-right">
-                                    <div className="flex justify-end gap-2">
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="text-zinc-400 hover:text-white"
-                                            onClick={() => {
-                                                setEditingDeck(deck)
-                                                setDeckModalOpen(true)
-                                            }}
-                                        >
-                                            <Edit2 className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                                            onClick={async () => {
-                                                if (!confirm('Delete this deck?')) return
-                                                try {
-                                                    await api(`/decks/${deck.id}`, {
-                                                        method: 'DELETE',
-                                                        body: JSON.stringify({ requesterId: user?.id })
-                                                    })
-                                                    loadData()
-                                                } catch (e: any) {
-                                                    alert(e.message)
-                                                }
-                                            }}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
+                                    {(hasPermission('decks.manage')) && (
+                                      <div className="flex justify-end gap-2">
+                                          <Button 
+                                              variant="ghost" 
+                                              size="icon" 
+                                              className="text-zinc-400 hover:text-white"
+                                              onClick={() => {
+                                                  setEditingDeck(deck)
+                                                  setDeckModalOpen(true)
+                                              }}
+                                          >
+                                              <Edit2 className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                              onClick={async () => {
+                                                  if (!confirm('Delete this deck?')) return
+                                                  try {
+                                                      await api(`/decks/${deck.id}`, {
+                                                          method: 'DELETE',
+                                                          body: JSON.stringify({ requesterId: user?.id })
+                                                      })
+                                                      loadData()
+                                                  } catch (e: any) {
+                                                      alert(e.message)
+                                                  }
+                                              }}
+                                          >
+                                              <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                      </div>
+                                    )}
                                 </td>
                             </tr>
                         ))}
@@ -1167,40 +1207,6 @@ export default function AdminPortal() {
                 </table>
             </div>
             
-             <DeckModal 
-                isOpen={deckModalOpen}
-                onClose={() => setDeckModalOpen(false)}
-                initialData={editingDeck}
-                title={editingDeck ? 'Edit Deck' : 'Create Deck'}
-                onSubmit={async (data) => {
-                    try {
-                        if (editingDeck) {
-                            await api(`/decks/${editingDeck.id}`, {
-                                method: 'PUT',
-                                body: JSON.stringify({
-                                    requesterId: user?.id,
-                                    ...data
-                                })
-                            })
-                        } else {
-                            if (!createDeckUserId) return
-                            await api('/decks', {
-                                method: 'POST',
-                                body: JSON.stringify({
-                                    requesterId: user?.id,
-                                    userId: createDeckUserId,
-                                    ...data
-                                })
-                            })
-                        }
-                        setDeckModalOpen(false)
-                        setCreateDeckUserId(null)
-                        loadData()
-                    } catch (e: any) {
-                        alert(e.message)
-                    }
-                }}
-            />
         </div>
       )}
 
@@ -1469,7 +1475,8 @@ export default function AdminPortal() {
         <div className="w-full">
           <div className="flex justify-between items-center mb-4">
              <h2 className="text-xl font-bold text-white">Games</h2>
-             <Button onClick={() => {
+             {hasPermission('games.manage') && (
+              <Button onClick={() => {
                setEditingGame(null)
                setGameForm({ name: '', slug: '', description: '', imageUrl: '' })
                setGameModalOpen(true)
@@ -1477,6 +1484,7 @@ export default function AdminPortal() {
                <Plus className="mr-2 h-4 w-4" />
                Add Game
              </Button>
+             )}
           </div>
           <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
             <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
@@ -1501,6 +1509,8 @@ export default function AdminPortal() {
                   <td className="px-4 py-3 font-mono text-xs">{g.slug}</td>
                   <td className="px-4 py-3 truncate max-w-xs">{g.description}</td>
                   <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
+                    {hasPermission('games.manage') && (
+                    <>
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -1535,6 +1545,8 @@ export default function AdminPortal() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                    </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -1684,6 +1696,32 @@ export default function AdminPortal() {
                     <Button onClick={saveSettings}>
                         Save Settings
                     </Button>
+                </div>
+
+
+                <div className="pt-8 border-t border-zinc-800">
+                    <h3 className="text-lg font-bold text-white mb-4">Session Management</h3>
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6">
+                        <h4 className="font-medium text-red-500 mb-2">Force Global Re-login</h4>
+                        <p className="text-sm text-zinc-400 mb-4">
+                            This will invalidate all current user sessions and force everyone to log in again. 
+                            Use this when you have updated permissions and valid immediate refresh is required.
+                        </p>
+                        <Button 
+                            variant="destructive"
+                            onClick={async () => {
+                                if (!confirm('Are you sure? This will log out ALL users immediately.')) return
+                                try {
+                                    await api(`/admin/force-logout-all?requesterId=${user?.id}`, { method: 'POST' })
+                                    alert('All users have been forced to re-login.')
+                                } catch (e: any) {
+                                    alert(e.message)
+                                }
+                            }}
+                        >
+                            Force Logout All Users
+                        </Button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2077,13 +2115,14 @@ export default function AdminPortal() {
         </div>
       )}
       
-      {/* Deck Modal */}
       <DeckModal
         isOpen={deckModalOpen}
         onClose={() => setDeckModalOpen(false)}
         initialData={editingDeck}
         title={editingDeck ? 'Edit Deck' : 'Create Deck'}
         submitLabel={editingDeck ? 'Save Changes' : 'Create Deck'}
+        games={games}
+        defaultGameId={filterGameId !== 'all' ? parseInt(filterGameId) : undefined}
         onSubmit={async (data) => {
             try {
                 if (editingDeck) {

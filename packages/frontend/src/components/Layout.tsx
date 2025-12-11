@@ -9,7 +9,7 @@ import { GameSwitcher } from './GameSwitcher'
 import pkg from '../../package.json'
 
 export default function Layout() {
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission } = useAuth()
   const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -57,7 +57,7 @@ export default function Layout() {
                       My Decks
                     </Button>
                   </Link>
-                  {user.role === 'admin' && (
+                  {hasPermission('admin.access') && (
                     <Link to="/admin">
                       <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} size="sm">
                         <Shield className="mr-2 h-4 w-4" />
@@ -134,9 +134,9 @@ export default function Layout() {
                       My Decks
                     </Button>
                   </Link>
-                  {user.role === 'admin' && (
-                    <Link to="/admin" onClick={() => setIsMenuOpen(false)}>
-                      <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} className="w-full justify-start">
+                  {hasPermission('admin.access') && (
+                    <Link to="/admin">
+                      <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} size="sm">
                         <Shield className="mr-2 h-4 w-4" />
                         Admin
                       </Button>

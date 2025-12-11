@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, decks, matches, participants, duelRooms } from '../db/schema'
+import { users, decks, matches, participants, duelRooms, roles, permissions, rolePermissions } from '../db/schema'
 import { eq, desc, and, or, sql, inArray } from 'drizzle-orm'
 
 export const deckRoutes = new Elysia({ prefix: '/decks' })
@@ -170,17 +170,21 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
     }
 
     // Auth and Permission Check
-    const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
-    if (!requester) {
-        set.status = 401
-        return { error: 'Unauthorized' }
-    }
+    const requesterPermissions = await db.select({
+      permissionSlug: permissions.slug
+    })
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(users.id, requesterId))
+    .all()
 
-    const isAdmin = requester.role === 'admin'
+    const hasManagePermission = requesterPermissions.some(r => r.permissionSlug === 'decks.manage')
     const isOwner = userId === requesterId
 
     // Only Admin or the User themselves can create a deck for a user
-    if (!isAdmin && !isOwner) {
+    if (!hasManagePermission && !isOwner) {
         set.status = 403
         return { error: 'Forbidden: Cannot create deck for another user' }
     }
@@ -216,16 +220,20 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
     }
 
     // Auth check: Owner or Admin
-    const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
-    if (!requester) {
-      set.status = 401
-      return { error: 'Unauthorized' }
-    }
+    const requesterPermissions = await db.select({
+      permissionSlug: permissions.slug
+    })
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(users.id, requesterId))
+    .all()
 
-    const isAdmin = requester.role === 'admin'
+    const hasManagePermission = requesterPermissions.some(r => r.permissionSlug === 'decks.manage')
     const isOwner = deck.userId === requesterId
 
-    if (!isAdmin && !isOwner) {
+    if (!hasManagePermission && !isOwner) {
       set.status = 403
       return { error: 'Forbidden' }
     }
@@ -264,16 +272,20 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
     }
 
     // Auth check: Owner or Admin
-    const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
-    if (!requester) {
-      set.status = 401
-      return { error: 'Unauthorized' }
-    }
+    const requesterPermissions = await db.select({
+      permissionSlug: permissions.slug
+    })
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(users.id, requesterId))
+    .all()
 
-    const isAdmin = requester.role === 'admin'
+    const hasManagePermission = requesterPermissions.some(r => r.permissionSlug === 'decks.manage')
     const isOwner = deck.userId === requesterId
 
-    if (!isAdmin && !isOwner) {
+    if (!hasManagePermission && !isOwner) {
       set.status = 403
       return { error: 'Forbidden' }
     }

@@ -4,6 +4,8 @@ export interface User {
   displayName?: string | null
   role: string
   avatarUrl?: string | null
+  assignedRole?: { id: number, name: string } | null
+  permissions?: string[]
   color?: string | null
   createdAt?: string
   stats?: {
@@ -24,6 +26,7 @@ export interface Deck {
   color: string
   civilizations?: any[]
   createdAt?: string
+  gameId?: number
 }
 
 export interface Participant {

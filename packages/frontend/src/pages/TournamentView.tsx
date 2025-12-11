@@ -36,7 +36,7 @@ export default function TournamentView() {
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [matches, setMatches] = useState<Match[]>([])
-  const { user } = useAuth()
+  const { user, hasPermission } = useAuth()
   const [userDecks, setUserDecks] = useState<Deck[]>([])
   const [selectedDeckId, setSelectedDeckId] = useState<number | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
@@ -197,12 +197,11 @@ export default function TournamentView() {
   const joinTournament = async () => {
     if (!user?.id) return
     try {
-      await api(`/tournaments/${id}/participants`, {
+      await api(`/tournaments/${id}/join`, {
         method: 'POST',
         body: JSON.stringify({ 
           userId: user.id, 
-          deckId: selectedDeckId,
-          createdBy: user.id
+          deckId: selectedDeckId
         })
       })
       loadTournament()
@@ -300,6 +299,24 @@ export default function TournamentView() {
     }
   }
 
+  const leaveTournament = async () => {
+    if (!user?.id) return
+    const p = participants.find(part => part.userId === user.id)
+    if (!p) return
+
+    if (!confirm('Leave this tournament?')) return
+
+    try {
+      await api(`/tournaments/${id}/participants/${p.id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ createdBy: user.id })
+      })
+      loadTournament()
+    } catch (e: any) {
+      alert(e.message)
+    }
+  }
+
   const openEditDeck = async (p: Participant) => {
     if (!p.userId) return
     setEditingDeckParticipantId(p.id)
@@ -356,7 +373,7 @@ export default function TournamentView() {
 
   if (!tournament) return <div className="p-8 text-center text-zinc-500">Tournament not found</div>
 
-  const isAdmin = user?.id === tournament.createdBy || user?.role === 'admin'
+  const isAdmin = (user?.id === tournament.createdBy && hasPermission('tournaments.manage_own')) || hasPermission('tournaments.manage_all')
 
   return (
     <div className="space-y-8">
@@ -369,8 +386,8 @@ export default function TournamentView() {
                 onChange={(e) => setEditName(e.target.value)}
                 className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-white"
               />
-              <Button size="sm" onClick={updateTournament}>Save</Button>
-              <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+              <Button onClick={updateTournament}>Save</Button>
+              <Button variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -431,7 +448,7 @@ export default function TournamentView() {
           {isAdmin && (
             <>
               <Button variant="outline" onClick={() => setIsEditing(true)}>Edit</Button>
-              <Button className="bg-red-500 hover:bg-red-600" onClick={deleteTournament}>Delete</Button>
+              <Button variant="destructive" onClick={deleteTournament}>Delete</Button>
             </>
           )}
           {tournament.status === 'active' && isAdmin && tournament.type !== 'round_robin' && (
@@ -442,6 +459,7 @@ export default function TournamentView() {
                 onClick={async () => {
                 try {
                   await api(`/tournaments/${id}/next-round`, { method: 'POST' })
+                  setViewRound(tournament.currentRound + 1)
                   loadTournament()
                 } catch (err: any) {
                   alert(`Failed to start next round: ${err.message}`)
@@ -457,6 +475,7 @@ export default function TournamentView() {
                     method: 'POST',
                     body: JSON.stringify({ createdBy: user?.id })
                   })
+                  setViewRound(tournament.currentRound)
                   loadTournament()
                 } catch (err: any) {
                   alert(`Failed to stop tournament: ${err.message}`)
@@ -477,6 +496,7 @@ export default function TournamentView() {
                   method: 'POST',
                   body: JSON.stringify({ createdBy: user?.id })
                 })
+                setViewRound(tournament.currentRound)
                 loadTournament()
               } catch (err: any) {
                 alert(`Failed to finish tournament: ${err.message}`)
@@ -489,8 +509,8 @@ export default function TournamentView() {
           {tournament.status === 'pending' && (
             <>
               {participants.some(p => p.userId === user?.id) ? (
-                <Button disabled variant="secondary" className="opacity-50 cursor-not-allowed">
-                  Joined
+                <Button onClick={leaveTournament} variant="destructive">
+                  Leave
                 </Button>
               ) : (
                 <div className="flex gap-2 items-center">
@@ -565,7 +585,7 @@ export default function TournamentView() {
             onChange={(e) => setGuestName(e.target.value)}
             className="bg-zinc-950 border border-zinc-700 rounded px-3 py-1.5 text-white flex-1"
           />
-          <Button size="sm" onClick={addGuest}>Add Guest</Button>
+          <Button onClick={addGuest}>Add Guest</Button>
         </div>
       )}
 

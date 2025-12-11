@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { systemSettings, users } from '../db/schema'
+import { systemSettings, users, roles, rolePermissions, permissions } from '../db/schema'
 import { eq } from 'drizzle-orm'
 
 export const settingsRoutes = new Elysia({ prefix: '/settings' })
@@ -20,8 +20,19 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
     const { userId, maintenanceMode, maintenanceMessage } = body
     
     // Auth Check
-    const requester = await db.select().from(users).where(eq(users.id, userId)).get()
-    if (!requester || requester.role !== 'admin') {
+    const requesterPermissions = await db.select({
+      permissionSlug: permissions.slug
+    })
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(users.id, userId))
+    .all()
+
+    const canManage = requesterPermissions.some(r => r.permissionSlug === 'settings.manage')
+
+    if (!canManage) {
       set.status = 403
       return { error: 'Unauthorized' }
     }

@@ -1,14 +1,48 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { tournaments, participants, users, matches, decks, games, userGameStats } from '../db/schema'
+import { tournaments, participants, users, matches, decks, games, userGameStats, roles, rolePermissions, permissions } from '../db/schema'
 import { eq, and, or, isNull, sql, getTableColumns } from 'drizzle-orm'
 
 export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/', async ({ body, set }) => {
     const { name, createdBy, gameId } = body
     
+    // Permission Check
     try {
+      const requesterPermissions = await db.select({
+        roleName: roles.name,
+        permissionSlug: permissions.slug,
+        userRole: users.role // legacy
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(users.id, createdBy))
+      .all()
+  
+      if (requesterPermissions.length === 0) {
+          set.status = 401
+          return { error: 'User not found' }
+      }
+  
+      const hasPermission = requesterPermissions.some(r => 
+          r.permissionSlug === 'tournaments.manage_own' || 
+          r.permissionSlug === 'tournaments.manage_all'
+      )
+  
+      if (!hasPermission) {
+          set.status = 403
+          return { error: 'Unauthorized: Missing tournaments.create permission' }
+      }
+    } catch (e: any) { // Type as any to access message
+      console.error('Permission check failed:', e)
+      set.status = 500
+      return { error: `Internal Server Error during permission check: ${e.message}` }
+    }
 
+    // Insert Tournament
+    try {
       const result = await db.insert(tournaments).values({
         name,
         createdBy,
@@ -23,6 +57,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       set.status = 500
       return { error: 'Failed to create tournament' }
     }
+
 
 
   }, {
@@ -190,12 +225,58 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     }
 
     if (tournament.createdBy !== createdBy) {
-      // Check if admin
-      const requester = await db.select().from(users).where(eq(users.id, createdBy)).get()
-      if (!requester || requester.role !== 'admin') {
+      // Permission Check
+      const requesterPermissions = await db.select({
+        roleName: roles.name,
+        permissionSlug: permissions.slug,
+        userRole: users.role // legacy
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(users.id, createdBy))
+      .all()
+
+      const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'tournaments.manage_all')
+
+      if (!hasPermission) {
         set.status = 403
-        return { error: 'Unauthorized' }
+        return { error: 'Unauthorized: Missing tournaments.manage_all permission' }
       }
+    } else {
+        // Owner - check for manage_own OR manage_all
+        // We need to fetch requester permissions even if they are owner now, to be safe? 
+        // Or assume if they are owner they can manage? 
+        // Requirement: "manage own tournament ---> user can create and manage own tournament"
+        // Implicitly if you are owner, you should have manage_own. But let's check DB to be sure they haven't been banned/stripped.
+        // Actually, for efficiency, let's trust "manage_own" is the base role for valid users. 
+        // But better to check.
+        
+        const requesterPermissions = await db.select({
+            permissionSlug: permissions.slug,
+            userRole: users.role
+        })
+        .from(users)
+        .leftJoin(roles, eq(users.roleId, roles.id))
+        .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+        .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+        .where(eq(users.id, createdBy)) // This is checking the REQUESTER (from body/auth), wait.
+        // In PUT /:id, `createdBy` in body is usually the requester ID passed from frontend.
+        // Let's verify that assumption. 
+        // Yes, frontend sends `createdBy: user.id`.
+        // So we interpret `createdBy` as `requesterId`.
+        .all()
+        
+        const canManageOwn = requesterPermissions.some(r => 
+            r.permissionSlug === 'tournaments.manage_own' ||
+            r.permissionSlug === 'tournaments.manage_all'
+        )
+        
+        if (!canManageOwn) {
+            set.status = 403
+            return { error: 'Unauthorized: Missing tournament management permissions' }
+        }
     }
 
     await db.update(tournaments)
@@ -222,11 +303,47 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     }
 
     if (tournament.createdBy !== createdBy) {
-      const requester = await db.select().from(users).where(eq(users.id, createdBy)).get()
-      if (!requester || requester.role !== 'admin') {
+      // Permission Check
+      const requesterPermissions = await db.select({
+        roleName: roles.name,
+        permissionSlug: permissions.slug,
+        userRole: users.role // legacy
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(users.id, createdBy))
+      .all()
+
+      const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'tournaments.manage_all')
+
+      if (!hasPermission) {
         set.status = 403
-        return { error: 'Unauthorized' }
+        return { error: 'Unauthorized: Missing tournaments.manage_all permission' }
       }
+    } else {
+        // Owner check
+        const requesterPermissions = await db.select({
+            permissionSlug: permissions.slug,
+            userRole: users.role
+        })
+        .from(users)
+        .leftJoin(roles, eq(users.roleId, roles.id))
+        .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+        .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+        .where(eq(users.id, createdBy))
+        .all()
+        
+        const canManageOwn = requesterPermissions.some(r => 
+            r.permissionSlug === 'tournaments.manage_own' ||
+            r.permissionSlug === 'tournaments.manage_all'
+        )
+        
+        if (!canManageOwn) {
+            set.status = 403
+            return { error: 'Unauthorized: Missing tournament management permissions' }
+        }
     }
 
     // Delete related data (cascade manually if needed, but sqlite might handle if configured, or just leave for now)
@@ -279,10 +396,23 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       return { error: 'Tournament not found' }
     }
 
-    // Auth check (Owner or Admin)
-    if (tournament.createdBy !== createdBy) {
-      const requester = await db.select().from(users).where(eq(users.id, createdBy)).get()
-      if (!requester || requester.role !== 'admin') {
+    // Auth check
+    const isSelf = userId === createdBy
+    
+    if (tournament.createdBy !== createdBy && !isSelf) {
+      const requesterPermissions = await db.select({
+        permissionSlug: permissions.slug
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(users.id, createdBy))
+      .all()
+
+      const canManageAll = requesterPermissions.some(r => r.permissionSlug === 'tournaments.manage_all')
+
+      if (!canManageAll) {
         set.status = 403
         return { error: 'Unauthorized' }
       }
@@ -332,12 +462,36 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       return { error: 'Tournament not found' }
     }
 
-    if (tournament.createdBy !== createdBy) {
-      const requester = await db.select().from(users).where(eq(users.id, createdBy)).get()
-      if (!requester || requester.role !== 'admin') {
+    const participant = await db.select().from(participants).where(eq(participants.id, participantId)).get()
+    if (!participant) {
+        set.status = 404
+        return { error: 'Participant not found' }
+    }
+
+    const isSelf = participant.userId === createdBy
+
+    if (tournament.createdBy !== createdBy && !isSelf) {
+      const requesterPermissions = await db.select({
+        permissionSlug: permissions.slug
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(users.id, createdBy))
+      .all()
+      
+      const canManageAll = requesterPermissions.some(r => r.permissionSlug === 'tournaments.manage_all')
+
+      if (!canManageAll) {
         set.status = 403
         return { error: 'Unauthorized' }
       }
+    }
+
+    if (isSelf && tournament.status !== 'pending') {
+        set.status = 400
+        return { error: 'Cannot leave a tournament that has started. Please drop instead.' }
     }
 
     // If tournament is active, maybe we should just drop them? 
@@ -438,8 +592,18 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     }
 
     // Permission Check
-    const requester = await db.select().from(users).where(eq(users.id, userId)).get()
-    const isAdmin = requester?.role === 'admin' || tournament.createdBy === userId
+    const requesterPermissions = await db.select({
+      permissionSlug: permissions.slug
+    })
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(users.id, userId))
+    .all()
+    
+    const canManageAll = requesterPermissions.some(r => r.permissionSlug === 'tournaments.manage_all')
+    const isAdmin = canManageAll || tournament.createdBy === userId
     const isSelf = participant.userId === userId
 
     if (!isAdmin && !isSelf) {

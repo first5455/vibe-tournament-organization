@@ -5,10 +5,12 @@ import { Deck } from '../types'
 interface DeckModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: { name: string; link: string; color: string }) => Promise<void>
+  onSubmit: (data: { name: string; link: string; color: string; gameId?: number }) => Promise<void>
   initialData?: Deck | null
   title?: string
   submitLabel?: string
+  games?: { id: number; name: string }[]
+  defaultGameId?: number | null
 }
 
 export function DeckModal({ 
@@ -17,11 +19,14 @@ export function DeckModal({
   onSubmit, 
   initialData,
   title = 'Create New Deck',
-  submitLabel = 'Create Deck'
+  submitLabel = 'Create Deck',
+  games = [],
+  defaultGameId
 }: DeckModalProps) {
   const [name, setName] = useState('')
   const [link, setLink] = useState('')
   const [color, setColor] = useState('#ffffff')
+  const [gameId, setGameId] = useState<number | undefined>(undefined)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -30,19 +35,21 @@ export function DeckModal({
             setName(initialData.name)
             setLink(initialData.link || '')
             setColor(initialData.color)
+            setGameId(initialData.gameId)
         } else {
             setName('')
             setLink('')
             setColor('#ffffff')
+            setGameId(defaultGameId || undefined)
         }
     }
-  }, [isOpen, initialData])
+  }, [isOpen, initialData, defaultGameId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     try {
-        await onSubmit({ name, link, color })
+        await onSubmit({ name, link, color, gameId })
         // Don't close here, let parent handle it or close on success
     } finally {
         setIsSubmitting(false)
@@ -70,6 +77,22 @@ export function DeckModal({
               placeholder="e.g. Arknight Purple"
             />
           </div>
+
+          {games && games.length > 0 && (
+              <div>
+                  <label className="block text-xs font-medium text-zinc-400 mb-1">Game</label>
+                  <select
+                      value={gameId || ''}
+                      onChange={(e) => setGameId(e.target.value ? parseInt(e.target.value) : undefined)}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500/50"
+                  >
+                      <option value="">Select a game...</option>
+                      {games.map(g => (
+                          <option key={g.id} value={g.id}>{g.name}</option>
+                      ))}
+                  </select>
+              </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium text-zinc-400 mb-1">Deck List URL (Optional)</label>

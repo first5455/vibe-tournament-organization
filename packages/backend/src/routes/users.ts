@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games } from '../db/schema'
-import { eq, desc, sql, or, and } from 'drizzle-orm'
+import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games, roles, permissions, rolePermissions } from '../db/schema'
+import { eq, desc, sql, or, and, isNull } from 'drizzle-orm'
 import { getRank } from '../utils'
 
 
@@ -36,8 +36,21 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     const { requesterId, username, password, displayName } = body
     
     // Auth check
-    const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
-    if (!requester || requester.role !== 'admin') {
+    const requesterPermissions = await db.select({
+      roleName: roles.name,
+      permissionSlug: permissions.slug,
+      userRole: users.role // legacy
+    })
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(users.id, requesterId))
+    .all()
+
+    const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'users.manage')
+
+    if (!hasPermission) {
       set.status = 403
       return { error: 'Forbidden' }
     }
@@ -51,11 +64,15 @@ export const userRoutes = new Elysia({ prefix: '/users' })
 
     const passwordHash = await Bun.password.hash(password || 'password') // Default password if not provided, though generic
     
+    // Fetch default 'User' role
+    const defaultRole = await db.select().from(roles).where(eq(roles.name, 'User')).get()
+    
     const result = await db.insert(users).values({
       username,
       displayName: displayName || username,
       passwordHash,
-      role: 'user', // Default role
+      role: 'user', // legacy
+      roleId: defaultRole?.id, // Assign default role ID
       color: '#3f3f46',
     }).returning().get()
 
@@ -128,9 +145,11 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       displayName: users.displayName,
       createdAt: users.createdAt,
       role: users.role,
+      roleId: users.roleId,
       color: users.color,
       avatarUrl: users.avatarUrl,
       passwordHash: users.passwordHash,
+      tokenVersion: users.tokenVersion,
     })
     .from(users)
     .where(eq(users.id, parseInt(params.id)))
@@ -164,7 +183,27 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     // Rank is game-specific. We return 0 here as legacy support.
     const rank = 0 
 
-    return { user: { ...user, rank, stats } }
+    // Fetch role and permissions
+    const roleId = (user as any).roleId
+    const role = await db.select().from(roles).where(eq(roles.id, roleId || 0)).get()
+    const perms = await db
+        .select({ slug: permissions.slug })
+        .from(permissions)
+        .innerJoin(rolePermissions, eq(permissions.id, rolePermissions.permissionId))
+        .where(eq(rolePermissions.roleId, (user as any).roleId || 0))
+        .all()
+    
+    const permissionSlugs = perms.map(p => p.slug)
+
+    return { 
+        user: { 
+            ...user, 
+            rank, 
+            stats,
+            assignedRole: role ? { id: role.id, name: role.name } : null,
+            permissions: permissionSlugs
+        } 
+    }
 
   }, {
     params: t.Object({
@@ -322,7 +361,23 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     }
 
     const requester = await db.select().from(users).where(eq(users.id, parseInt(requesterId))).get()
-    if (!requester || requester.role !== 'admin') {
+    
+    // Check permissions
+    const requesterPermissions = await db.select({
+      roleName: roles.name,
+      permissionSlug: permissions.slug,
+      userRole: users.role // legacy
+    })
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(users.id, parseInt(requesterId)))
+    .all()
+
+    const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'users.manage')
+
+    if (!requester || !hasPermission) {
       set.status = 403
       return { error: 'Forbidden' }
     }
@@ -365,13 +420,28 @@ export const userRoutes = new Elysia({ prefix: '/users' })
   .put('/:id', async ({ params, body, set }) => {
     const { requesterId, username, displayName, password, role, mmr, color } = body
     
-    const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
-    
-    // Allow if admin OR if updating self
+    // Allow if manage permission OR if updating self
     const isSelfUpdate = requesterId === parseInt(params.id)
-    const isAdmin = requester?.role === 'admin'
+    
+    let canManage = false
+    if (!isSelfUpdate) {
+        // Check permissions
+        const requesterPermissions = await db.select({
+            roleName: roles.name,
+            permissionSlug: permissions.slug,
+            userRole: users.role
+        })
+        .from(users)
+        .leftJoin(roles, eq(users.roleId, roles.id))
+        .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+        .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+        .where(eq(users.id, requesterId))
+        .all()
+        
+        canManage = requesterPermissions.some(r => r.permissionSlug === 'users.manage')
+    }
 
-    if (!requester || (!isAdmin && !isSelfUpdate)) {
+    if (!isSelfUpdate && !canManage) {
       set.status = 403
       return { error: 'Forbidden' }
     }
@@ -380,9 +450,19 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     if (username) updates.username = username
     if (displayName) updates.displayName = displayName
     
-    // Only admin can update role and mmr
-    if (isAdmin) {
+    // Only admin/manager can update role and mmr
+    if (canManage) {
       if (role) updates.role = role
+      if (body.roleId) {
+          updates.roleId = body.roleId
+          // Sync legacy role column if possible
+          try {
+              const r = await db.select().from(roles).where(eq(roles.id, body.roleId)).get()
+              if (r) {
+                  updates.role = r.name === 'Admin' ? 'admin' : 'user'
+              }
+          } catch(e) { /* ignore */ }
+      }
       
       // Update MMR
       if (mmr !== undefined) {
@@ -437,6 +517,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       displayName: t.Optional(t.String()),
       password: t.Optional(t.String()),
       role: t.Optional(t.String()),
+      roleId: t.Optional(t.Number()),
       mmr: t.Optional(t.Number()),
       gameId: t.Optional(t.Number()),
       color: t.Optional(t.String()),
@@ -446,14 +527,30 @@ export const userRoutes = new Elysia({ prefix: '/users' })
   .delete('/:id', async ({ params, body, set }) => {
     const { requesterId } = body
     
-    const requester = await db.select().from(users).where(eq(users.id, requesterId)).get()
-    if (!requester || requester.role !== 'admin') {
+    const requesterPermissions = await db.select({
+      roleName: roles.name,
+      permissionSlug: permissions.slug,
+      userRole: users.role
+    })
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(users.id, requesterId))
+    .all()
+
+    const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'users.manage')
+
+    if (!hasPermission) {
       set.status = 403
       return { error: 'Forbidden' }
     }
 
 
     const userId = parseInt(params.id)
+    
+    // Fetch default 'User' role for reset
+    const defaultRole = await db.select().from(roles).where(eq(roles.name, 'User')).get()
 
     // Soft delete: Anonymize the user to preserve history
     await db.update(users)
@@ -463,7 +560,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         passwordHash: 'deleted', // Invalidate login
         avatarUrl: null,
         color: '#3f3f46', // Zinc-700 (neutral color)
-        role: 'user',
+        role: 'user', // legacy
+        roleId: defaultRole?.id, // valid public role
         securityQuestion: null,
         securityAnswerHash: null,
         // We keep MMR and CreatedAt for historical context
