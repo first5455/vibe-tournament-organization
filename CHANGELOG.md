@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.2.2] - 2025-12-11
+
+### Fixed
+
+- **Admin Panel**: Fixed "Change Role" option not appearing in user actions dropdown menu.
+- **Admin Panel**: Fixed role names not displaying correctly in users table (was showing "User" for all users).
+- **Backend**: Removed remaining legacy `role` column references from `auth.ts` and `roles.ts`.
+
 ## [1.2.1] - 2025-12-11
 
 ### Fixed

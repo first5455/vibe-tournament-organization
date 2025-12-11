@@ -383,11 +383,13 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       username: users.username,
       displayName: users.displayName,
       roleId: users.roleId,
+      roleName: roles.name, // Select role name
       createdAt: users.createdAt,
       color: users.color,
       avatarUrl: users.avatarUrl,
       mmr: gameId ? userGameStats.mmr : sql<number>`0`
     }).from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id)) // Join roles
     .where(sql`${users.passwordHash} != 'deleted'`)
 
     if (gameId) {
@@ -399,6 +401,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     // Map to simplified stats structure for frontend
     const usersWithStats = allUsers.map(u => ({
         ...u,
+        assignedRole: { id: u.roleId, name: u.roleName }, // Map to expected structure
         stats: gameId && u.mmr ? [{
             gameId: parseInt(gameId),
             mmr: u.mmr,

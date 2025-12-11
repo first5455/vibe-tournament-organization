@@ -787,17 +787,17 @@ export default function AdminPortal() {
                         <DropdownMenuContent align="end" side={index >= users.length - 3 ? 'top' : 'bottom'}>
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          {u.id !== user?.id && (hasPermission('users.manage')) && (
-                            <DropdownMenuItem onClick={() => {
-                                setUserToChangeRole(u)
-                                setChangeRoleOpen(true)
-                            }}>
-                              <Shield className="mr-2 h-4 w-4" />
-                              Change Role
-                            </DropdownMenuItem>
-                          )}
                           {(hasPermission('users.manage')) && (
                             <>
+                              {u.id !== user?.id ? (
+                                <DropdownMenuItem onClick={() => {
+                                    setUserToChangeRole(u)
+                                    setChangeRoleOpen(true)
+                                }}>
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  Change Role
+                                </DropdownMenuItem>
+                              ) : null}
                               <DropdownMenuItem onClick={() => changePassword(u)}>
                                 <Key className="mr-2 h-4 w-4" />
                                 Reset Password
