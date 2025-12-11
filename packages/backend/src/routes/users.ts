@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games, roles, permissions, rolePermissions } from '../db/schema'
+import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games, roles, permissions, rolePermissions, systemSettings } from '../db/schema'
 import { eq, desc, sql, or, and, isNull } from 'drizzle-orm'
 import { getRank } from '../utils'
 
@@ -63,14 +63,19 @@ export const userRoutes = new Elysia({ prefix: '/users' })
 
     const passwordHash = await Bun.password.hash(password || 'password') // Default password if not provided, though generic
     
-    // Fetch default 'User' role
-    const defaultRole = await db.select().from(roles).where(eq(roles.name, 'User')).get()
+    // Fetch default role
+    let defaultRoleId: number | undefined
+    const setting = await db.select().from(systemSettings).where(eq(systemSettings.key, 'default_role_id')).get()
+    
+    if (setting) {
+        defaultRoleId = parseInt(setting.value)
+    }
     
     const result = await db.insert(users).values({
       username,
       displayName: displayName || username,
       passwordHash,
-      roleId: defaultRole?.id, // Assign default role ID
+      roleId: defaultRoleId, // Assign default role ID
       color: '#3f3f46',
     }).returning().get()
 
@@ -546,8 +551,13 @@ export const userRoutes = new Elysia({ prefix: '/users' })
 
     const userId = parseInt(params.id)
     
-    // Fetch default 'User' role for reset
-    const defaultRole = await db.select().from(roles).where(eq(roles.name, 'User')).get()
+    // Fetch default role for reset
+    let defaultRoleId: number | undefined
+    const setting = await db.select().from(systemSettings).where(eq(systemSettings.key, 'default_role_id')).get()
+    
+    if (setting) {
+        defaultRoleId = parseInt(setting.value)
+    }
 
     // Soft delete: Anonymize the user to preserve history
     await db.update(users)
@@ -557,7 +567,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         passwordHash: 'deleted', // Invalidate login
         avatarUrl: null,
         color: '#3f3f46', // Zinc-700 (neutral color)
-        roleId: defaultRole?.id, // valid public role
+        roleId: defaultRoleId, // valid public role
         securityQuestion: null,
         securityAnswerHash: null,
         // We keep MMR and CreatedAt for historical context

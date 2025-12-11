@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, games, userGameStats, roles, permissions, rolePermissions } from '../db/schema'
+import { users, games, userGameStats, roles, permissions, rolePermissions, systemSettings } from '../db/schema'
 import { eq } from 'drizzle-orm'
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
@@ -22,8 +22,15 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       securityAnswerHash = await Bun.password.hash(body.securityAnswer)
     }
 
-    // Get default role (User)
-    const defaultRole = await db.select().from(roles).where(eq(roles.name, 'User')).get()
+    // Get default role
+    let defaultRoleId: number | undefined
+    const setting = await db.select().from(systemSettings).where(eq(systemSettings.key, 'default_role_id')).get()
+    
+    if (setting) {
+        defaultRoleId = parseInt(setting.value)
+    }
+    // Strict adherence: If not set, roleId remains undefined
+    
     
     // Create user
     const result = await db.insert(users).values({
@@ -32,7 +39,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       passwordHash,
       securityQuestion: body.securityQuestion,
       securityAnswerHash,
-      roleId: defaultRole?.id // Assign default role
+      roleId: defaultRoleId // Assign default role
     }).returning().get()
 
     // Initialize MMR for all games
