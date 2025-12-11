@@ -51,7 +51,7 @@ import { api } from './lib/api'
 import { MaintenancePage } from './pages/MaintenancePage'
 
 function AppContent() {
-  const { user, isLoading, hasPermission } = useAuth()
+  const { isLoading, hasPermission } = useAuth()
   const [maintenance, setMaintenance] = useState<{ enabled: boolean, message: string } | null>(null)
   const [checkingMaintenance, setCheckingMaintenance] = useState(true)
   const location = useLocation()
