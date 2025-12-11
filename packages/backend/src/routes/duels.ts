@@ -11,8 +11,6 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     
     let showAll = false
     if (admin === 'true' && requesterId) {
-    let showAll = false
-    if (admin === 'true' && requesterId) {
       // Auth check
       const requesterPermissions = await db.select({
         permissionSlug: permissions.slug
@@ -27,7 +25,6 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       if (requesterPermissions.some(r => r.permissionSlug === 'admin.access' || r.permissionSlug === 'duels.manage')) {
         showAll = true
       }
-    }
     }
 
     const p2 = aliasedTable(users, 'p2')
