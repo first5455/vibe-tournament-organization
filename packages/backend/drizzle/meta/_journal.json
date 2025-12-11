@@ -71,6 +71,13 @@
       "when": 1765432727304,
       "tag": "0009_brief_snowbird",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1765437374336,
+      "tag": "0010_bored_blur",
+      "breakpoints": true
     }
   ]
 }

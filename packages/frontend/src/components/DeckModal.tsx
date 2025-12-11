@@ -84,6 +84,7 @@ export function DeckModal({
                   <select
                       value={gameId || ''}
                       onChange={(e) => setGameId(e.target.value ? parseInt(e.target.value) : undefined)}
+                      required
                       className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500/50"
                   >
                       <option value="">Select a game...</option>

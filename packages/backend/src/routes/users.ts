@@ -38,8 +38,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     // Auth check
     const requesterPermissions = await db.select({
       roleName: roles.name,
-      permissionSlug: permissions.slug,
-      userRole: users.role // legacy
+      permissionSlug: permissions.slug
     })
     .from(users)
     .leftJoin(roles, eq(users.roleId, roles.id))
@@ -71,7 +70,6 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       username,
       displayName: displayName || username,
       passwordHash,
-      role: 'user', // legacy
       roleId: defaultRole?.id, // Assign default role ID
       color: '#3f3f46',
     }).returning().get()
@@ -144,7 +142,6 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       username: users.username,
       displayName: users.displayName,
       createdAt: users.createdAt,
-      role: users.role,
       roleId: users.roleId,
       color: users.color,
       avatarUrl: users.avatarUrl,
@@ -366,7 +363,6 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     const requesterPermissions = await db.select({
       roleName: roles.name,
       permissionSlug: permissions.slug,
-      userRole: users.role // legacy
     })
     .from(users)
     .leftJoin(roles, eq(users.roleId, roles.id))
@@ -386,7 +382,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       id: users.id,
       username: users.username,
       displayName: users.displayName,
-      role: users.role,
+      roleId: users.roleId,
       createdAt: users.createdAt,
       color: users.color,
       avatarUrl: users.avatarUrl,
@@ -428,8 +424,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         // Check permissions
         const requesterPermissions = await db.select({
             roleName: roles.name,
-            permissionSlug: permissions.slug,
-            userRole: users.role
+            permissionSlug: permissions.slug
         })
         .from(users)
         .leftJoin(roles, eq(users.roleId, roles.id))
@@ -452,14 +447,14 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     
     // Only admin/manager can update role and mmr
     if (canManage) {
-      if (role) updates.role = role
+      // if (role) updates.role = role
       if (body.roleId) {
           updates.roleId = body.roleId
           // Sync legacy role column if possible
           try {
               const r = await db.select().from(roles).where(eq(roles.id, body.roleId)).get()
               if (r) {
-                  updates.role = r.name === 'Admin' ? 'admin' : 'user'
+                  // updates.role = r.name === 'Admin' ? 'admin' : 'user'
               }
           } catch(e) { /* ignore */ }
       }
@@ -529,8 +524,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     
     const requesterPermissions = await db.select({
       roleName: roles.name,
-      permissionSlug: permissions.slug,
-      userRole: users.role
+      permissionSlug: permissions.slug
     })
     .from(users)
     .leftJoin(roles, eq(users.roleId, roles.id))
@@ -560,7 +554,6 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         passwordHash: 'deleted', // Invalidate login
         avatarUrl: null,
         color: '#3f3f46', // Zinc-700 (neutral color)
-        role: 'user', // legacy
         roleId: defaultRole?.id, // valid public role
         securityQuestion: null,
         securityAnswerHash: null,

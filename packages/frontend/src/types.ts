@@ -2,7 +2,6 @@ export interface User {
   id: number
   username: string
   displayName?: string | null
-  role: string
   avatarUrl?: string | null
   assignedRole?: { id: number, name: string } | null
   permissions?: string[]

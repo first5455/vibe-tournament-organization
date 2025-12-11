@@ -82,7 +82,7 @@ interface DuelHistory {
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
   const { user: currentUser, hasPermission } = useAuth()
-  const { selectedGame: activeGame } = useGame() // Alias to activeGame to minimize changes
+  const { selectedGame: activeGame, games } = useGame() // Alias to activeGame to minimize changes
   const [user, setUser] = useState<UserProfile | null>(null)
   const [history, setHistory] = useState<TournamentHistory[]>([])
   const [duels, setDuels] = useState<DuelHistory[]>([])
@@ -128,15 +128,15 @@ export default function UserProfilePage() {
 
   const canEdit = currentUser?.id === user.id || hasPermission('users.manage')
 
-  const handleDeckSubmit = async (data: { name: string; link: string; color: string }) => {
+  const handleDeckSubmit = async (data: { name: string; link: string; color: string; gameId?: number }) => {
     try {
         if (editingDeck) {
             await api(`/decks/${editingDeck.id}`, {
                 method: 'PUT',
                 body: JSON.stringify({
                     requesterId: currentUser?.id,
-                    gameId: activeGame?.id,
-                    ...data
+                    ...data,
+                    gameId: data.gameId || activeGame?.id, // Use submitted gameId or active fallback
                 })
             })
         } else {
@@ -145,8 +145,8 @@ export default function UserProfilePage() {
                 body: JSON.stringify({
                     requesterId: currentUser?.id,
                     userId: user.id,
-                    gameId: activeGame?.id,
-                    ...data
+                    ...data,
+                    gameId: data.gameId || activeGame?.id,
                 })
             })
         }
@@ -493,6 +493,8 @@ export default function UserProfilePage() {
       <DeckModal 
         isOpen={isDeckModalOpen} 
         onClose={() => setIsDeckModalOpen(false)} 
+        defaultGameId={activeGame?.id}
+        games={games}
         onSubmit={handleDeckSubmit}
         initialData={editingDeck}
         title={editingDeck ? "Edit Deck" : `Create Deck for ${user.displayName || user.username}`}

@@ -69,8 +69,8 @@ export default function DecksPage() {
           body: JSON.stringify({
             requesterId: user?.id,
             userId: user?.id,
+            ...data,
             gameId: selectedGame.id,
-            ...data
           })
         })
       }
