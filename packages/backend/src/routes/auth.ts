@@ -48,7 +48,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         }).run()
     }
 
-    return { user: { id: result.id, username: result.username, displayName: result.displayName, role: result.role, color: result.color, avatarUrl: result.avatarUrl } }
+    return { user: { id: result.id, username: result.username, displayName: result.displayName, color: result.color, avatarUrl: result.avatarUrl } }
   }, {
     body: t.Object({
       username: t.String(),
@@ -132,7 +132,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
             id: user.id, 
             username: user.username, 
             displayName: user.displayName, 
-            role: user.role, // Legacy string
+
             assignedRole: role ? { id: role.id, name: role.name } : null, 
             permissions: permissionSlugs,
             color: user.color, 
@@ -187,7 +187,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     }
 
     const updatedUser = await db.select().from(users).where(eq(users.id, userId)).get()
-    return { user: { id: updatedUser!.id, username: updatedUser!.username, displayName: updatedUser!.displayName, role: updatedUser!.role, color: updatedUser!.color, avatarUrl: updatedUser!.avatarUrl, tokenVersion: updatedUser!.tokenVersion } }
+    return { user: { id: updatedUser!.id, username: updatedUser!.username, displayName: updatedUser!.displayName, color: updatedUser!.color, avatarUrl: updatedUser!.avatarUrl, tokenVersion: updatedUser!.tokenVersion } }
   }, {
     body: t.Object({
       userId: t.Number(),
