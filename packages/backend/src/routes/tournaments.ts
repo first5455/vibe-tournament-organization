@@ -11,8 +11,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     try {
       const requesterPermissions = await db.select({
         roleName: roles.name,
-        permissionSlug: permissions.slug,
-        userRole: users.role // legacy
+        permissionSlug: permissions.slug
       })
       .from(users)
       .leftJoin(roles, eq(users.roleId, roles.id))
@@ -228,8 +227,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       // Permission Check
       const requesterPermissions = await db.select({
         roleName: roles.name,
-        permissionSlug: permissions.slug,
-        userRole: users.role // legacy
+        permissionSlug: permissions.slug
       })
       .from(users)
       .leftJoin(roles, eq(users.roleId, roles.id))
@@ -254,8 +252,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
         // But better to check.
         
         const requesterPermissions = await db.select({
-            permissionSlug: permissions.slug,
-            userRole: users.role
+            permissionSlug: permissions.slug
         })
         .from(users)
         .leftJoin(roles, eq(users.roleId, roles.id))
@@ -306,8 +303,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       // Permission Check
       const requesterPermissions = await db.select({
         roleName: roles.name,
-        permissionSlug: permissions.slug,
-        userRole: users.role // legacy
+        permissionSlug: permissions.slug
       })
       .from(users)
       .leftJoin(roles, eq(users.roleId, roles.id))
@@ -325,8 +321,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     } else {
         // Owner check
         const requesterPermissions = await db.select({
-            permissionSlug: permissions.slug,
-            userRole: users.role
+            permissionSlug: permissions.slug
         })
         .from(users)
         .leftJoin(roles, eq(users.roleId, roles.id))

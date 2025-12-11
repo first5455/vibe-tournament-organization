@@ -30,9 +30,7 @@ export function ChangeRoleDialog({ isOpen, onClose, user, onSuccess }: ChangeRol
             loadRoles()
             if (user?.assignedRole) {
                 setSelectedRoleId(user.assignedRole.id)
-            } else if (user?.role === 'admin') {
-               // Legacy handling: we rely on loading role list and finding "Admin"
-               // This will be handled in loadRoles or user can select manually
+                // Legacy handling removed
             }
         }
     }, [isOpen, user])
@@ -41,10 +39,6 @@ export function ChangeRoleDialog({ isOpen, onClose, user, onSuccess }: ChangeRol
         try {
             const data = await api('/roles')
             setRoles(data)
-            if (user && !user.assignedRole && user.role) {
-                 const matching = data.find((r: any) => r.name.toLowerCase() === user.role.toLowerCase())
-                 if (matching) setSelectedRoleId(matching.id)
-            }
         } catch (e) {
             console.error(e)
         }

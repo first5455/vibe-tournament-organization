@@ -15,6 +15,9 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
     }
     if (gameId) {
         constraints.push(eq(decks.gameId, parseInt(gameId)))
+    } else {
+        // Hide legacy decks by default
+        constraints.push(sql`${decks.gameId} IS NOT NULL`)
     }
 
     if (constraints.length > 0) {
@@ -189,6 +192,11 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
         return { error: 'Forbidden: Cannot create deck for another user' }
     }
 
+    if (!gameId) {
+        set.status = 400
+        return { error: 'Game ID is required' }
+    }
+
 
     const result = await db.insert(decks).values({
       userId,
@@ -206,7 +214,7 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
       name: t.String(),
       link: t.Optional(t.String()),
       color: t.Optional(t.String()),
-      gameId: t.Optional(t.Number())
+      gameId: t.Number()
     })
   })
   .put('/:id', async ({ params, body, set }) => {

@@ -77,7 +77,8 @@ function AppContent() {
   if (isLoading || checkingMaintenance) return <div className="flex h-screen items-center justify-center text-zinc-500">Loading...</div>
 
   // Maintenance Check
-  if (maintenance?.enabled && !hasPermission('admin.access')) {
+  const isAuthRoute = ['/login', '/register', '/forgot-password', '/admin'].includes(location.pathname)
+  if (maintenance?.enabled && !hasPermission('admin.access') && !isAuthRoute) {
       return <MaintenancePage message={maintenance.message} />
   }
 

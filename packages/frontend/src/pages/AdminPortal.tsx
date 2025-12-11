@@ -741,8 +741,8 @@ export default function AdminPortal() {
                     </Link>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs ${u.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-zinc-800 text-zinc-400'}`}>
-                      {u.role}
+                    <span className={`px-2 py-1 rounded text-xs ${u.assignedRole?.name === 'Admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-zinc-800 text-zinc-400'}`}>
+                      {u.assignedRole?.name || 'User'}
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono">
@@ -1085,13 +1085,13 @@ export default function AdminPortal() {
 
       {activeTab === 'decks' && (
         <div className="w-full">
-            <div className="flex justify-between items-center mb-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
                 <div className="flex items-center gap-4">
                     <h2 className="text-xl font-bold text-white">All Decks</h2>
                     <span className="text-zinc-500 text-sm">{decks.length} total</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-64">
+                <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+                    <div className="w-full sm:w-64">
                          <UserSearchSelect 
                              onSelect={(u) => setCreateDeckUserId(u.id)}
                              placeholder="Select user to create deck..."
@@ -1103,9 +1103,9 @@ export default function AdminPortal() {
                              setEditingDeck(null)
                              setDeckModalOpen(true)
                         }}
-                        className="bg-purple-600 hover:bg-purple-700"
+                        className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto"
                     >
-                        <UserPlus className="w-4 h-4 mr-2" />
+                        <Plus className="w-4 h-4 mr-2" />
                         Create Deck
                     </Button>
                 </div>
@@ -2133,7 +2133,7 @@ export default function AdminPortal() {
                 } else {
                     await api('/decks', {
                         method: 'POST',
-                        body: JSON.stringify({ ...data, userId: createDeckUserId, requesterId: user?.id })
+                        body: JSON.stringify({ ...data, gameId: data.gameId || (filterGameId !== 'all' ? parseInt(filterGameId) : undefined), userId: createDeckUserId, requesterId: user?.id })
                     })
                 }
                 setDeckModalOpen(false)

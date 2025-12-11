@@ -30,7 +30,6 @@ export const users = sqliteTable('users', {
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   securityQuestion: text('security_question'),
   securityAnswerHash: text('security_answer_hash'),
-  role: text('role', { enum: ['user', 'admin'] }).default('user').notNull(), // Deprecated in favor of roleId, kept for migration
   roleId: integer('role_id').references(() => roles.id),
   color: text('color').default('#ffffff'),
   avatarUrl: text('avatar_url'),
