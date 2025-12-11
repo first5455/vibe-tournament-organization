@@ -102,19 +102,6 @@ async function main() {
     }
   }
 
-  // 5. Cleanup Legacy Permissions
-  console.log('Cleaning up legacy permissions...')
-  
-  // Delete associations first to avoid FK constraint violations
-  await db.delete(rolePermissions).where(
-    inArray(rolePermissions.permissionId, 
-        db.select({ id: permissions.id }).from(permissions).where(eq(permissions.slug, 'roles.read'))
-    )
-  ).run()
-
-  // Then delete the permission
-  await db.delete(permissions).where(eq(permissions.slug, 'roles.read')).run()
-
   console.log('RBAC Seeding Completed!')
 }
 
