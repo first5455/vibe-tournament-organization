@@ -55,6 +55,11 @@ export default function AdminPortal() {
   const [editingColorId, setEditingColorId] = useState<number | null>(null)
   const [filterGameId, setFilterGameId] = useState<string>('all')
   
+  // Delete User State
+  const [deleteUserConfirmOpen, setDeleteUserConfirmOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [isHardDelete, setIsHardDelete] = useState(false)
+  
   // Games Management State
   const [gameModalOpen, setGameModalOpen] = useState(false)
   const [editingGame, setEditingGame] = useState<any>(null)
@@ -69,7 +74,8 @@ export default function AdminPortal() {
   const [settingsForm, setSettingsForm] = useState({
     maintenanceMode: false,
     maintenanceMessage: '',
-    defaultRoleId: undefined as number | undefined
+    defaultRoleId: undefined as number | undefined,
+    ownerRoleId: undefined as number | undefined
   })
 
   // Settings Save Handler
@@ -81,7 +87,8 @@ export default function AdminPortal() {
                 userId: user?.id,
                 maintenanceMode: settingsForm.maintenanceMode,
                 maintenanceMessage: settingsForm.maintenanceMessage,
-                defaultRoleId: settingsForm.defaultRoleId
+                defaultRoleId: settingsForm.defaultRoleId,
+                ownerRoleId: settingsForm.ownerRoleId
             })
         })
         alert('Settings saved successfully')
@@ -187,7 +194,8 @@ export default function AdminPortal() {
         setSettingsForm({
             maintenanceMode: data.maintenanceMode,
             maintenanceMessage: data.maintenanceMessage,
-            defaultRoleId: data.defaultRoleId
+            defaultRoleId: data.defaultRoleId,
+            ownerRoleId: data.ownerRoleId
         })
         setAvailableRoles(rolesData)
       }
@@ -204,13 +212,17 @@ export default function AdminPortal() {
     }
   }
 
-  const deleteUser = async (userId: number) => {
-    if (!confirm('Are you sure you want to delete this user?')) return
+  const executeDeleteUser = async () => {
+    if (!userToDelete) return
     try {
-      await api(`/users/${userId}`, {
+      await api(`/users/${userToDelete.id}`, {
         method: 'DELETE',
-        body: JSON.stringify({ requesterId: user?.id })
+        body: JSON.stringify({ 
+            requesterId: user?.id,
+            hardDelete: isHardDelete
+        })
       })
+      setDeleteUserConfirmOpen(false)
       loadData()
     } catch (err: any) {
       alert(err.message)
@@ -822,20 +834,36 @@ export default function AdminPortal() {
                               </DropdownMenuItem>
                               {u.id !== user?.id && (
                                 <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem 
-                                    variant="destructive"
-                                    onClick={() => deleteUser(u.id)}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete User
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      variant="destructive"
+                                      onClick={() => {
+                                          setUserToDelete(u)
+                                          setIsHardDelete(false)
+                                          setDeleteUserConfirmOpen(true)
+                                      }}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Delete User (Soft)
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      variant="destructive"
+                                      className="text-red-500 font-bold bg-red-500/10 focus:bg-red-500/20"
+                                      onClick={() => {
+                                          setUserToDelete(u)
+                                          setIsHardDelete(true)
+                                          setDeleteUserConfirmOpen(true)
+                                      }}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      Hard Delete (Permanent)
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                     )}
                   </td>
                 </tr>
@@ -1724,6 +1752,26 @@ export default function AdminPortal() {
                     </select>
                 </div>
 
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Owner Role (Super Admin)</label>
+                    <p className="text-xs text-zinc-500 mb-2">Users in this role have protected status and can only be managed by other Owners.</p>
+                    <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-md">
+                        <select
+                            className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            value={settingsForm.ownerRoleId || ''}
+                            onChange={(e) => setSettingsForm({...settingsForm, ownerRoleId: e.target.value ? parseInt(e.target.value) : undefined})}
+                        >
+                            <option value="">No Owner Role Configured</option>
+                            {availableRoles.filter(role => role.isSystem).map(role => (
+                                 <option key={role.id} value={role.id}>{role.name}</option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-amber-500 mt-2">
+                            <span className="font-bold">Warning:</span> Once set, only members of this role can change this setting.
+                        </p>
+                    </div>
+                </div>
+
                 <div className="pt-4 border-t border-zinc-800 flex justify-end">
                     <Button onClick={saveSettings}>
                         Save Settings
@@ -2175,6 +2223,49 @@ export default function AdminPortal() {
             }
         }}
       />
+
+      {/* Delete User Confirm Dialog */}
+      {deleteUserConfirmOpen && userToDelete && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+              <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-md w-full space-y-4">
+                  <h2 className="text-xl font-bold text-white">
+                      {isHardDelete ? 'Confirm Hard Delete' : 'Confirm User Deletion'}
+                  </h2>
+                  <div className="bg-zinc-950 p-4 rounded border border-zinc-800">
+                      <div className="flex items-center gap-3 mb-2">
+                          <UserAvatar username={userToDelete.username} avatarUrl={userToDelete.avatarUrl} size="md" />
+                          <div>
+                              <div className="font-bold text-white">{userToDelete.displayName}</div>
+                              <div className="text-sm text-zinc-500">@{userToDelete.username}</div>
+                          </div>
+                      </div>
+                  </div>
+                  
+                  {isHardDelete ? (
+                      <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
+                          <p className="font-bold mb-1">WARNING: PERMANENT DATA LOSS</p>
+                          <p>You are about to permanently delete this user and <strong>ALL related data</strong> (Decks, Stats, Duel History, etc).</p>
+                          <p className="mt-2 text-red-500">This action cannot be undone.</p>
+                      </div>
+                  ) : (
+                      <p className="text-zinc-400">
+                          This will soft-delete the user. Their data will be preserved anonymously, but they will no longer be able to log in.
+                      </p>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="ghost" onClick={() => setDeleteUserConfirmOpen(false)}>Cancel</Button>
+                      <Button 
+                        variant="destructive" 
+                        onClick={executeDeleteUser}
+                        className={isHardDelete ? "bg-red-600 hover:bg-red-700" : ""}
+                      >
+                          {isHardDelete ? 'Permanently Delete User' : 'Soft Delete User'}
+                      </Button>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   )
 }

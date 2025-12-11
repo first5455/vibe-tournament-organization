@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.2.4.1] - 2025-12-11
+
+### Added
+
+- **Admin Portal**: Added "Hard Delete" functionality to permanently delete users and all related data (Decks, Stats, Duel History).
+- **Security**: Introduced "Owner Role" configuration. Users in the Owner Role are protected from modification or deletion by non-Owners.
+
 ## [1.2.4] - 2025-12-11
 
 ### Added

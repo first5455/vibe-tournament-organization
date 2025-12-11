@@ -12,15 +12,17 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
     }, {} as Record<string, string>)
 
     const defaultRoleId = settingsMap['default_role_id'] ? parseInt(settingsMap['default_role_id']) : undefined
+    const ownerRoleId = settingsMap['owner_role_id'] ? parseInt(settingsMap['owner_role_id']) : undefined
 
     return {
       maintenanceMode: settingsMap['maintenance_mode'] === 'true',
       maintenanceMessage: settingsMap['maintenance_message'] || 'The system is currently undergoing maintenance. Please check back later.',
-      defaultRoleId
+      defaultRoleId,
+      ownerRoleId
     }
   })
   .post('/', async ({ body, set }) => {
-    const { userId, maintenanceMode, maintenanceMessage, defaultRoleId } = body
+    const { userId, maintenanceMode, maintenanceMessage, defaultRoleId, ownerRoleId } = body
     
     // Auth Check
     const requesterPermissions = await db.select({
@@ -71,12 +73,37 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       }).run()
     }
 
+    if (ownerRoleId !== undefined) {
+      // Security Check: Only current owner role members can change this (if it exists)
+      const currentSetting = await db.select().from(systemSettings).where(eq(systemSettings.key, 'owner_role_id')).get()
+      
+      if (currentSetting) {
+          const currentOwnerRoleId = parseInt(currentSetting.value)
+          // Get requester's role
+          const requester = await db.select().from(users).where(eq(users.id, userId)).get()
+          
+          if (!requester || requester.roleId !== currentOwnerRoleId) {
+              set.status = 403
+              return { error: 'Only users in the current Owner Role can change the Owner Role setting.' }
+          }
+      }
+
+      await db.insert(systemSettings).values({
+        key: 'owner_role_id',
+        value: String(ownerRoleId)
+      }).onConflictDoUpdate({
+        target: systemSettings.key,
+        set: { value: String(ownerRoleId), updatedAt: new Date().toISOString() }
+      }).run()
+    }
+
     return { success: true }
   }, {
     body: t.Object({
       userId: t.Number(),
       maintenanceMode: t.Optional(t.Boolean()),
       maintenanceMessage: t.Optional(t.String()),
-      defaultRoleId: t.Optional(t.Number())
+      defaultRoleId: t.Optional(t.Number()),
+      ownerRoleId: t.Optional(t.Number())
     })
   })
