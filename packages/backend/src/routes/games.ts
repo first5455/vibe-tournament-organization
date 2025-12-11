@@ -1,7 +1,7 @@
 
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { games, users, userGameStats } from '../db/schema'
+import { games, users, userGameStats, roles, rolePermissions, permissions } from '../db/schema'
 import { eq } from 'drizzle-orm'
 
 export const gamesRoutes = new Elysia({ prefix: '/games' })
@@ -9,12 +9,25 @@ export const gamesRoutes = new Elysia({ prefix: '/games' })
     return await db.select().from(games)
   })
   .post('/', async ({ body, query }) => {
-    // Basic Admin Check (In real app usage middleware)
-    if (!query.requesterId) {
+    // Permission Check
+    // Permission Check
+    if (!body.requesterId) {
       throw new Error('Unauthorized')
     }
-    // const requester = await db.query.users.findFirst({ where: eq(users.id, parseInt(query.requesterId)) })
-    // if (requester?.role !== 'admin') throw new Error('Unauthorized')
+
+    const requesterPermissions = await db.select({
+      permissionSlug: permissions.slug
+    })
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(users.id, body.requesterId))
+    .all()
+
+    const canManage = requesterPermissions.some(r => r.permissionSlug === 'games.manage')
+    
+    if (!canManage) throw new Error('Unauthorized')
 
     const newGame = await db.insert(games).values({
       name: body.name,
@@ -45,16 +58,31 @@ export const gamesRoutes = new Elysia({ prefix: '/games' })
       slug: t.Optional(t.String()),
       description: t.Optional(t.String()),
       imageUrl: t.Optional(t.String()),
+      requesterId: t.Number()
     }),
     query: t.Object({
       requesterId: t.Optional(t.String())
     })
   })
   .put('/:id', async ({ params, body, query }) => {
-      // Basic Admin Check
-      if (!query.requesterId) {
+      // Permission Check
+      if (!body.requesterId) {
           throw new Error('Unauthorized')
       }
+
+      const requesterPermissions = await db.select({
+        permissionSlug: permissions.slug
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(users.id, body.requesterId))
+      .all()
+  
+      const canManage = requesterPermissions.some(r => r.permissionSlug === 'games.manage')
+      
+      if (!canManage) throw new Error('Unauthorized')
 
       const updatedGame = await db.update(games)
           .set({
@@ -73,16 +101,31 @@ export const gamesRoutes = new Elysia({ prefix: '/games' })
           slug: t.Optional(t.String()),
           description: t.Optional(t.String()),
           imageUrl: t.Optional(t.String()),
+          requesterId: t.Number()
       }),
       query: t.Object({
           requesterId: t.Optional(t.String())
       })
   })
   .delete('/:id', async ({ params, query }) => {
-      // Basic Admin Check
+      // Permission Check
       if (!query.requesterId) {
           throw new Error('Unauthorized')
       }
+
+      const requesterPermissions = await db.select({
+        permissionSlug: permissions.slug
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(users.id, parseInt(query.requesterId)))
+      .all()
+  
+      const canManage = requesterPermissions.some(r => r.permissionSlug === 'games.manage')
+      
+      if (!canManage) throw new Error('Unauthorized')
 
       // Check if game has tournaments? (Optional safety)
 

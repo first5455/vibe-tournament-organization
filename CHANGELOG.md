@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.2.0] - 2025-12-11
+
+### Added
+
+- **Role-Based Access Control (RBAC)**: Complete system overhaul replacing legacy role checks with granular permissions (e.g., `tournaments.manage`, `admin.access`).
+- **Session Security**: Added "Force Global Re-login" feature (Backend & Frontend) to invalidate all active sessions instantly.
+- **Live Permission Updates**: Client now detects permission changes on window focus and updates state immediately.
+- **Admin Portal**: New "Roles" and "Permissions" management interfaces.
+- **UX**: "Next Round" in Tournaments now automatically advances the view to the new round.
+
+### Changed
+
+- **UI Consistency**: Standardized button sizes and variants (Primary/Destructive/Outline) across Tournament and Duel views for a cohesive look.
+- **Security Hardening**: Deep audit and removal of all legacy `user.role === 'admin'` checks in favor of strict permission guards.
+
 ## [1.1.1] - 2025-12-11
 
 ### Added

@@ -38,7 +38,7 @@ export default function Dashboard() {
   const [isCompletedExpanded, setIsCompletedExpanded] = useState(false) // Default to collapsed to keep view clean? User said "can collapse", but having it clean is nice. I will default to false (collapsed) if that's what "can collapse" often leads to in requests (cleaner UI). Wait, better to start Expanded to mimic previous state, then let them collapse. Let's start TRUE (Expanded).
   const [newName, setNewName] = useState('')
   const [newType, setNewType] = useState<'swiss' | 'round_robin'>('swiss')
-  const { user } = useAuth()
+  const { user, hasPermission } = useAuth()
 
   const { selectedGame } = useGame()
 
@@ -81,8 +81,9 @@ export default function Dashboard() {
       setNewName('')
       setNewType('swiss')
       loadTournaments()
-    } catch (err) {
-      alert('Failed to create tournament')
+    } catch (err: any) {
+      console.error(err)
+      alert('Failed to create tournament: ' + (err.message || 'Unknown error'))
     }
   }
 
@@ -104,10 +105,12 @@ export default function Dashboard() {
           >
             <RefreshCw className={`h-6 w-6 ${isCoolingDown ? 'animate-spin' : ''}`} />
           </Button>
-          <Button onClick={() => setIsCreating(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Tournament
-          </Button>
+          {(hasPermission('tournaments.manage_own') || hasPermission('tournaments.manage_all')) && (
+            <Button onClick={() => setIsCreating(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Tournament
+            </Button>
+          )}
         </div>
       </div>
 

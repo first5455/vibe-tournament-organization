@@ -1,6 +1,27 @@
 import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
+export const roles = sqliteTable('roles', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  isSystem: integer('is_system', { mode: 'boolean' }).default(false).notNull(), // Cannot be deleted
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+})
+
+export const permissions = sqliteTable('permissions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  slug: text('slug').notNull().unique(), // e.g. 'users.delete', 'tournaments.create'
+  description: text('description'),
+})
+
+export const rolePermissions = sqliteTable('role_permissions', {
+  roleId: integer('role_id').references(() => roles.id).notNull(),
+  permissionId: integer('permission_id').references(() => permissions.id).notNull(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.roleId, t.permissionId] }),
+}))
+
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   username: text('username').notNull().unique(),
@@ -9,11 +30,12 @@ export const users = sqliteTable('users', {
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
   securityQuestion: text('security_question'),
   securityAnswerHash: text('security_answer_hash'),
-  role: text('role', { enum: ['user', 'admin'] }).default('user').notNull(),
+  role: text('role', { enum: ['user', 'admin'] }).default('user').notNull(), // Deprecated in favor of roleId, kept for migration
+  roleId: integer('role_id').references(() => roles.id),
   color: text('color').default('#ffffff'),
   avatarUrl: text('avatar_url'),
+  tokenVersion: integer('token_version').default(0).notNull(),
 })
-
 // Games Table
 export const games = sqliteTable('games', {
   id: integer('id').primaryKey({ autoIncrement: true }),

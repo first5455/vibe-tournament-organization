@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, games, userGameStats } from '../db/schema'
+import { users, games, userGameStats, roles, permissions, rolePermissions } from '../db/schema'
 import { eq } from 'drizzle-orm'
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
@@ -22,6 +22,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       securityAnswerHash = await Bun.password.hash(body.securityAnswer)
     }
 
+    // Get default role (User)
+    const defaultRole = await db.select().from(roles).where(eq(roles.name, 'User')).get()
+    
     // Create user
     const result = await db.insert(users).values({
       username,
@@ -29,6 +32,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       passwordHash,
       securityQuestion: body.securityQuestion,
       securityAnswerHash,
+      roleId: defaultRole?.id // Assign default role
     }).returning().get()
 
     // Initialize MMR for all games
@@ -113,7 +117,29 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return { error: 'Invalid credentials' }
     }
 
-    return { user: { id: user.id, username: user.username, displayName: user.displayName, role: user.role, color: user.color, avatarUrl: user.avatarUrl } }
+    const role = await db.select().from(roles).where(eq(roles.id, user.roleId || 0)).get()
+    const perms = await db
+        .select({ slug: permissions.slug })
+        .from(permissions)
+        .innerJoin(rolePermissions, eq(permissions.id, rolePermissions.permissionId))
+        .where(eq(rolePermissions.roleId, user.roleId || 0))
+        .all()
+    
+    const permissionSlugs = perms.map(p => p.slug)
+
+    return { 
+        user: { 
+            id: user.id, 
+            username: user.username, 
+            displayName: user.displayName, 
+            role: user.role, // Legacy string
+            assignedRole: role ? { id: role.id, name: role.name } : null, 
+            permissions: permissionSlugs,
+            color: user.color, 
+            avatarUrl: user.avatarUrl,
+            tokenVersion: user.tokenVersion
+        } 
+    }
   }, {
     body: t.Object({
       username: t.String(),
@@ -161,7 +187,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     }
 
     const updatedUser = await db.select().from(users).where(eq(users.id, userId)).get()
-    return { user: { id: updatedUser!.id, username: updatedUser!.username, displayName: updatedUser!.displayName, role: updatedUser!.role, color: updatedUser!.color, avatarUrl: updatedUser!.avatarUrl } }
+    return { user: { id: updatedUser!.id, username: updatedUser!.username, displayName: updatedUser!.displayName, role: updatedUser!.role, color: updatedUser!.color, avatarUrl: updatedUser!.avatarUrl, tokenVersion: updatedUser!.tokenVersion } }
   }, {
     body: t.Object({
       userId: t.Number(),

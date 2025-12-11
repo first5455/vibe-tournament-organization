@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, tournaments, matches, participants, duelRooms, userGameStats } from '../db/schema'
+import { users, tournaments, matches, participants, duelRooms, userGameStats, roles, permissions, rolePermissions } from '../db/schema'
 import { eq, and, like, sql } from 'drizzle-orm'
 
 export const adminRoutes = new Elysia({ prefix: '/admin' })
@@ -11,8 +11,20 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         set.status = 401
         return { error: 'Unauthorized' }
       }
-      const requester = await db.select().from(users).where(eq(users.id, parseInt(requesterId))).get()
-      if (!requester || requester.role !== 'admin') {
+      
+      const requesterPermissions = await db.select({
+        permissionSlug: permissions.slug,
+      })
+      .from(users)
+      .leftJoin(roles, eq(users.roleId, roles.id))
+      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(users.id, parseInt(requesterId)))
+      .all()
+      
+      const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'admin.access')
+
+      if (!hasPermission) {
         set.status = 403
         return { error: 'Forbidden' }
       }
@@ -119,5 +131,21 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
     query: t.Object({
       requesterId: t.String(),
       gameId: t.Optional(t.String())
+    })
+  })
+  .post('/force-logout-all', async ({ set }) => {
+    try {
+      await db.update(users).set({ 
+        tokenVersion: sql`${users.tokenVersion} + 1` 
+      }).run()
+      return { success: true, message: 'All users forced to re-login' }
+    } catch (e: any) {
+      console.error('Failed to force logout:', e)
+      set.status = 500
+      return { error: 'Failed to force logout' }
+    }
+  }, {
+    query: t.Object({
+      requesterId: t.String()
     })
   })

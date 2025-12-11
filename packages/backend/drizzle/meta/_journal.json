@@ -57,6 +57,20 @@
       "when": 1765388217872,
       "tag": "0007_greedy_unicorn",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1765424214572,
+      "tag": "0008_handy_enchantress",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1765432727304,
+      "tag": "0009_brief_snowbird",
+      "breakpoints": true
     }
   ]
 }

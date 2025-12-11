@@ -81,7 +81,7 @@ interface DuelHistory {
 
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
-  const { user: currentUser } = useAuth()
+  const { user: currentUser, hasPermission } = useAuth()
   const { selectedGame: activeGame } = useGame() // Alias to activeGame to minimize changes
   const [user, setUser] = useState<UserProfile | null>(null)
   const [history, setHistory] = useState<TournamentHistory[]>([])
@@ -126,7 +126,7 @@ export default function UserProfilePage() {
   if (loading) return <div className="flex justify-center items-center h-96 text-zinc-500">Loading profile...</div>
   if (!user) return <div className="flex justify-center items-center h-96 text-red-500">User not found</div>
 
-  const canEdit = currentUser?.id === user.id || currentUser?.role === 'admin'
+  const canEdit = currentUser?.id === user.id || hasPermission('users.manage')
 
   const handleDeckSubmit = async (data: { name: string; link: string; color: string }) => {
     try {
