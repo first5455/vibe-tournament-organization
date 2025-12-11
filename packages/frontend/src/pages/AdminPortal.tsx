@@ -49,6 +49,7 @@ export default function AdminPortal() {
   const [duels, setDuels] = useState<any[]>([])
   const [decks, setDecks] = useState<AdminDeck[]>([])
   const [games, setGames] = useState<any[]>([])
+  const [availableRoles, setAvailableRoles] = useState<{id: number, name: string, isSystem: boolean}[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [editingColorId, setEditingColorId] = useState<number | null>(null)
@@ -67,7 +68,8 @@ export default function AdminPortal() {
   // Settings State
   const [settingsForm, setSettingsForm] = useState({
     maintenanceMode: false,
-    maintenanceMessage: ''
+    maintenanceMessage: '',
+    defaultRoleId: undefined as number | undefined
   })
 
   // Settings Save Handler
@@ -78,7 +80,8 @@ export default function AdminPortal() {
             body: JSON.stringify({
                 userId: user?.id,
                 maintenanceMode: settingsForm.maintenanceMode,
-                maintenanceMessage: settingsForm.maintenanceMessage
+                maintenanceMessage: settingsForm.maintenanceMessage,
+                defaultRoleId: settingsForm.defaultRoleId
             })
         })
         alert('Settings saved successfully')
@@ -180,10 +183,13 @@ export default function AdminPortal() {
         setGames(data)
       } else if (activeTab === 'settings') {
         const data = await api('/settings')
+        const rolesData = await api('/roles')
         setSettingsForm({
             maintenanceMode: data.maintenanceMode,
-            maintenanceMessage: data.maintenanceMessage
+            maintenanceMessage: data.maintenanceMessage,
+            defaultRoleId: data.defaultRoleId
         })
+        setAvailableRoles(rolesData)
       }
       
       // Always fetch games for filter list if we don't have them
@@ -1701,6 +1707,21 @@ export default function AdminPortal() {
                         onChange={(e) => setSettingsForm({...settingsForm, maintenanceMessage: e.target.value})}
                         placeholder="Enter a message to display to users..."
                     />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Default User Role</label>
+                    <p className="text-xs text-zinc-500 mb-2">Role assigned to new users upon registration.</p>
+                    <select
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={settingsForm.defaultRoleId || ''}
+                        onChange={(e) => setSettingsForm({...settingsForm, defaultRoleId: e.target.value ? parseInt(e.target.value) : undefined})}
+                    >
+                        <option value="">No Default Role (Guest)</option>
+                        {availableRoles.filter(role => role.isSystem).map(role => (
+                             <option key={role.id} value={role.id}>{role.name}</option>
+                        ))}
+                    </select>
                 </div>
 
                 <div className="pt-4 border-t border-zinc-800 flex justify-end">

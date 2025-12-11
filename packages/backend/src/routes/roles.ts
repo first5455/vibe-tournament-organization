@@ -1,7 +1,7 @@
 
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { roles, permissions, rolePermissions, users } from '../db/schema'
+import { roles, permissions, rolePermissions, users, systemSettings } from '../db/schema'
 import { eq, and } from 'drizzle-orm'
 
 export const rolesRoutes = new Elysia({ prefix: '/roles' })
@@ -52,7 +52,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     }
 
     try {
-      const result = await db.insert(roles).values({ name, description }).returning().get()
+      const result = await db.insert(roles).values({ name, description, isSystem: body.isSystem || false }).returning().get()
       return result
     } catch (e) {
       set.status = 400
@@ -62,6 +62,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     body: t.Object({
       name: t.String(),
       description: t.Optional(t.String()),
+      isSystem: t.Optional(t.Boolean()),
       requesterId: t.Number()
     })
   })
@@ -96,9 +97,21 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     
     // Allow renaming system roles as per user request
     // if (role.isSystem && name !== role.name) { ... } REMOVED
+    
+    // Check if trying to unset system status for default role
+    if (body.isSystem !== undefined && role.isSystem && !body.isSystem) {
+        const defaultRoleSetting = await db.select().from(systemSettings).where(eq(systemSettings.key, 'default_role_id')).get()
+        if (defaultRoleSetting && parseInt(defaultRoleSetting.value) === id) {
+             set.status = 400
+             return { error: 'Cannot remove System status from the Default Role. Please change the Default Role setting first.' }
+        }
+    }
 
     try {
-      await db.update(roles).set({ name, description }).where(eq(roles.id, id)).run()
+      const updates: any = { name, description }
+      if (body.isSystem !== undefined) updates.isSystem = body.isSystem
+      
+      await db.update(roles).set(updates).where(eq(roles.id, id)).run()
       return await db.select().from(roles).where(eq(roles.id, id)).get()
     } catch (e) {
       set.status = 400
@@ -108,6 +121,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     body: t.Object({
       name: t.String(),
       description: t.Optional(t.String()),
+      isSystem: t.Optional(t.Boolean()),
       requesterId: t.Number()
     })
   })

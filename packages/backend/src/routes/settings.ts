@@ -11,13 +11,16 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       return acc
     }, {} as Record<string, string>)
 
+    const defaultRoleId = settingsMap['default_role_id'] ? parseInt(settingsMap['default_role_id']) : undefined
+
     return {
       maintenanceMode: settingsMap['maintenance_mode'] === 'true',
-      maintenanceMessage: settingsMap['maintenance_message'] || 'The system is currently undergoing maintenance. Please check back later.'
+      maintenanceMessage: settingsMap['maintenance_message'] || 'The system is currently undergoing maintenance. Please check back later.',
+      defaultRoleId
     }
   })
   .post('/', async ({ body, set }) => {
-    const { userId, maintenanceMode, maintenanceMessage } = body
+    const { userId, maintenanceMode, maintenanceMessage, defaultRoleId } = body
     
     // Auth Check
     const requesterPermissions = await db.select({
@@ -58,11 +61,22 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       }).run()
     }
 
+    if (defaultRoleId !== undefined) {
+      await db.insert(systemSettings).values({
+        key: 'default_role_id',
+        value: String(defaultRoleId)
+      }).onConflictDoUpdate({
+        target: systemSettings.key,
+        set: { value: String(defaultRoleId), updatedAt: new Date().toISOString() }
+      }).run()
+    }
+
     return { success: true }
   }, {
     body: t.Object({
       userId: t.Number(),
       maintenanceMode: t.Optional(t.Boolean()),
-      maintenanceMessage: t.Optional(t.String())
+      maintenanceMessage: t.Optional(t.String()),
+      defaultRoleId: t.Optional(t.Number())
     })
   })

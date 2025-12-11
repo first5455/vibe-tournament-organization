@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.2.4] - 2025-12-11
+
+### Added
+
+- **Admin Portal**: Added "Winner" column to the Tournaments table.
+- **Role Management**: Added ability to perform strictly managed System Roles (create/edit with `isSystem` flag).
+- **Settings**: Added "Default User Role" configuration. Administrators can now specify which role new users receive upon registration (or "No Role" by default).
+
+### Changed
+
+- **Role Logic**: Removed hardcoded fallback to "User" role. The system now strictly adheres to the "Default User Role" setting. If unset, new users have no role/permissions.
+- **Role Deletion**: System roles and the currently active Default Role are protected from deletion or modification of their system status.
+
 ## [1.2.3] - 2025-12-11
 
 ### Fixed

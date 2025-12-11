@@ -37,6 +37,7 @@ export function RoleManagement() {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
+        isSystem: false,
         permissionIds: [] as number[]
     })
 
@@ -74,7 +75,7 @@ export function RoleManagement() {
 
     const handleCreate = () => {
         setEditingRole(null)
-        setFormData({ name: '', description: '', permissionIds: [] })
+        setFormData({ name: '', description: '', isSystem: false, permissionIds: [] })
         setIsDialogOpen(true)
     }
 
@@ -83,6 +84,7 @@ export function RoleManagement() {
         setFormData({
             name: role.name,
             description: role.description || '',
+            isSystem: role.isSystem,
             permissionIds: role.permissions?.map(p => p.id) || []
         })
         setIsDialogOpen(true)
@@ -111,6 +113,7 @@ export function RoleManagement() {
                     body: JSON.stringify({
                         name: formData.name,
                         description: formData.description,
+                        isSystem: formData.isSystem,
                         requesterId: user?.id
                     })
                 })
@@ -120,6 +123,7 @@ export function RoleManagement() {
                     body: JSON.stringify({
                         name: formData.name,
                         description: formData.description,
+                        isSystem: formData.isSystem,
                         requesterId: user?.id
                     })
                 })
@@ -233,6 +237,20 @@ export function RoleManagement() {
                                 value={formData.description}
                                 onChange={e => setFormData({...formData, description: e.target.value})}
                             />
+                        </div>
+
+                        <div className="space-y-1">
+                            <div className="flex items-center space-x-2">
+                                <input 
+                                    type="checkbox"
+                                    id="isSystem"
+                                    className="rounded bg-zinc-800 border-zinc-700 h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                                    checked={formData.isSystem}
+                                    onChange={e => setFormData({...formData, isSystem: e.target.checked})}
+                                />
+                                <label htmlFor="isSystem" className="text-sm font-medium text-white cursor-pointer select-none">System Role</label>
+                            </div>
+                            <p className="text-xs text-zinc-500">System roles cannot be deleted.</p>
                         </div>
 
                         <div className="space-y-2">
