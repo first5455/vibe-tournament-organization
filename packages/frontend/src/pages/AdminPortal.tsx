@@ -646,7 +646,7 @@ export default function AdminPortal() {
         </div>
       </div>
 
-      <div className="flex gap-2 border-b border-zinc-800 pb-1 overflow-x-auto no-scrollbar justify-center">
+      <div className="flex gap-2 border-b border-zinc-800 pb-1 overflow-x-auto no-scrollbar justify-start md:justify-center">
         <Button 
           variant={activeTab === 'users' ? 'secondary' : 'ghost'} 
           onClick={() => setActiveTab('users')}
