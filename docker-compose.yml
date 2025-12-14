@@ -1,23 +1,28 @@
-version: '3.8'
-
 services:
   backend:
     build: ./packages/backend
+    container_name: bun-backend
+    restart: always
     ports:
-      - "3000:3000"
+      - "8080:3000" # Elysia default is 3000
     environment:
-      - PORT=3000
-      - DATABASE_URL=file:/data/local.db
-    volumes:
-      - ./data:/data
-
-  frontend:
-    build:
-      context: ./packages/frontend
-      args:
-        - VITE_API_URL=http://localhost:3000
-        - VITE_WS_URL=ws://localhost:3000/ws
-    ports:
-      - "80:80"
+      # This points to the service name below
+      - DATABASE_URL=libsql://libsql-server:8080
     depends_on:
-      - backend
+      - libsql-server
+
+  libsql-server:
+    image: ghcr.io/tursodatabase/libsql-server:latest
+    container_name: libsql-server
+    restart: always
+    # Expose port locally if you want to inspect it with tools, 
+    # otherwise keep it internal-only by removing "ports"
+    ports:
+      - "8081:8080" 
+    volumes:
+      - libsql-data:/var/lib/sqld
+    environment:
+      - SQLD_NODE=primary
+
+volumes:
+  libsql-data:

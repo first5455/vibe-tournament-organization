@@ -1,0 +1,45 @@
+name: Deploy Elysia + LibSQL
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'packages/backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy.yml'
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # --- NEW STEP: Create .env from GitHub Secrets ---
+      - name: Create .env file
+        run: |
+          echo "🔐 Injecting Secrets..."
+          
+          # Option A: If you saved individual secrets
+          # echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+          # echo "API_KEY=${{ secrets.API_KEY }}" >> .env
+          
+          # Option B: If you saved the WHOLE file as one secret (Recommended)
+          echo "${{ secrets.PRODUCTION_ENV }}" > .env
+          
+          echo "✅ .env file created!"
+
+      - name: Deploy with Docker
+        run: |
+          echo "🚀 Deploying Elysia..."
+          
+          # Pull latest images
+          docker compose pull
+          
+          # Start Backend + LibSQL
+          # We point to the .env file we just created
+          docker compose --env-file .env up -d --build --remove-orphans
+          
+          # Cleanup
+          docker image prune -f
