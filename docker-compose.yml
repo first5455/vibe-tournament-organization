@@ -6,7 +6,7 @@ services:
     ports:
       - "8080:3000"
     environment:
-      - DATABASE_URL=libsql://libsql-server:8080
+      - DATABASE_URL=http://libsql-server:8080
       # Add other env vars if needed
     depends_on:
       - libsql-server
