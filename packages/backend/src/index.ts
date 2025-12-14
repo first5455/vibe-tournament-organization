@@ -16,7 +16,13 @@ import { permissionsRoutes } from './routes/permissions'
 
 const app = new Elysia()
   .use(swagger())
-  .use(cors())
+  .use(cors({
+      origin: [
+        process.env.FRONTEND_URL ?? '',
+        'localhost:5173',
+        'http://localhost:5173'
+      ]
+  }))
   .use(authRoutes)
   .use(userRoutes)
   .use(tournamentRoutes)
@@ -28,6 +34,7 @@ const app = new Elysia()
   .use(settingsRoutes)
   .use(rolesRoutes)
   .use(permissionsRoutes)
+  .get('/health', () => ({ status: 'ok' }))
   .get('/time', () => {
     const now = new Date()
     const options: Intl.DateTimeFormatOptions = {
