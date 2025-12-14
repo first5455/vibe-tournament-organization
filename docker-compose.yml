@@ -5,6 +5,8 @@ services:
     restart: always
     ports:
       - "8080:3000"
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
     environment:
       - DATABASE_URL=http://libsql-server:8080
       # Add other env vars if needed
