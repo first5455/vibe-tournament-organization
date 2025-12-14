@@ -11,18 +11,17 @@ services:
     depends_on:
       - libsql-server
 
-  libsql-server:
+libsql-server:
     image: ghcr.io/tursodatabase/libsql-server:latest
     container_name: libsql-server
     restart: always
-    # Expose port locally if you want to inspect it with tools, 
-    # otherwise keep it internal-only by removing "ports"
     ports:
-      - "8081:8080" 
+      - "8081:8080" # HTTP Port (For your Bun App / Drizzle)
+      - "5432:5432" # Postgres Port (For DBeaver)
     volumes:
       - libsql-data:/var/lib/sqld
     environment:
       - SQLD_NODE=primary
-
+      - SQLD_PG_LISTEN_ADDR=0.0.0.0:5432
 volumes:
   libsql-data:
