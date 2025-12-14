@@ -4,24 +4,25 @@ services:
     container_name: bun-backend
     restart: always
     ports:
-      - "8080:3000" # Elysia default is 3000
+      - "8080:3000"
     environment:
-      # This points to the service name below
       - DATABASE_URL=libsql://libsql-server:8080
+      # Add other env vars if needed
     depends_on:
       - libsql-server
 
-libsql-server:
+  libsql-server:
     image: ghcr.io/tursodatabase/libsql-server:latest
     container_name: libsql-server
     restart: always
     ports:
-      - "8081:8080" # HTTP Port (For your Bun App / Drizzle)
-      - "5432:5432" # Postgres Port (For DBeaver)
+      - "8081:8080" # HTTP Access
+      - "5432:5432" # Postgres/DBeaver Access
     volumes:
       - libsql-data:/var/lib/sqld
     environment:
       - SQLD_NODE=primary
       - SQLD_PG_LISTEN_ADDR=0.0.0.0:5432
+
 volumes:
   libsql-data:
