@@ -16,7 +16,7 @@ services:
     container_name: libsql-server
     restart: always
     ports:
-      - "8081:8080" # We only need the HTTP port now
+      - "127.0.0.1:8081:8080" # We only need the HTTP port now
     volumes:
       - libsql-data:/var/lib/sqld
     environment:
