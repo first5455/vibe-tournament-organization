@@ -83,7 +83,7 @@ const app = new Elysia()
     }
   })
 
-app.listen(process.env.PORT || 3000)
+// app.listen(process.env.PORT || 3000)
 
 import { events, EVENTS } from './lib/events'
 
@@ -109,4 +109,4 @@ console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
 )
 
-
+export default app
