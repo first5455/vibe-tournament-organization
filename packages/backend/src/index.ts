@@ -20,7 +20,8 @@ const app = new Elysia()
       origin: [
         process.env.FRONTEND_URL ?? '',
         'localhost:5173',
-        'http://localhost:5173'
+        'http://localhost:5173',
+        /\.vercel\.app$/
       ]
   }))
   .use(authRoutes)
