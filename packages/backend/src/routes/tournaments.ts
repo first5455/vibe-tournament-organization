@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { tournaments, participants, users, matches, decks, games, userGameStats, roles, rolePermissions, permissions } from '../db/schema'
 import { eq, and, or, isNull, sql, getTableColumns } from 'drizzle-orm'
+import { events, EVENTS } from '../lib/events'
 
 export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
   .post('/', async ({ body, set }) => {
@@ -174,7 +175,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       deckId
     }).run()
 
-    const { events, EVENTS } = await import('../lib/events')
+
     events.emit(EVENTS.TOURNAMENT_UPDATED, { tournamentId })
 
     return { success: true }
@@ -208,7 +209,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       guestName: name,
     }).run()
 
-    const { events, EVENTS } = await import('../lib/events')
+
     events.emit(EVENTS.TOURNAMENT_UPDATED, { tournamentId })
 
     return { success: true }
@@ -287,7 +288,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       .where(eq(tournaments.id, id))
       .run()
 
-    const { events, EVENTS } = await import('../lib/events')
+
     events.emit(EVENTS.TOURNAMENT_UPDATED, { tournamentId: id })
 
     return { success: true }
@@ -446,7 +447,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       deckId
     }).run()
 
-    const { events, EVENTS } = await import('../lib/events')
+
     events.emit(EVENTS.TOURNAMENT_UPDATED, { tournamentId })
 
     return { success: true }
@@ -517,7 +518,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       eq(participants.tournamentId, tournamentId)
     )).run()
 
-    const { events, EVENTS } = await import('../lib/events')
+
     events.emit(EVENTS.TOURNAMENT_UPDATED, { tournamentId })
 
     return { success: true }
@@ -572,7 +573,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       .where(eq(participants.id, participantId))
       .run()
 
-    const { events, EVENTS } = await import('../lib/events')
+
     events.emit(EVENTS.TOURNAMENT_UPDATED, { tournamentId })
 
     return { success: true }
@@ -635,7 +636,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       .where(eq(participants.id, participantId))
       .run()
 
-    const { events, EVENTS } = await import('../lib/events')
+
     events.emit(EVENTS.TOURNAMENT_UPDATED, { tournamentId })
 
     return { success: true }
@@ -707,7 +708,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       return { error: 'Failed to generate pairings' }
     }
 
-    const { events, EVENTS } = await import('../lib/events')
+
     events.emit(EVENTS.TOURNAMENT_UPDATED, { tournamentId })
 
     return { success: true }
@@ -815,7 +816,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       .run()
 
     if (unfinishedMatches.length > 0) {
-      const { events, EVENTS } = await import('../lib/events')
+  
       events.emit(EVENTS.MATCH_REPORTED, { count: unfinishedMatches.length, tournamentId })
     }
 
@@ -834,7 +835,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       return { error: 'Failed to generate pairings' }
     }
 
-    const { events, EVENTS } = await import('../lib/events')
+
     events.emit(EVENTS.TOURNAMENT_UPDATED, { tournamentId })
 
     return { success: true }
@@ -950,7 +951,7 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       .where(eq(tournaments.id, tournamentId))
       .run()
 
-    const { events, EVENTS } = await import('../lib/events')
+
     events.emit(EVENTS.TOURNAMENT_UPDATED, { tournamentId })
 
     return { success: true }

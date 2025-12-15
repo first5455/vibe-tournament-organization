@@ -103,10 +103,12 @@ const app = new Elysia()
           success
         }))
       }
+
+      if (data && data.type === 'SUBSCRIBE_DUELS') {
+        const success = ws.subscribe('duels')
+      }
     }
   })
-
-  .listen(process.env.PORT || 3000)
 
 import { events, EVENTS } from './lib/events'
 
@@ -128,12 +130,23 @@ events.on(EVENTS.TOURNAMENT_UPDATED, ({ tournamentId }) => {
   app.server.publish(topic, JSON.stringify({ type: 'UPDATE_TOURNAMENT' }))
 })
 
+
+events.on(EVENTS.DUEL_CREATED, () => {
+  if (!app.server) return
+  app.server.publish('duels', JSON.stringify({ type: 'UPDATE_DUELS_LIST' }))
+})
+
 events.on(EVENTS.DUEL_UPDATED, ({ duelId }) => {
   if (!app.server) return
 
   const topic = `duel:${duelId}`
   app.server.publish(topic, JSON.stringify({ type: 'UPDATE_DUEL', duelId }))
+  
+  // Also update list for status changes
+  app.server.publish('duels', JSON.stringify({ type: 'UPDATE_DUELS_LIST' }))
 })
+
+app.listen(process.env.PORT || 3000)
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port} WS enabled`

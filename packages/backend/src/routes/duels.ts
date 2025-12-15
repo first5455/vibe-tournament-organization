@@ -5,6 +5,8 @@ import { eq, and, or, desc, aliasedTable, sql } from 'drizzle-orm'
 import { getRank } from '../utils'
 import { events, EVENTS } from '../lib/events'
 
+console.log('Duels routes module loaded')
+
 export const duelRoutes = new Elysia({ prefix: '/duels' })
   .get('/', async ({ query }) => {
     // ... (existing GET / code) ...
@@ -109,8 +111,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
         gameId
       }).returning().get()
       
-      // Since it's new, we might not need to emit specific update, but maybe list update? 
-      // For now, no specific ID update needed as no one is subscribed yet.
+      events.emit(EVENTS.DUEL_CREATED, { duelId: result.id })
       
       return { duel: result }
     } catch (e) {
@@ -467,41 +468,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       // I'll do granular replacements below instead of this huge block.
       return {}
   })
-  .post('/', async ({ body, set }) => {
-    const { name, createdBy, player1Id, player2Id, player1Note, player2Note, player1DeckId, player2DeckId, gameId } = body
-    
-    try {
-      const result = await db.insert(duelRooms).values({
-        name,
-        player1Id: player1Id || createdBy,
-        player2Id: player2Id || null,
-        player1DeckId,
-        player2DeckId,
-        status: player2Id ? 'ready' : 'open',
-        player1Note,
-        player2Note,
-        gameId
-      }).returning().get()
-      
-      return { duel: result }
-    } catch (e) {
-      console.error('Failed to create duel:', e)
-      set.status = 500
-      return { error: 'Failed to create duel' }
-    }
-  }, {
-    body: t.Object({
-      name: t.String(),
-      createdBy: t.Number(),
-      gameId: t.Optional(t.Number()),
-      player1Id: t.Optional(t.Number()),
-      player2Id: t.Optional(t.Nullable(t.Number())),
-      player1Note: t.Optional(t.Nullable(t.String())),
-      player2Note: t.Optional(t.Nullable(t.String())),
-      player1DeckId: t.Optional(t.Number()),
-      player2DeckId: t.Optional(t.Number())
-    })
-  })
+
   .get('/:id', async ({ params, set }) => {
     set.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, proxy-revalidate'
     set.headers['Pragma'] = 'no-cache'
@@ -572,6 +539,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       .set({ player2Id: userId, player2DeckId: deckId, status: 'ready' })
       .where(eq(duelRooms.id, id))
       .run()
+
+    events.emit(EVENTS.DUEL_UPDATED, { duelId: id })
 
     return { success: true }
   }, {
@@ -671,6 +640,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       .where(eq(duelRooms.id, id))
       .run()
 
+    events.emit(EVENTS.DUEL_UPDATED, { duelId: id })
+
     return { success: true }
   }, {
     params: t.Object({ id: t.String() }),
@@ -710,6 +681,9 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       .set({ status: 'active' })
       .where(eq(duelRooms.id, id))
       .run()
+
+    const { events, EVENTS } = await import('../lib/events')
+    events.emit(EVENTS.DUEL_UPDATED, { duelId: id })
 
     return { success: true }
   }, {
@@ -1217,6 +1191,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
         .run()
 
       events.emit(EVENTS.DUEL_UPDATED, { duelId: id })
+      events.emit(EVENTS.DUEL_CREATED, { duelId: newDuel.id })
 
       return { duel: newDuel }
     } catch (e) {

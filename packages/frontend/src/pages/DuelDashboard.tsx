@@ -71,7 +71,34 @@ export default function DuelDashboard() {
     if (selectedGame) {
       loadDuels()
     }
-  }, [selectedGame])
+
+    let ws: WebSocket | null = null
+    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true' && selectedGame) {
+      try {
+        ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
+        
+        ws.onopen = () => {
+          ws?.send(JSON.stringify({ type: 'SUBSCRIBE_DUELS' }))
+        }
+
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data)
+          if (data.type === 'UPDATE_DUELS_LIST') {
+            loadDuels()
+          }
+        }
+        
+        ws.onerror = () => {}
+
+      } catch (e) {
+        console.error('WS Exception', e)
+      }
+    }
+
+    return () => {
+      if (ws) ws.close()
+    }
+  }, [selectedGame?.id])
 
   useEffect(() => {
     const fetchDecks = async () => {
@@ -109,6 +136,7 @@ export default function DuelDashboard() {
           gameId: selectedGame.id
         }),
       })
+
       setIsCreating(false)
       setNewName('')
       navigate(`/duels/${duel.id}`)
