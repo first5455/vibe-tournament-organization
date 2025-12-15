@@ -50,23 +50,31 @@ export default function Leaderboard() {
       try {
         ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
         
+        ws.onopen = () => {
+          // Connected
+        }
+
         ws.onmessage = (event) => {
           const data = JSON.parse(event.data)
           if (data.type === 'UPDATE_LEADERBOARD') {
-            // Potentially filter updates by gameId if payload has it?
-            // For now simple refresh
             loadLeaderboard()
           }
         }
+        
+        // Suppress simple errors in dev to avoid noise
+        ws.onerror = () => {}
+
       } catch (e) {
-        console.error('WS Error', e)
+        console.error('WS Exception', e)
       }
     }
 
-   return () => {
-      if (ws) ws.close()
+    return () => {
+      if (ws) {
+        ws.close()
+      }
     }
-  }, [selectedGame])
+  }, [selectedGame?.id])
 
   useFocusRevalidate(loadLeaderboard, 30000)
 

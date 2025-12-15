@@ -82,6 +82,32 @@ export default function DuelRoom() {
 
   useEffect(() => {
     fetchDuel()
+
+    // WebSocket connection
+    let ws: WebSocket | null = null
+    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true' && id) {
+      try {
+        ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
+        
+        ws.onopen = () => {
+          // console.log('WS Connected')
+          ws?.send(JSON.stringify({ type: 'SUBSCRIBE_DUEL', duelId: id }))
+        }
+        
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data)
+          if (data.type === 'UPDATE_DUEL' && parseInt(data.duelId) === parseInt(id!)) {
+            fetchDuel()
+          }
+        }
+      } catch (e) {
+        console.error('WS Error', e)
+      }
+    }
+
+    return () => {
+      if (ws) ws.close()
+    }
   }, [id])
 
   useEffect(() => {
