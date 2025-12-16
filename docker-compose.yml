@@ -5,9 +5,11 @@ services:
     restart: always
     ports:
       - "8080:8082"
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=http://libsql-server:8080
-      # Add other env vars if needed
+      - PORT=8082
     depends_on:
       - libsql-server
 
