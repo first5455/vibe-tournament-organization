@@ -169,6 +169,7 @@ events.on(EVENTS.DUEL_UPDATED, ({ duelId }) => {
 
 app.listen(process.env.PORT || 8082)
 
+
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port} WS enabled`
 )
