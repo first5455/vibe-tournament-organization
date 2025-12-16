@@ -111,6 +111,10 @@ const app = new Elysia()
       if (data && data.type === 'SUBSCRIBE_TOURNAMENTS') {
         ws.subscribe('tournaments')
       }
+
+      if (data && data.type === 'PING') {
+        ws.send(JSON.stringify({ type: 'PONG' }))
+      }
     }
   })
 

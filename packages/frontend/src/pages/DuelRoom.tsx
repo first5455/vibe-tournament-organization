@@ -115,7 +115,14 @@ export default function DuelRoom() {
       }
     }
 
+    const interval = setInterval(() => {
+        if (ws?.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'PING' }))
+        }
+    }, 30000)
+
     return () => {
+      clearInterval(interval)
       if (ws) ws.close()
     }
   }, [id])

@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Real-Time Updates**: Added real-time updates for Tournament Creation and Deletion.
 - **Validation**: Added Name Requirement validation when creating a new Tournament.
+- **Stability**: Implemented WebSocket Heartbeat (Ping/Pong) to prevent Cloudflare idle timeouts (100s). All real-time connections now self-monitor connectivity.
 
 ## [1.2.4.1] - 2025-12-11
 
