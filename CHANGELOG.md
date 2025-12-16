@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Admin**: Fixed permission logic bug preventing Admins from updating their own MMR/Stats.
 - **Admin**: Added missing real-time triggers for Admin MMR updates, ensuring Leaderboard reflects changes instantly.
 
+### Added
+
+- **Real-Time Updates**: Added real-time updates for Tournament Creation and Deletion.
+- **Validation**: Added Name Requirement validation when creating a new Tournament.
+
 ## [1.2.4.1] - 2025-12-11
 
 ### Added
