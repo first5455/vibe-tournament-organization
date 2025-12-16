@@ -4,7 +4,7 @@ services:
     container_name: bun-backend
     restart: always
     ports:
-      - "8080:3000"
+      - "8080:8082"
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
     environment:
