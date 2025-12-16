@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { matches, participants, tournaments, users, userGameStats } from '../db/schema'
 import { eq, and, sql } from 'drizzle-orm'
+import { events, EVENTS } from '../lib/events'
 
 export const matchRoutes = new Elysia({ prefix: '/matches' })
   .post('/:id/report', async ({ params, body, set }) => {
@@ -38,7 +39,6 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
     const isPlayer1 = p1?.userId === reportedBy
     const isPlayer2 = p2?.userId === reportedBy
 
-
     
     if (!isAdmin && !isPlayer1 && !isPlayer2) {
       set.status = 403
@@ -51,8 +51,6 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
       .where(eq(matches.id, matchId))
       .run()
 
-    // Update participant score
-    // Winner gets 1 point (simplified)
     // Update participant score
     // Winner gets 1 point
     const participant = winnerId ? await db.select().from(participants)
@@ -131,7 +129,6 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
     // Check if round is complete?
     // If so, maybe trigger next round or notify?
 
-    const { events, EVENTS } = await import('../lib/events')
     events.emit(EVENTS.MATCH_REPORTED, { matchId, winnerId, tournamentId: match.tournamentId })
 
     return { success: true }
@@ -273,7 +270,6 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
       }
     }
 
-    const { events, EVENTS } = await import('../lib/events')
     events.emit(EVENTS.MATCH_REPORTED, { matchId, winnerId, tournamentId: match.tournamentId })
 
     return { success: true }

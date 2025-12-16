@@ -3,6 +3,7 @@ import { db } from '../db'
 import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games, roles, permissions, rolePermissions, systemSettings } from '../db/schema'
 import { eq, desc, sql, or, and, isNull } from 'drizzle-orm'
 import { getRank } from '../utils'
+import { events, EVENTS } from '../lib/events'
 
 
 export const userRoutes = new Elysia({ prefix: '/users' })
@@ -427,22 +428,19 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     // Allow if manage permission OR if updating self
     const isSelfUpdate = requesterId === parseInt(params.id)
     
-    let canManage = false
-    if (!isSelfUpdate) {
-        // Check permissions
-        const requesterPermissions = await db.select({
-            roleName: roles.name,
-            permissionSlug: permissions.slug
-        })
-        .from(users)
-        .leftJoin(roles, eq(users.roleId, roles.id))
-        .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-        .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-        .where(eq(users.id, requesterId))
-        .all()
-        
-        canManage = requesterPermissions.some(r => r.permissionSlug === 'users.manage')
-    }
+    // Always check permissions to determine if sensitive fields (Role, MMR) can be updated
+    const requesterPermissions = await db.select({
+        roleName: roles.name,
+        permissionSlug: permissions.slug
+    })
+    .from(users)
+    .leftJoin(roles, eq(users.roleId, roles.id))
+    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .where(eq(users.id, requesterId))
+    .all()
+    
+    const canManage = requesterPermissions.some(r => r.permissionSlug === 'users.manage')
 
     if (!isSelfUpdate && !canManage) {
       set.status = 403
@@ -505,8 +503,9 @@ export const userRoutes = new Elysia({ prefix: '/users' })
                       draws: 0
                   }).run()
               }
-          }
-          // Legacy MMR update removed
+              }
+          
+          events.emit(EVENTS.MATCH_REPORTED, { count: 1 }) // Trigger leaderboard update
       }
     }
 

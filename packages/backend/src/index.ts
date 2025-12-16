@@ -64,8 +64,11 @@ const app = new Elysia()
   })
   .ws('/ws', {
     open(ws) {
-      console.log('WS Connected')
+      // WS Connected
       ws.subscribe('leaderboard')
+    },
+    close(ws) {
+      // WS Disconnected
     },
     message(ws, message) {
       let data: any = message
@@ -88,10 +91,32 @@ const app = new Elysia()
           success
         }))
       }
+
+      if (data && data.type === 'SUBSCRIBE_DUEL' && data.duelId) {
+        const topic = `duel:${data.duelId}`
+        const success = ws.subscribe(topic)
+        
+        ws.send(JSON.stringify({  
+          type: 'SUBSCRIPTION_CONFIRMED', 
+          duelId: data.duelId,
+          topic,
+          success
+        }))
+      }
+
+      if (data && data.type === 'SUBSCRIBE_DUELS') {
+        const success = ws.subscribe('duels')
+      }
+
+      if (data && data.type === 'SUBSCRIBE_TOURNAMENTS') {
+        ws.subscribe('tournaments')
+      }
+
+      if (data && data.type === 'PING') {
+        ws.send(JSON.stringify({ type: 'PONG' }))
+      }
     }
   })
-
-// app.listen(process.env.PORT || 3000)
 
 import { events, EVENTS } from './lib/events'
 
@@ -111,10 +136,41 @@ events.on(EVENTS.TOURNAMENT_UPDATED, ({ tournamentId }) => {
 
   const topic = `tournament:${tournamentId}`
   app.server.publish(topic, JSON.stringify({ type: 'UPDATE_TOURNAMENT' }))
+  app.server.publish('tournaments', JSON.stringify({ type: 'UPDATE_TOURNAMENTS_LIST' }))
 })
 
+
+events.on(EVENTS.TOURNAMENT_CREATED, () => {
+    if (!app.server) return
+    app.server.publish('tournaments', JSON.stringify({ type: 'UPDATE_TOURNAMENTS_LIST' }))
+})
+
+events.on(EVENTS.TOURNAMENT_DELETED, () => {
+  if (!app.server) return
+  app.server.publish('tournaments', JSON.stringify({ type: 'UPDATE_TOURNAMENTS_LIST' }))
+})
+
+
+
+events.on(EVENTS.DUEL_CREATED, () => {
+  if (!app.server) return
+  app.server.publish('duels', JSON.stringify({ type: 'UPDATE_DUELS_LIST' }))
+})
+
+events.on(EVENTS.DUEL_UPDATED, ({ duelId }) => {
+  if (!app.server) return
+
+  const topic = `duel:${duelId}`
+  app.server.publish(topic, JSON.stringify({ type: 'UPDATE_DUEL', duelId }))
+  
+  // Also update list for status changes
+  app.server.publish('duels', JSON.stringify({ type: 'UPDATE_DUELS_LIST' }))
+})
+
+app.listen(process.env.PORT || 3000)
+
 console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
+  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port} WS enabled`
 )
 
 export default app

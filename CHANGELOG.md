@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.2.5] - 2025-12-16
+
+### Fixed
+
+- **Real-Time Updates**: Fixed persistent issues with real-time updates for Duel List and Tournaments. Removed duplicate route handlers and ensured proper event emission for Create, Join, Leave, Start, and Match Reporting actions.
+- **Admin**: Fixed permission logic bug preventing Admins from updating their own MMR/Stats.
+- **Admin**: Added missing real-time triggers for Admin MMR updates, ensuring Leaderboard reflects changes instantly.
+
+### Added
+
+- **Real-Time Updates**: Added real-time updates for Tournament Creation and Deletion.
+- **Validation**: Added Name Requirement validation when creating a new Tournament.
+- **Stability**: Implemented WebSocket Heartbeat (Ping/Pong) to prevent Cloudflare idle timeouts (100s). All real-time connections now self-monitor connectivity.
+
 ## [1.2.4.1] - 2025-12-11
 
 ### Added

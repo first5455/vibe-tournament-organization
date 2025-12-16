@@ -50,6 +50,7 @@ interface Duel {
   player2Note?: string
   firstPlayerId?: number
   createdAt: string
+  rematchRoomId?: number
 }
 
 export default function DuelRoom() {
@@ -57,6 +58,13 @@ export default function DuelRoom() {
   const navigate = useNavigate()
   const { user, hasPermission } = useAuth()
   const [duel, setDuel] = useState<Duel | null>(null)
+
+  // Redirect if rematch found
+  useEffect(() => {
+    if (duel?.rematchRoomId) {
+       navigate(`/duels/${duel.rematchRoomId}`)
+    }
+  }, [duel?.rematchRoomId, navigate])
   const [loading, setLoading] = useState(true)
   const [userDecks, setUserDecks] = useState<Deck[]>([])
   const [selectedDeckId, setSelectedDeckId] = useState<number | undefined>(undefined)
@@ -82,6 +90,41 @@ export default function DuelRoom() {
 
   useEffect(() => {
     fetchDuel()
+
+    // WebSocket connection
+    let ws: WebSocket | null = null
+    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true' && id) {
+      try {
+        ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
+        
+        ws.onopen = () => {
+          // console.log('WS Connected')
+          ws?.send(JSON.stringify({ type: 'SUBSCRIBE_DUEL', duelId: id }))
+        }
+        
+        ws.onmessage = (event) => {
+          const data = JSON.parse(event.data)
+          if (data.type === 'UPDATE_DUEL' && parseInt(data.duelId) === parseInt(id!)) {
+            // If rematch, it might be in the data, or we need to refetch to see it. 
+            // Ideally we refetch, then check result.
+            fetchDuel() // This updates 'duel' state. We need a way to auto-navigate.
+          }
+        }
+      } catch (e) {
+        console.error('WS Error', e)
+      }
+    }
+
+    const interval = setInterval(() => {
+        if (ws?.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'PING' }))
+        }
+    }, 30000)
+
+    return () => {
+      clearInterval(interval)
+      if (ws) ws.close()
+    }
   }, [id])
 
   useEffect(() => {
