@@ -167,7 +167,7 @@ events.on(EVENTS.DUEL_UPDATED, ({ duelId }) => {
   app.server.publish('duels', JSON.stringify({ type: 'UPDATE_DUELS_LIST' }))
 })
 
-app.listen(process.env.PORT || 3000)
+app.listen(process.env.PORT || 8082)
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port} WS enabled`
