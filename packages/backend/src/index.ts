@@ -173,4 +173,3 @@ console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port} WS enabled`
 )
 
-export default app
