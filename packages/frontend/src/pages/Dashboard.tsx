@@ -48,6 +48,35 @@ export default function Dashboard() {
     }
   }, [selectedGame])
 
+  useEffect(() => {
+    let ws: WebSocket | null = null
+
+    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true') {
+        ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
+
+        ws.onopen = () => {
+            ws?.send(JSON.stringify({ type: 'SUBSCRIBE_TOURNAMENTS' }))
+        }
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data)
+                if (data.type === 'UPDATE_TOURNAMENTS_LIST') {
+                    if (selectedGame) {
+                        loadTournaments()
+                    }
+                }
+            } catch (e) {
+                console.error(e)
+            }
+        }
+    }
+
+    return () => {
+        ws?.close()
+    }
+  }, [selectedGame])
+
   const loadTournaments = async () => {
     if (!selectedGame) return
 
@@ -65,7 +94,12 @@ export default function Dashboard() {
   const { handleRefresh, isCoolingDown } = useRefresh(loadTournaments)
 
   const createTournament = async () => {
-    if (!newName || !selectedGame) return
+    if (!selectedGame) return
+
+    if (!newName.trim()) {
+      alert('Tournament name is required')
+      return
+    }
 
     try {
       await api('/tournaments', {

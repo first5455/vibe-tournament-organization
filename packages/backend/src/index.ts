@@ -107,6 +107,10 @@ const app = new Elysia()
       if (data && data.type === 'SUBSCRIBE_DUELS') {
         const success = ws.subscribe('duels')
       }
+
+      if (data && data.type === 'SUBSCRIBE_TOURNAMENTS') {
+        ws.subscribe('tournaments')
+      }
     }
   })
 
@@ -128,7 +132,20 @@ events.on(EVENTS.TOURNAMENT_UPDATED, ({ tournamentId }) => {
 
   const topic = `tournament:${tournamentId}`
   app.server.publish(topic, JSON.stringify({ type: 'UPDATE_TOURNAMENT' }))
+  app.server.publish('tournaments', JSON.stringify({ type: 'UPDATE_TOURNAMENTS_LIST' }))
 })
+
+
+events.on(EVENTS.TOURNAMENT_CREATED, () => {
+    if (!app.server) return
+    app.server.publish('tournaments', JSON.stringify({ type: 'UPDATE_TOURNAMENTS_LIST' }))
+})
+
+events.on(EVENTS.TOURNAMENT_DELETED, () => {
+  if (!app.server) return
+  app.server.publish('tournaments', JSON.stringify({ type: 'UPDATE_TOURNAMENTS_LIST' }))
+})
+
 
 
 events.on(EVENTS.DUEL_CREATED, () => {

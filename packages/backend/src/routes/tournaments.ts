@@ -51,6 +51,8 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
         gameId
       }).returning().get()
 
+      events.emit(EVENTS.TOURNAMENT_CREATED, { tournamentId: result.id })
+
       return { tournament: result }
     } catch (e) {
       console.error('Failed to create tournament:', e)
@@ -356,6 +358,8 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
     await db.delete(matches).where(eq(matches.tournamentId, id)).run()
     await db.delete(participants).where(eq(participants.tournamentId, id)).run()
     await db.delete(tournaments).where(eq(tournaments.id, id)).run()
+
+    events.emit(EVENTS.TOURNAMENT_DELETED, { tournamentId: id })
 
     return { success: true }
   }, {
