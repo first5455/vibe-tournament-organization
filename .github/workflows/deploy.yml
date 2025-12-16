@@ -34,7 +34,6 @@ jobs:
         run: |
           echo "🚀 Deploying Elysia..."
           
-          docker compose down
           # Pull latest images
           docker compose pull
           
