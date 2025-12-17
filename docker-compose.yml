@@ -23,6 +23,5 @@ services:
     environment:
       - SQLD_NODE=primary
 
-
 volumes:
   libsql-data:
