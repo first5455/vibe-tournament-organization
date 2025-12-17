@@ -6,7 +6,7 @@ on:
     paths:
       - 'packages/backend/**'
       - 'docker-compose.yml'
-      - '.github/workflows/deploy.yml'
+      - '.gitea/workflows/deploy.yml'
 
 jobs:
   deploy:
