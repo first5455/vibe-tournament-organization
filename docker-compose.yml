@@ -40,7 +40,7 @@ services:
       # Check your file: is it 'libsql_data' or just 'data'? Use that here.
       - libsql-data:/backup/source:ro
       # 3. The Backup Destination (ABSOLUTE PATH on Server)
-      - ~/infra/backups/tournament/libsql:/backup/archive
+      -  /home/first545455/infra/backups/tournament/libsql:/backup/archive
     labels:
       # Prevent the backup container from stopping itself
       - "docker-volume-backup.stop-container=false"
