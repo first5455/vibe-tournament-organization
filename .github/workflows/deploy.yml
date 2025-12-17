@@ -1,7 +1,8 @@
 name: Deploy Elysia + LibSQL
+permissions:
+  contents: read
 
 on:
-  push:
     branches: ["main"]
     paths:
       - 'packages/backend/**'
