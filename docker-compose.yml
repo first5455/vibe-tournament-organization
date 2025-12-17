@@ -26,18 +26,24 @@ services:
       - "my.libsql.service=true"
 
   libsql-backup:
-    image: offen/docker-volume-backup:latest
+    image: alpine:latest
     restart: always
-    environment:
-      - BACKUP_CRON_EXPRESSION=0 5 * * *
-      - BACKUP_FILENAME=libsql-backup.tar.gz
-      - STOP_CONTAINER_LABEL=my.libsql.service
+    # We mount the same volumes, but run a manual script
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - libsql-data:/backup/source:ro
       - /home/first545455/infra/backups/tournament/libsql:/backup/archive
-    labels:
-      - "docker-volume-backup.stop-container=false"
+    # THE MAGICAL COMMAND (Simple & Visible)
+    # 1. Print message
+    # 2. Create the zip file (Overwrite the old one)
+    # 3. Print success
+    # 4. Sleep for 1 day (86400 seconds)
+    command: >
+      sh -c "while true; do
+      echo 'Starting backup...';
+      tar -czf /backup/archive/libsql-backup.tar.gz -C /backup/source .;
+      echo 'Backup created successfully.';
+      sleep 86400;
+      done"
 
 volumes:
   libsql-data:
