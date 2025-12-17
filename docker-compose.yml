@@ -23,6 +23,28 @@ services:
     environment:
       - SQLD_NODE=primary
 
+  libsql-backup:
+    image: offen/docker-volume-backup:latest
+    restart: always
+    environment:
+      # Run daily at 05:00 AM
+      - BACKUP_CRON_EXPRESSION=0 5 * * *
+      - BACKUP_RETENTION_DAYS=7
+      - BACKUP_FILENAME=libsql-backup-%Y-%m-%dT%H-%M-%S.tar.gz
+      # Safety: Pause DB briefly while zipping
+      - STOP_CONTAINER_LABEL=my.libsql.service
+    volumes:
+      # 1. Control Docker (to stop/start the DB)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # 2. The Data Volume (Internal Name)
+      # Check your file: is it 'libsql_data' or just 'data'? Use that here.
+      - libsql_data:/backup/source:ro
+      # 3. The Backup Destination (ABSOLUTE PATH on Server)
+      - ~/infra/backups/tournament/libsql:/backup/archive
+    labels:
+      # Prevent the backup container from stopping itself
+      - "docker-volume-backup.stop-container=false"
+
 
 volumes:
   libsql-data:
