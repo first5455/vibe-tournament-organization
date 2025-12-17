@@ -41,5 +41,6 @@ jobs:
           # We point to the .env file we just created
           docker compose --env-file .env up -d --build --remove-orphans
           
+          
           # Cleanup
           docker image prune -f
