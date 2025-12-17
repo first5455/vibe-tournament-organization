@@ -24,7 +24,7 @@ services:
       - SQLD_NODE=primary
     labels:
       - "my.libsql.service=true"
-
+#
   libsql-backup:
     image: offen/docker-volume-backup:latest
     restart: always
