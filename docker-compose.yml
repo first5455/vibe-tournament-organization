@@ -38,7 +38,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # 2. The Data Volume (Internal Name)
       # Check your file: is it 'libsql_data' or just 'data'? Use that here.
-      - libsql_data:/backup/source:ro
+      - libsql-data:/backup/source:ro
       # 3. The Backup Destination (ABSOLUTE PATH on Server)
       - ~/infra/backups/tournament/libsql:/backup/archive
     labels:
