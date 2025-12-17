@@ -24,6 +24,5 @@ services:
       - SQLD_NODE=primary
 
 
-
 volumes:
   libsql-data:
