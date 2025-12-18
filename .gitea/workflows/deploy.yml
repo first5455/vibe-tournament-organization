@@ -49,23 +49,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: 🕵️ Debug Secrets
-        run: |
-          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
-            echo "❌ ERROR: VERCEL_TOKEN is EMPTY or MISSING!"
-          else
-            echo "✅ SUCCESS: VERCEL_TOKEN was found (hidden)."
-          fi
+      
+      # 1. Install the LATEST Vercel CLI (Fixes the version issue)
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # 2. Run Deploy manually
+      # We inject the IDs as Environment Variables so Vercel knows who we are.
+      # We use '--yes' to skip confirmation prompts.
       - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: idJoIr4RSuQmQka2oCbZVqeV
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod --yes'
         env:
-          # Force inject it into the step environment
-          VERCEL_TOKEN: idJoIr4RSuQmQka2oCbZVqeV
+          # If secrets work now, use ${{ secrets... }}
+          # If secrets are still broken, PASTE YOUR HARDCODED IDs HERE for now
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          
+        run: vercel deploy --prod --token=$VERCEL_TOKEN --yes
