@@ -49,6 +49,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: 🕵️ Debug Secrets
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "❌ ERROR: VERCEL_TOKEN is EMPTY or MISSING!"
+          else
+            echo "✅ SUCCESS: VERCEL_TOKEN was found (hidden)."
+          fi
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
         with:
