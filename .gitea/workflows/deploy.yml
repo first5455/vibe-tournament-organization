@@ -49,7 +49,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
         with:
