@@ -16,14 +16,17 @@ import { permissionsRoutes } from './routes/permissions'
 
 const app = new Elysia()
   .use(swagger())
+  // .use(cors({
+  //     origin: [
+  //       process.env.FRONTEND_URL ?? '',
+  //       'localhost:5173',
+  //       'http://localhost:5173',
+  //       /\.vercel\.app$/
+  //     ]
+  // }))
   .use(cors({
-      origin: [
-        process.env.FRONTEND_URL ?? '',
-        'localhost:5173',
-        'http://localhost:5173',
-        /\.vercel\.app$/
-      ]
-  }))
+    origin: true // <--- This allows ALL origins temporarily
+}))
   .use(authRoutes)
   .use(userRoutes)
   .use(tournamentRoutes)
