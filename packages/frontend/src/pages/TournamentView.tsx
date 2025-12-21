@@ -655,9 +655,9 @@ export default function TournamentView() {
                                        setFirstPlayerId(match.firstPlayerId || undefined)
                                    }
                                }}
-                           >
+                            >
                                {match.result ? (
-                                   // Display result from row player's perspective
+                                   // Display result from row player's perspective with names
                                    (() => {
                                        const [score1, score2] = match.result.split('-')
                                        // If row is player1, show as-is. If row is player2, flip the scores
@@ -665,11 +665,23 @@ export default function TournamentView() {
                                        const rowScore = isRowPlayer1 ? score1 : score2
                                        const colScore = isRowPlayer1 ? score2 : score1
                                        
+                                       const rowName = p1.displayName || p1.username || p1.guestName || 'Player'
+                                       const colName = p2.displayName || p2.username || p2.guestName || 'Player'
+                                       
                                        return (
-                                           <div className="flex items-center justify-center gap-1">
-                                               <span className={rowScore > colScore ? 'text-green-400 font-semibold' : 'text-zinc-400'}>{rowScore}</span>
-                                               <span className="text-zinc-600">-</span>
-                                               <span className={colScore > rowScore ? 'text-red-400 font-semibold' : 'text-zinc-400'}>{colScore}</span>
+                                           <div className="flex flex-col items-center justify-center gap-0.5 py-1">
+                                               <div className="flex items-center gap-1 text-xs">
+                                                   <span className={`font-medium ${rowScore > colScore ? 'text-green-400' : 'text-zinc-500'}`} title={rowName}>
+                                                       {rowName.length > 10 ? rowName.substring(0, 10) + '...' : rowName}
+                                                   </span>
+                                                   <span className={rowScore > colScore ? 'text-green-400 font-bold' : 'text-zinc-400'}>{rowScore}</span>
+                                               </div>
+                                               <div className="flex items-center gap-1 text-xs">
+                                                   <span className={`font-medium ${colScore > rowScore ? 'text-red-400' : 'text-zinc-500'}`} title={colName}>
+                                                       {colName.length > 10 ? colName.substring(0, 10) + '...' : colName}
+                                                   </span>
+                                                   <span className={colScore > rowScore ? 'text-red-400 font-bold' : 'text-zinc-400'}>{colScore}</span>
+                                               </div>
                                            </div>
                                        )
                                    })()
