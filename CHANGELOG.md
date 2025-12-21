@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Real-Time Updates**: Added WebSocket event emission to deck update endpoint for immediate synchronization across clients.
 - **Code Audit**: Completed comprehensive audit of all 11 backend route files to ensure no duplicate route definitions exist.
+- **Round Robin Tournaments**: Any tournament participant can now report scores for any match, making score reporting more flexible for casual/social events. Swiss tournaments maintain existing restrictions (only match players + admin).
 
 ## [1.2.5] - 2025-12-16
 

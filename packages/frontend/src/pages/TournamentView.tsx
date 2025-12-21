@@ -635,18 +635,20 @@ export default function TournamentView() {
                     )
 
                     if (match) {
+                       // For round robin: allow any participant to report any match
+                       const isUserParticipant = participants.some(p => p.userId === user?.id)
+                       const canReport = isAdmin || isUserParticipant
+                       
                        return (
                            <td 
                                key={p2.id} 
                                className={`p-2 border border-zinc-800 bg-zinc-950/50 text-center text-sm ${
                                    match.result ? 'text-zinc-200' : 'text-zinc-500'
                                } ${
-                                   (isAdmin || (user && (match.player1Id === user.id || match.player2Id === user.id))) 
-                                   ? 'cursor-pointer hover:bg-zinc-800/50' 
-                                   : ''
+                                   canReport ? 'cursor-pointer hover:bg-zinc-800/50' : ''
                                }`}
                                onClick={() => {
-                                   if (isAdmin || (user && (match.player1Id === user.id || match.player2Id === user.id))) {
+                                   if (canReport) {
                                        setReportingMatch(match)
                                        setScore1(match.result?.split('-')[0] || '')
                                        setScore2(match.result?.split('-')[1] || '')
@@ -655,7 +657,7 @@ export default function TournamentView() {
                                }}
                            >
                                {match.result || (
-                                   (isAdmin || (user && (match.player1Id === user.id || match.player2Id === user.id))) 
+                                   canReport
                                    ? <span className="text-zinc-600 hover:text-zinc-400">Report</span> 
                                    : '-'
                                )}

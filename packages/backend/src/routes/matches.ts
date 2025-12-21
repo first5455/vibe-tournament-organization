@@ -39,9 +39,17 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
     const isPlayer1 = p1?.userId === reportedBy
     const isPlayer2 = p2?.userId === reportedBy
 
+    // For round robin tournaments: allow any tournament participant to report
+    let isParticipant = false
+    if (tournament?.type === 'round_robin') {
+      const allParticipants = await db.select()
+        .from(participants)
+        .where(eq(participants.tournamentId, match.tournamentId))
+        .all()
+      isParticipant = allParticipants.some(p => p.userId === reportedBy)
+    }
     
-    if (!isAdmin && !isPlayer1 && !isPlayer2) {
-      set.status = 403
+    if (!isAdmin && !isPlayer1 && !isPlayer2 && !isParticipant) {
       return { error: 'Unauthorized: Only players or admin can report' }
     }
 
