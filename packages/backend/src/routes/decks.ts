@@ -87,8 +87,15 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
         }
 
         // 2. Tournament Stats
-        // Find participant entries for this deck
-        const parts = await db.select({ id: participants.id }).from(participants).where(eq(participants.deckId, deck.id)).all()
+        // Find participant entries for this deck WHERE userId matches the deck owner
+        // This ensures we only count matches where THIS user used THIS deck
+        const parts = await db.select({ id: participants.id })
+            .from(participants)
+            .where(and(
+                eq(participants.deckId, deck.id),
+                eq(participants.userId, deck.userId)  // 🔧 FIX: Filter by deck owner
+            ))
+            .all()
         const partIds = parts.map(p => p.id)
 
         let tourneyWins = 0
@@ -99,7 +106,8 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
                 winnerId: matches.winnerId,
                 player1Id: matches.player1Id,
                 player2Id: matches.player2Id,
-                firstPlayerId: matches.firstPlayerId
+                firstPlayerId: matches.firstPlayerId,
+                isBye: matches.isBye  // 🔧 Add isBye field
             })
             .from(matches)
             .where(
@@ -115,6 +123,12 @@ export const deckRoutes = new Elysia({ prefix: '/decks' })
 
             tourneyTotal = tourneyMatches.length
             for (const m of tourneyMatches) {
+                // Skip BYE matches - they're not real wins
+                if (m.isBye) {
+                    tourneyTotal--  // Don't count BYE in total matches
+                    continue
+                }
+                
                 // Determine which player is the deck owner
                 const isP1 = partIds.includes(m.player1Id!) // Assumes player1Id is not null if partIds found it
                 const myPartId = isP1 ? m.player1Id : m.player2Id
