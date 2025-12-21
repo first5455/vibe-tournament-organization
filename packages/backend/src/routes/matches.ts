@@ -292,6 +292,6 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
       winnerId: t.Nullable(t.Number()),
       result: t.String(),
       createdBy: t.Number(),
-      firstPlayerId: t.Optional(t.Number())
+      firstPlayerId: t.Optional(t.Number())  // 🔧 Add to schema
     })
   })
