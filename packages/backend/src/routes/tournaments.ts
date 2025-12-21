@@ -929,11 +929,33 @@ export const tournamentRoutes = new Elysia({ prefix: '/tournaments' })
       .where(eq(participants.tournamentId, tournamentId))
       .all()
     
-    // Sort by score desc, then tiebreakers if implemented (simplified to score for now)
-    // Adding rudimentary Tiebreaker sort (Buchholz) if property exists
+    // For round robin: fetch all matches for head-to-head tiebreaker
+    const allMatches = tournament.type === 'round_robin' 
+      ? await db.select().from(matches).where(eq(matches.tournamentId, tournamentId)).all()
+      : []
+    
+    // Sort by score desc, then head-to-head for round robin
     tournamentParticipants.sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score
-      // Tiebreaker check
+      // Primary sort: by score (descending)
+      if (b.score !== a.score) {
+        return b.score - a.score
+      }
+      
+      // Tiebreaker for round robin: head-to-head result
+      if (tournament.type === 'round_robin' && allMatches.length > 0) {
+        const h2hMatch = allMatches.find(m => 
+          (m.player1Id === a.id && m.player2Id === b.id) ||
+          (m.player1Id === b.id && m.player2Id === a.id)
+        )
+        
+        if (h2hMatch && h2hMatch.winnerId) {
+          // If player A won the head-to-head, A ranks higher (return -1)
+          if (h2hMatch.winnerId === a.id) return -1
+          if (h2hMatch.winnerId === b.id) return 1
+        }
+      }
+      
+      // Fallback tiebreak (Buchholz for Swiss, alphabetical for others)
       const tbA = (a.tieBreakers as any)?.buchholz || 0
       const tbB = (b.tieBreakers as any)?.buchholz || 0
       return tbB - tbA
