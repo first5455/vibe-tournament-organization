@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.2.6] - 2025-12-21
+
+### Fixed
+
+- **Duel Room**: Fixed critical caching bug where score reports appeared successful but reverted to previous state after page refresh. Removed duplicate GET `/:id` route that was missing cache-control headers.
+- **Code Quality**: Removed duplicate DELETE `/:id` route in duels.ts (88 lines of redundant code cleaned up).
+
+### Added
+
+- **Real-Time Updates**: Added WebSocket event emission to deck update endpoint for immediate synchronization across clients.
+- **Code Audit**: Completed comprehensive audit of all 11 backend route files to ensure no duplicate route definitions exist.
+
 ## [1.2.5] - 2025-12-16
 
 ### Fixed

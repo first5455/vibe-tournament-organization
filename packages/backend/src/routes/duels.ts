@@ -132,47 +132,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       player2DeckId: t.Optional(t.Number())
     })
   })
-  .get('/:id', async ({ params, set }) => {
-    // ... (existing code) ...
-    const id = parseInt(params.id)
-    const duel = await db.select().from(duelRooms).where(eq(duelRooms.id, id)).get()
-    
-    if (!duel) {
-      set.status = 404
-      return { error: 'Duel not found' }
-    }
 
-    // Fetch player details
-    const p1 = await db.select().from(users).where(eq(users.id, duel.player1Id)).get()
-    let p1Mmr = 1000
-    if (p1 && duel.gameId) {
-        const stats = await db.select().from(userGameStats)
-            .where(and(eq(userGameStats.userId, p1.id), eq(userGameStats.gameId, duel.gameId))).get()
-        if (stats) p1Mmr = stats.mmr
-    }
-    const p1Rank = p1 ? await getRank(p1Mmr, duel.gameId || undefined) : null
-    const p1Deck = duel.player1DeckId ? await db.select().from(decks).where(eq(decks.id, duel.player1DeckId)).get() : null
-
-    const p2 = duel.player2Id ? await db.select().from(users).where(eq(users.id, duel.player2Id)).get() : null
-    let p2Mmr = 1000
-    if (p2 && duel.gameId) {
-        const stats = await db.select().from(userGameStats)
-            .where(and(eq(userGameStats.userId, p2.id), eq(userGameStats.gameId, duel.gameId))).get()
-        if (stats) p2Mmr = stats.mmr
-    }
-    const p2Rank = p2 ? await getRank(p2Mmr, duel.gameId || undefined) : null
-    const p2Deck = duel.player2DeckId ? await db.select().from(decks).where(eq(decks.id, duel.player2DeckId)).get() : null
-
-    return { 
-      duel: {
-        ...duel,
-        player1: p1 ? { id: p1.id, username: p1.username, displayName: p1.displayName, avatarUrl: p1.avatarUrl, color: p1.color, mmr: p1Mmr, rank: p1Rank, deck: p1Deck } : null,
-        player2: p2 ? { id: p2.id, username: p2.username, displayName: p2.displayName, avatarUrl: p2.avatarUrl, color: p2.color, mmr: p2Mmr, rank: p2Rank, deck: p2Deck } : null,
-      }
-    }
-  }, {
-    params: t.Object({ id: t.String() })
-  })
   .post('/:id/join', async ({ params, body, set }) => {
     const id = parseInt(params.id)
     const { userId, deckId } = body
@@ -347,53 +307,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     params: t.Object({ id: t.String() }),
     body: t.Object({ userId: t.Number() })
   })
-  .delete('/:id', async ({ params, body, set }) => {
-    const id = parseInt(params.id)
-    const { userId } = body
 
-    const duel = await db.select().from(duelRooms).where(eq(duelRooms.id, id)).get()
-    if (!duel) {
-      set.status = 404
-      return { error: 'Duel not found' }
-    }
-
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
-
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'duels.manage')
-
-    if (duel.player1Id !== userId && !canManage) {
-      set.status = 403
-      return { error: 'Unauthorized' }
-    }
-
-    if (duel.status === 'active' && !canManage) {
-       set.status = 400
-       return { error: 'Cannot delete active duel' }
-    }
-
-    if (duel.status === 'completed' && !canManage) {
-       set.status = 400
-       return { error: 'Cannot delete completed duel (preserved for history)' }
-    }
-
-    await db.delete(duelRooms).where(eq(duelRooms.id, id)).run()
-    
-    // For delete, subscribers might get 404 on next fetch, which is fine
-    events.emit(EVENTS.DUEL_UPDATED, { duelId: id }) 
-    
-    return { success: true }
-  }, {
-    params: t.Object({ id: t.String() }),
-    body: t.Object({ userId: t.Number() })
-  })
   .post('/:id/report', async ({ params, body, set }) => {
     const id = parseInt(params.id)
     const { player1Score, player2Score, reportedBy } = body
@@ -607,6 +521,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       .set(updates)
       .where(eq(duelRooms.id, id))
       .run()
+
+    events.emit(EVENTS.DUEL_UPDATED, { duelId: id })
 
     return { success: true }
   }, {
