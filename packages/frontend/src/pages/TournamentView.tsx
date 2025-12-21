@@ -656,7 +656,24 @@ export default function TournamentView() {
                                    }
                                }}
                            >
-                               {match.result || (
+                               {match.result ? (
+                                   // Display result from row player's perspective
+                                   (() => {
+                                       const [score1, score2] = match.result.split('-')
+                                       // If row is player1, show as-is. If row is player2, flip the scores
+                                       const isRowPlayer1 = match.player1Id === p1.id
+                                       const rowScore = isRowPlayer1 ? score1 : score2
+                                       const colScore = isRowPlayer1 ? score2 : score1
+                                       
+                                       return (
+                                           <div className="flex items-center justify-center gap-1">
+                                               <span className={rowScore > colScore ? 'text-green-400 font-semibold' : 'text-zinc-400'}>{rowScore}</span>
+                                               <span className="text-zinc-600">-</span>
+                                               <span className={colScore > rowScore ? 'text-red-400 font-semibold' : 'text-zinc-400'}>{colScore}</span>
+                                           </div>
+                                       )
+                                   })()
+                               ) : (
                                    canReport
                                    ? <span className="text-zinc-600 hover:text-zinc-400">Report</span> 
                                    : '-'
