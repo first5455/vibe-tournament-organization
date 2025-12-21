@@ -7,7 +7,7 @@ import { events, EVENTS } from '../lib/events'
 export const matchRoutes = new Elysia({ prefix: '/matches' })
   .post('/:id/report', async ({ params, body, set }) => {
     const matchId = parseInt(params.id)
-    const { winnerId, result, reportedBy } = body
+    const { winnerId, result, reportedBy, firstPlayerId } = body  // 🔧 Add firstPlayerId
 
     if (!reportedBy) {
       set.status = 401
@@ -53,9 +53,13 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
       return { error: 'Unauthorized: Only players or admin can report' }
     }
 
-    // Update match
+    // Update match - include firstPlayerId
     await db.update(matches)
-      .set({ winnerId, result })
+      .set({ 
+        winnerId, 
+        result,
+        firstPlayerId  // 🔧 Save firstPlayerId
+      })
       .where(eq(matches.id, matchId))
       .run()
 
@@ -144,7 +148,8 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
     body: t.Object({
       winnerId: t.Nullable(t.Number()),
       result: t.String(),
-      reportedBy: t.Optional(t.Number())
+      reportedBy: t.Optional(t.Number()),
+      firstPlayerId: t.Optional(t.Nullable(t.Number()))  // 🔧 Add to schema
     })
   })
   .put('/:id', async ({ params, body, set }) => {
