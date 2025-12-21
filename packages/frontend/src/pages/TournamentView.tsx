@@ -185,6 +185,7 @@ export default function TournamentView() {
 
       if (isUpdate) {
         body.createdBy = user.id
+        if (firstPlayerId) body.firstPlayerId = firstPlayerId  // 🔧 FIX: Add for updates too!
       } else {
         body.player1Score = s1
         body.player2Score = s2
