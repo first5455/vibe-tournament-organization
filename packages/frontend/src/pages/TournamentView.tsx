@@ -671,14 +671,14 @@ export default function TournamentView() {
                                        return (
                                            <div className="flex flex-col items-center justify-center gap-0.5 py-1">
                                                <div className="flex items-center gap-1 text-xs">
-                                                   <span className={`font-medium ${rowScore > colScore ? 'text-green-400' : 'text-zinc-500'}`} title={rowName}>
-                                                       {rowName.length > 10 ? rowName.substring(0, 10) + '...' : rowName}
+                                                   <span className={`font-medium ${rowScore > colScore ? 'text-green-400' : 'text-zinc-500'}`}>
+                                                       {rowName}
                                                    </span>
                                                    <span className={rowScore > colScore ? 'text-green-400 font-bold' : 'text-zinc-400'}>{rowScore}</span>
                                                </div>
                                                <div className="flex items-center gap-1 text-xs">
-                                                   <span className={`font-medium ${colScore > rowScore ? 'text-red-400' : 'text-zinc-500'}`} title={colName}>
-                                                       {colName.length > 10 ? colName.substring(0, 10) + '...' : colName}
+                                                   <span className={`font-medium ${colScore > rowScore ? 'text-red-400' : 'text-zinc-500'}`}>
+                                                       {colName}
                                                    </span>
                                                    <span className={colScore > rowScore ? 'text-red-400 font-bold' : 'text-zinc-400'}>{colScore}</span>
                                                </div>
