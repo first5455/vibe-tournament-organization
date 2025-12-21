@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Code Audit**: Completed comprehensive audit of all 11 backend route files to ensure no duplicate route definitions exist.
 - **Round Robin Tournaments**: Any tournament participant can now report scores for any match, making score reporting more flexible for casual/social events. Swiss tournaments maintain existing restrictions (only match players + admin).
 - **Round Robin Grid**: Improved score display to show player names with scores (e.g., "Player A 2" / "Player B 1") with color coding - green for wins, red for losses, making it immediately clear who won each match.
+- **Round Robin Tiebreaker**: Implemented head-to-head tiebreaker for standings. When two players have the same score, the winner of their direct match ranks higher.
 
 ## [1.2.5] - 2025-12-16
 

@@ -783,7 +783,30 @@ export default function TournamentView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800 bg-zinc-900/50">
-              {[...participants].sort((a, b) => b.score - a.score).map((p, index) => (
+              {[...participants].sort((a, b) => {
+                // Primary sort: by score (descending)
+                if (b.score !== a.score) {
+                  return b.score - a.score
+                }
+                
+                // Tiebreaker: head-to-head result
+                // Find the match between these two players
+                const h2hMatch = matches.find(m => 
+                  (m.player1Id === a.id && m.player2Id === b.id) ||
+                  (m.player1Id === b.id && m.player2Id === a.id)
+                )
+                
+                if (h2hMatch && h2hMatch.winnerId) {
+                  // If player A won the head-to-head, A ranks higher (return -1)
+                  if (h2hMatch.winnerId === a.id) return -1
+                  if (h2hMatch.winnerId === b.id) return 1
+                }
+                
+                // Fallback: alphabetical by name
+                const nameA = a.displayName || a.username || a.guestName || ''
+                const nameB = b.displayName || b.username || b.guestName || ''
+                return nameA.localeCompare(nameB)
+              }).map((p, index) => (
                 <tr key={p.id} className="hover:bg-zinc-900/80">
                   <td className="px-4 py-3 font-mono">{index + 1}</td>
                   <td className="px-4 py-3 text-white font-medium">
