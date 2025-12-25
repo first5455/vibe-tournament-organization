@@ -56,6 +56,10 @@ export default function CustomDeckUploadPage() {
   // Export data
   const [exportText, setExportText] = useState('')
   const [exportDeckName, setExportDeckName] = useState('')
+  
+  // Card editing
+  const [editingCardId, setEditingCardId] = useState<number | null>(null)
+  const [editingCardName, setEditingCardName] = useState('')
 
   useEffect(() => {
     if (selectedGame && user) {
@@ -192,6 +196,26 @@ export default function CustomDeckUploadPage() {
       fetchDecks()
     } catch (err: any) {
       setError(err.message || 'Failed to update card quantity')
+    }
+  }
+
+  const handleUpdateCardName = async (cardId: number, newCardName: string) => {
+    if (!selectedDeck) return
+    
+    try {
+      await api(`/custom-decks/${selectedDeck.id}/cards/${cardId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          requesterId: user?.id,
+          cardName: newCardName
+        })
+      })
+      setEditingCardId(null)
+      setEditingCardName('')
+      fetchDeckDetails(selectedDeck.id)
+      fetchDecks()
+    } catch (err: any) {
+      setError(err.message || 'Failed to update card name')
     }
   }
 
@@ -345,8 +369,44 @@ export default function CustomDeckUploadPage() {
                         </button>
                       </div>
                       <div className="p-3">
-                        {card.cardName && (
-                          <p className="text-sm text-white font-medium truncate mb-2">{card.cardName}</p>
+                        {editingCardId === card.id ? (
+                          <input
+                            type="text"
+                            value={editingCardName}
+                            onChange={(e) => setEditingCardName(e.target.value)}
+                            onBlur={() => {
+                              if (editingCardName.trim()) {
+                                handleUpdateCardName(card.id, editingCardName)
+                              } else {
+                                setEditingCardId(null)
+                                setEditingCardName('')
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                if (editingCardName.trim()) {
+                                  handleUpdateCardName(card.id, editingCardName)
+                                }
+                              } else if (e.key === 'Escape') {
+                                setEditingCardId(null)
+                                setEditingCardName('')
+                              }
+                            }}
+                            autoFocus
+                            className="w-full text-sm text-white font-medium mb-2 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
+                            placeholder="Card name..."
+                          />
+                        ) : (
+                          <p 
+                            className="text-sm text-white font-medium truncate mb-2 cursor-pointer hover:text-indigo-400 transition-colors" 
+                            onClick={() => {
+                              setEditingCardId(card.id)
+                              setEditingCardName(card.cardName || '')
+                            }}
+                            title="Click to edit card name"
+                          >
+                            {card.cardName || 'Unnamed Card'}
+                          </p>
                         )}
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-zinc-400">Quantity:</span>
