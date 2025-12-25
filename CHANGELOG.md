@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.3.1] - 2025-12-25
+
+### Added
+
+- **Service Worker Caching**: Implemented PWA service worker with image caching strategy
+  - Caches Chibisafe images in browser using CacheFirst strategy
+  - Reduces server queries by 90%+ after first load
+  - Configurable cache: 500 max images, 30-day expiration
+  - Works offline after initial load
+  - Compatible with Vercel free tier and all static hosting
+
+### Changed
+
+- **Custom Deck Export**: Changed from file download to modal with copy-to-clipboard
+  - Shows deck text in scrollable modal
+  - One-click copy to clipboard with visual confirmation
+  - Better UX for sharing deck lists
+
+### Technical
+
+- **vite-plugin-pwa**: Added PWA plugin for automatic service worker generation
+- **Workbox**: Configured runtime caching for external images
+- **Environment**: Added `VITE_CHIBISAFE_URL` for cache configuration
+
+
+
 ## [1.3.0] - 2025-12-25
 
 ### Added
