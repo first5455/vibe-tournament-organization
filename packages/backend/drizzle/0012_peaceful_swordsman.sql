@@ -1,0 +1,1 @@
+ALTER TABLE `custom_deck_cards` ADD `chibisafe_uuid` text;

@@ -42,12 +42,13 @@ const formatDate = (dateDict?: string) => {
 export default function AdminPortal() {
   const { user, refreshUser, hasPermission, isLoading: authLoading } = useAuth()
   const { refreshGames } = useGame()
-  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks' | 'games' | 'settings' | 'roles'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks' | 'customdecks' | 'games' | 'settings' | 'roles'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [tournaments, setTournaments] = useState<any[]>([])
 
   const [duels, setDuels] = useState<any[]>([])
   const [decks, setDecks] = useState<AdminDeck[]>([])
+  const [customDecks, setCustomDecks] = useState<any[]>([])
   const [games, setGames] = useState<any[]>([])
   const [availableRoles, setAvailableRoles] = useState<{id: number, name: string, isSystem: boolean}[]>([])
   const [loading, setLoading] = useState(true)
@@ -185,6 +186,10 @@ export default function AdminPortal() {
         const query = filterGameId !== 'all' ? `?gameId=${filterGameId}` : ''
         const data = await api(`/decks${query}`)
         setDecks(data)
+      } else if (activeTab === 'customdecks') {
+        const query = filterGameId !== 'all' ? `&gameId=${filterGameId}` : ''
+        const data = await api(`/custom-decks/admin-all?requesterId=${user?.id}${query}`)
+        setCustomDecks(data)
       } else if (activeTab === 'games') {
         const data = await api('/games')
         setGames(data)
@@ -675,6 +680,13 @@ export default function AdminPortal() {
           className="whitespace-nowrap"
         >
           Decks
+        </Button>
+        <Button 
+          variant={activeTab === 'customdecks' ? 'secondary' : 'ghost'} 
+          onClick={() => setActiveTab('customdecks')}
+          className="whitespace-nowrap"
+        >
+          Custom Decks
         </Button>
         <Button 
           variant={activeTab === 'games' ? 'secondary' : 'ghost'} 
@@ -1255,6 +1267,97 @@ export default function AdminPortal() {
         </div>
       )}
 
+
+      {activeTab === 'customdecks' && (
+        <div className="w-full">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                <div className="flex items-center gap-4">
+                    <h2 className="text-xl font-bold text-white">All Custom Decks</h2>
+                    <span className="text-zinc-500 text-sm">{customDecks.length} total</span>
+                </div>
+            </div>
+
+            <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
+                <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
+                    <thead className="bg-zinc-900 text-zinc-200">
+                        <tr>
+                            <th className="px-4 py-3 font-medium">ID</th>
+                            <th className="px-4 py-3 font-medium">Name</th>
+                            <th className="px-4 py-3 font-medium">Description</th>
+                            <th className="px-4 py-3 font-medium">Owner</th>
+                            <th className="px-4 py-3 font-medium">Cards</th>
+                            <th className="px-4 py-3 font-medium">Created</th>
+                            <th className="px-4 py-3 font-medium text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                        {customDecks.map(deck => (
+                            <tr key={deck.id} className="hover:bg-zinc-900/80">
+                                <td className="px-4 py-3 font-mono">{deck.id}</td>
+                                <td className="px-4 py-3">
+                                    <span className="font-medium text-white">{deck.name}</span>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <span className="text-zinc-400 text-xs max-w-xs truncate block">
+                                        {deck.description || '-'}
+                                    </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                        <UserAvatar username={deck.username || '?'} displayName={deck.displayName} avatarUrl={deck.userAvatarUrl} size="sm" />
+                                        <div className="flex flex-col">
+                                            <span className="text-white font-medium">{deck.displayName || deck.username}</span>
+                                            <span className="text-xs text-zinc-500">#{deck.userId}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-white font-medium">{deck.cardCount}</span>
+                                        <span className="text-zinc-600 text-xs">
+                                            ({deck.totalCards} total)
+                                        </span>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3">{formatDate(deck.createdAt)}</td>
+                                <td className="px-4 py-3 text-right">
+                                    {(hasPermission('decks.manage')) && (
+                                      <div className="flex justify-end gap-2">
+                                          <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                              onClick={async () => {
+                                                  if (!confirm('Delete this custom deck? All cards and images will be removed.')) return
+                                                  try {
+                                                      await api(`/custom-decks/${deck.id}`, {
+                                                          method: 'DELETE',
+                                                          body: JSON.stringify({ requesterId: user?.id })
+                                                      })
+                                                      loadData()
+                                                  } catch (e: any) {
+                                                      alert(e.message)
+                                                  }
+                                              }}
+                                          >
+                                              <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                      </div>
+                                    )}
+                                </td>
+                            </tr>
+                        ))}
+                         {customDecks.length === 0 && (
+                            <tr>
+                                <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">No custom decks found</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+            
+        </div>
+      )}
 
       {/* Edit Duel Dialog */}
       {editDuelOpen && editingDuel && (

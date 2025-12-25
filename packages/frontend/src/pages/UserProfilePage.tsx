@@ -6,7 +6,7 @@ import { useGame } from '../contexts/GameContext'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
 import { Button } from '../components/ui/button'
-import { Trophy, Swords, Calendar, MoreVertical, ExternalLink, Plus, Layers } from 'lucide-react'
+import { Trophy, Swords, Calendar, MoreVertical, ExternalLink, Plus, Layers, Upload, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
 import { DeckCard, DeckWithStats } from '../components/DeckCard'
 import { DeckModal } from '../components/DeckModal'
 import { ProfileSettingsDialog } from '../components/ProfileSettingsDialog'
@@ -87,6 +87,8 @@ export default function UserProfilePage() {
   const [history, setHistory] = useState<TournamentHistory[]>([])
   const [duels, setDuels] = useState<DuelHistory[]>([])
   const [decks, setDecks] = useState<DeckWithStats[]>([])
+  const [customDecks, setCustomDecks] = useState<any[]>([])
+  const [expandedCustomDecks, setExpandedCustomDecks] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
   
   // Deck Management State
@@ -112,6 +114,14 @@ export default function UserProfilePage() {
       } catch (e) {
         console.error('Failed to fetch decks', e)
       }
+
+      // Fetch custom decks
+      try {
+        const customDecksRes = await api(`/custom-decks?userId=${id}${activeGame ? `&gameId=${activeGame.id}` : ''}`)
+        setCustomDecks(customDecksRes)
+      } catch (e) {
+        console.error('Failed to fetch custom decks', e)
+      }
     } catch (error) {
       console.error('Failed to fetch user data:', error)
     } finally {
@@ -127,6 +137,7 @@ export default function UserProfilePage() {
   if (!user) return <div className="flex justify-center items-center h-96 text-red-500">User not found</div>
 
   const canEdit = currentUser?.id === user.id || hasPermission('users.manage')
+  const canManageDecks = hasPermission('decks.manage')
 
   const handleDeckSubmit = async (data: { name: string; link: string; color: string; gameId?: number }) => {
     try {
@@ -318,6 +329,164 @@ export default function UserProfilePage() {
                         onDelete={handleDeleteDeck}
                     />
                 ))}
+            </div>
+        )}
+      </div>
+
+      {/* Custom Decks Section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Upload className="text-indigo-500" />
+                Custom Decks
+            </h2>
+        </div>
+        
+        {customDecks.length === 0 ? (
+            <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-8 text-center text-zinc-500">
+                No custom decks created yet
+            </div>
+        ) : (
+            <div className="space-y-3">
+                {customDecks.map(deck => {
+                  const isExpanded = expandedCustomDecks.has(deck.id)
+                  
+                  return (
+                    <div key={deck.id} className="bg-zinc-900/50 border border-white/5 rounded-xl p-4 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-bold text-white text-lg">{deck.name}</h3>
+                          {deck.description && (
+                            <p className="text-sm text-zinc-400 mt-1">{deck.description}</p>
+                          )}
+                          <div className="flex items-center gap-4 mt-2 text-sm text-zinc-500">
+                            <span>{deck.cardCount} unique cards</span>
+                            <span>•</span>
+                            <span>{deck.totalCards} total cards</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              // Fetch cards if not already loaded
+                              if (!deck.cards) {
+                                try {
+                                  const deckDetails = await api(`/custom-decks/${deck.id}`)
+                                  setCustomDecks(prev => prev.map(d => 
+                                    d.id === deck.id ? { ...d, cards: deckDetails.cards } : d
+                                  ))
+                                } catch (e) {
+                                  console.error('Failed to fetch deck cards', e)
+                                }
+                              }
+                              // Toggle expand
+                              setExpandedCustomDecks(prev => {
+                                const newSet = new Set(prev)
+                                if (newSet.has(deck.id)) {
+                                  newSet.delete(deck.id)
+                                } else {
+                                  newSet.add(deck.id)
+                                }
+                                return newSet
+                              })
+                            }}
+                            className="text-zinc-400 hover:text-white"
+                          >
+                            {isExpanded ? (
+                              <>
+                                <ChevronUp className="w-4 h-4 mr-1" />
+                                Hide Cards
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="w-4 h-4 mr-1" />
+                                View Cards
+                              </>
+                            )}
+                          </Button>
+                          {canManageDecks && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                              onClick={async () => {
+                                if (!confirm('Delete this custom deck? All cards and images will be removed.')) return
+                                try {
+                                  await api(`/custom-decks/${deck.id}`, {
+                                    method: 'DELETE',
+                                    body: JSON.stringify({ requesterId: currentUser?.id })
+                                  })
+                                  fetchData()
+                                } catch (e: any) {
+                                  alert(e.message || 'Failed to delete custom deck')
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expanded Card List */}
+                      {isExpanded && deck.cards && (
+                        <div className="border-t border-white/5 pt-3 mt-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {deck.cards.map((card: any) => (
+                              <div key={card.id} className="flex items-center gap-3 bg-zinc-950/50 p-3 rounded-lg border border-white/5 group relative">
+                                <div className="w-16 h-16 flex-shrink-0 bg-zinc-800 rounded overflow-hidden">
+                                  <img 
+                                    src={card.imageUrl} 
+                                    alt={card.cardName || 'Card'} 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64"%3E%3Crect fill="%23334155" width="64" height="64"/%3E%3C/svg%3E'
+                                    }}
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-white truncate">
+                                    {card.cardName || 'Unnamed Card'}
+                                  </p>
+                                  <p className="text-sm text-zinc-500">
+                                    Quantity: {card.quantity}
+                                  </p>
+                                </div>
+                                {canManageDecks && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={async () => {
+                                      if (!confirm(`Delete "${card.cardName || 'this card'}" from the deck?`)) return
+                                      try {
+                                        await api(`/custom-decks/${deck.id}/cards/${card.id}`, {
+                                          method: 'DELETE',
+                                          body: JSON.stringify({ requesterId: currentUser?.id })
+                                        })
+                                        // Refresh the deck to show updated card list
+                                        const deckDetails = await api(`/custom-decks/${deck.id}`)
+                                        setCustomDecks(prev => prev.map(d => 
+                                          d.id === deck.id ? { ...d, cards: deckDetails.cards, cardCount: deckDetails.cardCount, totalCards: deckDetails.totalCards } : d
+                                        ))
+                                      } catch (e: any) {
+                                        alert(e.message || 'Failed to delete card')
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
             </div>
         )}
       </div>

@@ -135,6 +135,29 @@ export const duelRooms = sqliteTable('duel_rooms', {
   gameId: integer('game_id').references(() => games.id),
 })
 
+// Custom Decks for image-based deck management
+export const customDecks = sqliteTable('custom_decks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  name: text('name').notNull(),
+  description: text('description'),
+  gameId: integer('game_id').references(() => games.id),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+})
+
+// Individual cards within custom decks
+export const customDeckCards = sqliteTable('custom_deck_cards', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  customDeckId: integer('custom_deck_id').references(() => customDecks.id, { onDelete: 'cascade' }).notNull(),
+  cardName: text('card_name'),
+  imageUrl: text('image_url').notNull(),
+  chibisafeUuid: text('chibisafe_uuid'), // UUID from chibisafe for deletion
+  quantity: integer('quantity').default(1).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+})
+
 export const systemSettings = sqliteTable('system_settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),

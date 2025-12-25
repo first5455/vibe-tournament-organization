@@ -14,6 +14,7 @@ import AdminPortal from './pages/AdminPortal'
 import DuelDashboard from './pages/DuelDashboard'
 import DuelRoom from './pages/DuelRoom'
 import DecksPage from './pages/DecksPage'
+import CustomDeckUploadPage from './pages/CustomDeckUploadPage'
 import GameSelectPage from './pages/GameSelectPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -123,6 +124,11 @@ function AppContent() {
         <Route path="/decks" element={
           <ProtectedRoute>
             <DecksPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/custom-decks" element={
+          <ProtectedRoute>
+            <CustomDeckUploadPage />
           </ProtectedRoute>
         } />
         <Route path="/admin" element={

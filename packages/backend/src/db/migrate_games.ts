@@ -38,7 +38,7 @@ export async function migrateGames() {
       await db.insert(userGameStats).values({
         userId: user.id,
         gameId: unionArenaId,
-        mmr: user.mmr, // Preserve existing MMR
+        // mmr: user.mmr, // Preserve existing MMR
         wins: 0, 
         losses: 0,
         draws: 0,

@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.3.0] - 2025-12-25
+
+### Added
+
+- **Custom Deck Upload**: Complete custom deck management system with Chibisafe integration for image storage
+  - Create and manage custom decks with card images
+  - Upload card images with automatic storage on Chibisafe
+  - Export decks as images for sharing
+  - Game-specific deck organization
+- **Admin Portal - Custom Decks**: New "Custom Decks" tab for administrators
+  - View all custom decks across all users
+  - Filter by game
+  - Delete custom decks with automatic cleanup of card images from Chibisafe and database
+- **User Profile - Custom Decks**: New "Custom Decks" section on user profile pages
+  - Display user's custom decks with name, description, and card counts
+  - Expandable card list showing card images, names, and quantities
+  - Delete individual cards (requires `decks.manage` permission)
+  - Delete entire decks (requires `decks.manage` permission)
+- **Navigation**: Added "Custom Decks" button to main navigation for quick access
+
+### Technical
+
+- **Database Schema**: Added `custom_decks` and `custom_deck_cards` tables with Chibisafe UUID tracking
+- **Chibisafe Integration**: Implemented UUID-based deletion for proper cleanup of uploaded images
+- **Permission System**: Leveraged existing `decks.manage` permission for custom deck administration
+- **Backend Routes**: New `/custom-decks` API endpoints for CRUD operations and admin management
+- **Frontend Components**: Reusable custom deck card displays with lazy-loading of card details
+
+
+
 ## [1.2.6] - 2025-12-21
 
 ### Fixed

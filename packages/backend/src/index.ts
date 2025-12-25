@@ -9,6 +9,7 @@ import { matchRoutes } from './routes/matches'
 import { adminRoutes } from './routes/admin'
 import { duelRoutes } from './routes/duels'
 import { deckRoutes } from './routes/decks'
+import { customDeckRoutes } from './routes/custom-decks'
 import { gamesRoutes } from './routes/games'
 import { settingsRoutes } from './routes/settings'
 import { rolesRoutes } from './routes/roles'
@@ -31,6 +32,7 @@ const app = new Elysia()
   .use(adminRoutes)
   .use(duelRoutes)
   .use(deckRoutes)
+  .use(customDeckRoutes)
   .use(gamesRoutes)
   .use(settingsRoutes)
   .use(rolesRoutes)

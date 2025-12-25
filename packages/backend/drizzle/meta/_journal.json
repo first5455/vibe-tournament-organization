@@ -78,6 +78,20 @@
       "when": 1765437374336,
       "tag": "0010_bored_blur",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1766670904998,
+      "tag": "0011_fantastic_nebula",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1766672619823,
+      "tag": "0012_peaceful_swordsman",
+      "breakpoints": true
     }
   ]
 }

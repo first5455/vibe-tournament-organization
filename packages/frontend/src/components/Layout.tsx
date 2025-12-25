@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { Button } from './ui/button'
-import { Trophy, Users, LogOut, LayoutDashboard, Menu, X, Shield, Swords } from 'lucide-react'
+import { Trophy, Users, LogOut, LayoutDashboard, Menu, X, Shield, Swords, Upload } from 'lucide-react'
 import { UserLabel } from './UserLabel'
 import { UserAvatar } from './UserAvatar'
 import { GameSwitcher } from './GameSwitcher'
@@ -55,6 +55,12 @@ export default function Layout() {
                     <Button variant={location.pathname === '/decks' ? 'secondary' : 'ghost'} size="sm">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       My Decks
+                    </Button>
+                  </Link>
+                  <Link to="/custom-decks">
+                    <Button variant={location.pathname === '/custom-decks' ? 'secondary' : 'ghost'} size="sm">
+                      <Upload className="mr-2 h-4 w-4" />
+                      Custom Decks
                     </Button>
                   </Link>
                   {hasPermission('admin.access') && (
@@ -132,6 +138,12 @@ export default function Layout() {
                     <Button variant={location.pathname === '/decks' ? 'secondary' : 'ghost'} className="w-full justify-start">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       My Decks
+                    </Button>
+                  </Link>
+                  <Link to="/custom-decks" onClick={() => setIsMenuOpen(false)}>
+                    <Button variant={location.pathname === '/custom-decks' ? 'secondary' : 'ghost'} className="w-full justify-start">
+                      <Upload className="mr-2 h-4 w-4" />
+                      Custom Decks
                     </Button>
                   </Link>
                   {hasPermission('admin.access') && (
