@@ -35,7 +35,8 @@ async function main() {
       'tournaments.create', 
       'tournaments.manage', 
       'settings.manage',
-      'decks.manage'
+      'decks.manage',
+      'games.manage'
   ]
   
   for (const slug of essentialPerms) {
