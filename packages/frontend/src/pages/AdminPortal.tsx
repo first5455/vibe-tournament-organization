@@ -19,6 +19,7 @@ import {
 import { UserSearchSelect } from '../components/UserSearchSelect'
 import { CreateUserDialog } from '../components/CreateUserDialog'
 import { useGame } from '../contexts/GameContext'
+import { useSiteSettings } from '../contexts/SiteSettingsContext'
 import { EditMMRDialog } from '../components/EditMMRDialog'
 
 import { DeckModal } from '../components/DeckModal'
@@ -42,6 +43,7 @@ const formatDate = (dateDict?: string) => {
 export default function AdminPortal() {
   const { user, refreshUser, hasPermission, isLoading: authLoading } = useAuth()
   const { refreshGames } = useGame()
+  const { refreshSettings } = useSiteSettings()
   const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks' | 'customdecks' | 'games' | 'settings' | 'roles'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [tournaments, setTournaments] = useState<any[]>([])
@@ -76,7 +78,15 @@ export default function AdminPortal() {
     maintenanceMode: false,
     maintenanceMessage: '',
     defaultRoleId: undefined as number | undefined,
-    ownerRoleId: undefined as number | undefined
+    ownerRoleId: undefined as number | undefined,
+    siteName: 'VibeTourney',
+    siteLogo: '',
+    featureLeaderboard: true,
+    featureDuelRoom: true,
+    featureDecks: true,
+    featureCustomDecks: true,
+    featureTournaments: true,
+    oauthGoogleClientId: '',
   })
 
   // Settings Save Handler
@@ -89,9 +99,18 @@ export default function AdminPortal() {
                 maintenanceMode: settingsForm.maintenanceMode,
                 maintenanceMessage: settingsForm.maintenanceMessage,
                 defaultRoleId: settingsForm.defaultRoleId,
-                ownerRoleId: settingsForm.ownerRoleId
+                ownerRoleId: settingsForm.ownerRoleId,
+                siteName: settingsForm.siteName,
+                siteLogo: settingsForm.siteLogo,
+                featureLeaderboard: settingsForm.featureLeaderboard,
+                featureDuelRoom: settingsForm.featureDuelRoom,
+                featureDecks: settingsForm.featureDecks,
+                featureCustomDecks: settingsForm.featureCustomDecks,
+                featureTournaments: settingsForm.featureTournaments,
+                oauthGoogleClientId: settingsForm.oauthGoogleClientId,
             })
         })
+        await refreshSettings()
         alert('Settings saved successfully')
     } catch (err: any) {
         alert(err.message)
@@ -200,7 +219,15 @@ export default function AdminPortal() {
             maintenanceMode: data.maintenanceMode,
             maintenanceMessage: data.maintenanceMessage,
             defaultRoleId: data.defaultRoleId,
-            ownerRoleId: data.ownerRoleId
+            ownerRoleId: data.ownerRoleId,
+            siteName: data.siteName || 'VibeTourney',
+            siteLogo: data.siteLogo || '',
+            featureLeaderboard: data.featureLeaderboard ?? true,
+            featureDuelRoom: data.featureDuelRoom ?? true,
+            featureDecks: data.featureDecks ?? true,
+            featureCustomDecks: data.featureCustomDecks ?? true,
+            featureTournaments: data.featureTournaments ?? true,
+            oauthGoogleClientId: data.oauthGoogleClientId || '',
         })
         setAvailableRoles(rolesData)
       }
@@ -1805,7 +1832,98 @@ export default function AdminPortal() {
       {activeTab === 'settings' && (
         <div className="max-w-2xl mx-auto space-y-6">
             <h2 className="text-xl font-bold text-white mb-6">System Settings</h2>
-            
+
+            {/* Site Branding */}
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 space-y-6">
+                <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                    <Palette className="h-5 w-5 text-pink-500" />
+                    Site Branding
+                </h3>
+                <p className="text-sm text-zinc-400">Customize the website name and logo displayed in the navigation bar.</p>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Site Name</label>
+                    <input
+                        type="text"
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={settingsForm.siteName}
+                        onChange={(e) => setSettingsForm({...settingsForm, siteName: e.target.value})}
+                        placeholder="VibeTourney"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Logo URL</label>
+                    <input
+                        type="text"
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={settingsForm.siteLogo}
+                        onChange={(e) => setSettingsForm({...settingsForm, siteLogo: e.target.value})}
+                        placeholder="https://example.com/logo.png (leave empty for default trophy icon)"
+                    />
+                    {settingsForm.siteLogo && (
+                        <div className="flex items-center gap-3 mt-2 p-3 bg-zinc-950 rounded-lg border border-white/5">
+                            <img src={settingsForm.siteLogo} alt="Logo preview" className="h-10 w-10 object-contain rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                            <span className="text-sm text-zinc-400">Logo preview</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Feature Toggles */}
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 space-y-6">
+                <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-emerald-500" />
+                    Feature Toggles
+                </h3>
+                <p className="text-sm text-zinc-400">Enable or disable features across the entire website. Disabled features will be hidden from the navigation menu, profile pages, and all routes will be blocked.</p>
+
+                {[
+                    { key: 'featureLeaderboard' as const, label: 'Leaderboard', description: 'Player rankings and MMR leaderboard' },
+                    { key: 'featureDuelRoom' as const, label: 'Duel Room', description: '1v1 duel matchmaking and rooms' },
+                    { key: 'featureDecks' as const, label: 'My Decks', description: 'Text-based deck management' },
+                    { key: 'featureCustomDecks' as const, label: 'Custom Decks', description: 'Image-based custom deck builder' },
+                    { key: 'featureTournaments' as const, label: 'Tournaments', description: 'Tournament creation and management' },
+                ].map(({ key, label, description }) => (
+                    <div key={key} className="flex items-center justify-between py-2">
+                        <div>
+                            <p className="text-sm font-medium text-white">{label}</p>
+                            <p className="text-xs text-zinc-500">{description}</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                className="sr-only peer"
+                                checked={settingsForm[key]}
+                                onChange={(e) => setSettingsForm({...settingsForm, [key]: e.target.checked})}
+                            />
+                            <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                        </label>
+                    </div>
+                ))}
+            </div>
+
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 space-y-6">
+                <div>
+                    <h3 className="text-lg font-medium text-white flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-blue-500" />
+                        OAuth Providers
+                    </h3>
+                    <p className="text-sm text-zinc-400 mt-1">Configure social login providers. Leave Client ID empty to disable a provider.</p>
+                </div>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Google OAuth Client ID</label>
+                    <input
+                        type="text"
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={settingsForm.oauthGoogleClientId}
+                        onChange={(e) => setSettingsForm({...settingsForm, oauthGoogleClientId: e.target.value})}
+                        placeholder="e.g. 123456789.apps.googleusercontent.com"
+                    />
+                    <p className="text-xs text-zinc-500">Get this from the Google Cloud Console → APIs & Services → Credentials</p>
+                </div>
+            </div>
+
             <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 space-y-6">
                 <div className="flex items-center justify-between">
                     <div>

@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Link, useNavigate } from 'react-router-dom'
+import { GoogleSignInButton } from '../components/GoogleSignInButton'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -114,7 +115,15 @@ export default function Register() {
           <Button type="submit" className="w-full" size="lg">
             Sign up
           </Button>
-          
+
+          <GoogleSignInButton
+            onSuccess={(userData, isNewUser) => {
+              login('dummy-token', userData)
+              navigate('/')
+            }}
+            onError={(err) => setError(err)}
+          />
+
           <p className="text-center text-sm text-zinc-400">
             Already have an account?{' '}
             <Link to="/login" className="font-medium text-indigo-400 hover:text-indigo-300">

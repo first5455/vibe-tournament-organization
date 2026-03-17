@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games, roles, permissions, rolePermissions, systemSettings } from '../db/schema'
+import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games, roles, permissions, rolePermissions, systemSettings, oauthAccounts } from '../db/schema'
 import { eq, desc, sql, or, and, isNull } from 'drizzle-orm'
 import { getRank } from '../utils'
 import { events, EVENTS } from '../lib/events'
@@ -198,14 +198,22 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     
     const permissionSlugs = perms.map(p => p.slug)
 
-    return { 
-        user: { 
-            ...user, 
-            rank, 
+    // Fetch linked OAuth providers
+    const oauthLinks = await db
+        .select({ provider: oauthAccounts.provider })
+        .from(oauthAccounts)
+        .where(eq(oauthAccounts.userId, user.id))
+        .all()
+
+    return {
+        user: {
+            ...user,
+            rank,
             stats,
             assignedRole: role ? { id: role.id, name: role.name } : null,
-            permissions: permissionSlugs
-        } 
+            permissions: permissionSlugs,
+            oauthProviders: oauthLinks.map(l => l.provider)
+        }
     }
 
   }, {

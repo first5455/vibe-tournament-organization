@@ -14,6 +14,7 @@ import { gamesRoutes } from './routes/games'
 import { settingsRoutes } from './routes/settings'
 import { rolesRoutes } from './routes/roles'
 import { permissionsRoutes } from './routes/permissions'
+import { oauthRoutes } from './routes/oauth'
 
 const app = new Elysia()
   .use(swagger())
@@ -37,6 +38,7 @@ const app = new Elysia()
   .use(settingsRoutes)
   .use(rolesRoutes)
   .use(permissionsRoutes)
+  .use(oauthRoutes)
   .get('/health', () => ({ status: 'ok' }))
   .get('/time', () => {
     const now = new Date()

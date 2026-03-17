@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Link, useNavigate } from 'react-router-dom'
+import { GoogleSignInButton } from '../components/GoogleSignInButton'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -92,7 +93,15 @@ export default function Login() {
           <Button type="submit" className="w-full" size="lg">
             Sign in
           </Button>
-          
+
+          <GoogleSignInButton
+            onSuccess={(userData, isNewUser) => {
+              login('dummy-token', userData)
+              navigate('/')
+            }}
+            onError={(err) => setError(err)}
+          />
+
           <p className="text-center text-sm text-zinc-400">
             Don't have an account?{' '}
             <Link to="/register" className="font-medium text-indigo-400 hover:text-indigo-300">

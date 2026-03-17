@@ -7,6 +7,7 @@ import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
 import { Button } from '../components/ui/button'
 import { Trophy, Swords, Calendar, MoreVertical, ExternalLink, Plus, Layers, Upload, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { useSiteSettings } from '../contexts/SiteSettingsContext'
 import { DeckCard, DeckWithStats } from '../components/DeckCard'
 import { DeckModal } from '../components/DeckModal'
 import { ProfileSettingsDialog } from '../components/ProfileSettingsDialog'
@@ -83,6 +84,7 @@ export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
   const { user: currentUser, hasPermission } = useAuth()
   const { selectedGame: activeGame, games } = useGame() // Alias to activeGame to minimize changes
+  const { isFeatureEnabled } = useSiteSettings()
   const [user, setUser] = useState<UserProfile | null>(null)
   const [history, setHistory] = useState<TournamentHistory[]>([])
   const [duels, setDuels] = useState<DuelHistory[]>([])
@@ -108,19 +110,23 @@ export default function UserProfilePage() {
       setDuels(historyRes.duels || [])
 
       // Fetch decks
-      try {
-        const decksRes = await api(`/decks?userId=${id}${activeGame ? `&gameId=${activeGame.id}` : ''}`)
-        setDecks(decksRes)
-      } catch (e) {
-        console.error('Failed to fetch decks', e)
+      if (isFeatureEnabled('decks')) {
+        try {
+          const decksRes = await api(`/decks?userId=${id}${activeGame ? `&gameId=${activeGame.id}` : ''}`)
+          setDecks(decksRes)
+        } catch (e) {
+          console.error('Failed to fetch decks', e)
+        }
       }
 
       // Fetch custom decks
-      try {
-        const customDecksRes = await api(`/custom-decks?userId=${id}${activeGame ? `&gameId=${activeGame.id}` : ''}`)
-        setCustomDecks(customDecksRes)
-      } catch (e) {
-        console.error('Failed to fetch custom decks', e)
+      if (isFeatureEnabled('custom_decks')) {
+        try {
+          const customDecksRes = await api(`/custom-decks?userId=${id}${activeGame ? `&gameId=${activeGame.id}` : ''}`)
+          setCustomDecks(customDecksRes)
+        } catch (e) {
+          console.error('Failed to fetch custom decks', e)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch user data:', error)
@@ -300,7 +306,7 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      {isFeatureEnabled('decks') && <div className="space-y-4">
         <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Layers className="text-purple-500" />
@@ -331,10 +337,10 @@ export default function UserProfilePage() {
                 ))}
             </div>
         )}
-      </div>
+      </div>}
 
       {/* Custom Decks Section */}
-      <div className="space-y-4">
+      {isFeatureEnabled('custom_decks') && <div className="space-y-4">
         <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Upload className="text-indigo-500" />
@@ -489,7 +495,7 @@ export default function UserProfilePage() {
                 })}
             </div>
         )}
-      </div>
+      </div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Tournament History */}

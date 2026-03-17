@@ -29,11 +29,11 @@ async function main() {
 
   // 3. Seed Essential Permissions
   const essentialPerms = [
-      'admin.access', 
-      'users.manage', 
-      'roles.manage', 
-      'tournaments.create', 
-      'tournaments.manage', 
+      'admin.access',
+      'users.manage',
+      'roles.manage',
+      'tournaments.manage_own',
+      'tournaments.manage_all',
       'settings.manage',
       'decks.manage',
       'games.manage'

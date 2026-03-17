@@ -158,6 +158,18 @@ export const customDeckCards = sqliteTable('custom_deck_cards', {
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 })
 
+// OAuth Accounts (provider-agnostic for future extensibility)
+export const oauthAccounts = sqliteTable('oauth_accounts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  provider: text('provider').notNull(), // 'google', 'discord', 'github', etc.
+  providerAccountId: text('provider_account_id').notNull(), // The ID from the provider
+  email: text('email'),
+  displayName: text('display_name'),
+  avatarUrl: text('avatar_url'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+})
+
 export const systemSettings = sqliteTable('system_settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),

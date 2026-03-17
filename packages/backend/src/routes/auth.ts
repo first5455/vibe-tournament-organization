@@ -154,7 +154,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     })
   })
   .put('/profile', async ({ body, set }) => {
-    const { userId, username, displayName, password, color, avatarUrl } = body
+    const { userId, username, displayName, password, color, avatarUrl, securityQuestion, securityAnswer } = body
 
     const user = await db.select().from(users).where(eq(users.id, userId)).get()
     if (!user) {
@@ -189,6 +189,14 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       updates.avatarUrl = avatarUrl
     }
 
+    if (securityQuestion) {
+      updates.securityQuestion = securityQuestion
+    }
+
+    if (securityAnswer) {
+      updates.securityAnswerHash = await Bun.password.hash(securityAnswer)
+    }
+
     if (Object.keys(updates).length > 0) {
       await db.update(users).set(updates).where(eq(users.id, userId)).run()
     }
@@ -202,7 +210,9 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       displayName: t.Optional(t.String()),
       password: t.Optional(t.String()),
       color: t.Optional(t.String()),
-      avatarUrl: t.Optional(t.String())
+      avatarUrl: t.Optional(t.String()),
+      securityQuestion: t.Optional(t.String()),
+      securityAnswer: t.Optional(t.String())
     })
   })
   .delete('/account', async ({ body, set }) => {

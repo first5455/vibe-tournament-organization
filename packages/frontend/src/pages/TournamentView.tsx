@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { useAuth } from '../lib/auth'
-import { Trophy, Users, Play, RefreshCw } from 'lucide-react'
+import { Trophy, Users, Play, RefreshCw, FileSpreadsheet, FileText } from 'lucide-react'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 
@@ -14,6 +14,7 @@ import { CreateUserDialog } from '../components/CreateUserDialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Match, Participant, Deck } from '../types'
 import { MatchCard } from '../components/MatchCard'
+import { exportTournamentToExcel, exportTournamentToPDF } from '../lib/tournamentExport'
 
 interface Tournament {
   id: number
@@ -454,6 +455,20 @@ export default function TournamentView() {
         </div>
         
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportTournamentToExcel(
+            { ...tournament, createdByName: tournament.createdByName },
+            participants, matches
+          )}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportTournamentToPDF(
+            { ...tournament, createdByName: tournament.createdByName },
+            participants, matches
+          )}>
+            <FileText className="mr-2 h-4 w-4" />
+            PDF
+          </Button>
           {isAdmin && (
             <>
               <Button variant="outline" onClick={() => setIsEditing(true)}>Edit</Button>

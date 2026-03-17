@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { GameProvider, useGame } from './contexts/GameContext'
+import { SiteSettingsProvider, useSiteSettings } from './contexts/SiteSettingsContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -16,6 +17,7 @@ import DuelRoom from './pages/DuelRoom'
 import DecksPage from './pages/DecksPage'
 import CustomDeckUploadPage from './pages/CustomDeckUploadPage'
 import GameSelectPage from './pages/GameSelectPage'
+import SecuritySettings from './pages/SecuritySettings'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading: authLoading } = useAuth()
@@ -50,6 +52,12 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 import { useEffect, useState } from 'react'
 import { api } from './lib/api'
 import { MaintenancePage } from './pages/MaintenancePage'
+
+function FeatureRoute({ feature, children }: { feature: string, children: React.ReactNode }) {
+  const { isFeatureEnabled } = useSiteSettings()
+  if (!isFeatureEnabled(feature)) return <Navigate to="/" />
+  return <>{children}</>
+}
 
 function AppContent() {
   const { isLoading, hasPermission } = useAuth()
@@ -103,12 +111,16 @@ function AppContent() {
         } />
         <Route path="/tournaments/:id" element={
           <ProtectedRoute>
-            <TournamentView />
+            <FeatureRoute feature="tournaments">
+              <TournamentView />
+            </FeatureRoute>
           </ProtectedRoute>
         } />
         <Route path="/leaderboard" element={
           <ProtectedRoute>
-            <Leaderboard />
+            <FeatureRoute feature="leaderboard">
+              <Leaderboard />
+            </FeatureRoute>
           </ProtectedRoute>
         } />
         <Route path="/profile" element={
@@ -123,12 +135,16 @@ function AppContent() {
         } />
         <Route path="/decks" element={
           <ProtectedRoute>
-            <DecksPage />
+            <FeatureRoute feature="decks">
+              <DecksPage />
+            </FeatureRoute>
           </ProtectedRoute>
         } />
         <Route path="/custom-decks" element={
           <ProtectedRoute>
-            <CustomDeckUploadPage />
+            <FeatureRoute feature="custom_decks">
+              <CustomDeckUploadPage />
+            </FeatureRoute>
           </ProtectedRoute>
         } />
         <Route path="/admin" element={
@@ -138,15 +154,24 @@ function AppContent() {
         } />
         <Route path="/duels" element={
           <ProtectedRoute>
-            <DuelDashboard />
+            <FeatureRoute feature="duel_room">
+              <DuelDashboard />
+            </FeatureRoute>
           </ProtectedRoute>
         } />
         <Route path="/duels/:id" element={
           <ProtectedRoute>
-            <DuelRoom />
+            <FeatureRoute feature="duel_room">
+              <DuelRoom />
+            </FeatureRoute>
           </ProtectedRoute>
         } />
         
+        <Route path="/security" element={
+          <ProtectedRoute>
+            <SecuritySettings />
+          </ProtectedRoute>
+        } />
         {/* Add other protected routes here */}
       </Route>
     </Routes>
@@ -157,9 +182,11 @@ function App() {
   return (
     <AuthProvider>
       <GameProvider>
-        <BrowserRouter>
-           <AppContent />
-        </BrowserRouter>
+        <SiteSettingsProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </SiteSettingsProvider>
       </GameProvider>
     </AuthProvider>
   )

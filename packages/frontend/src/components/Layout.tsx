@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import { useSiteSettings } from '../contexts/SiteSettingsContext'
 import { Button } from './ui/button'
-import { Trophy, Users, LogOut, LayoutDashboard, Menu, X, Shield, Swords, Upload } from 'lucide-react'
+import { Trophy, Users, LogOut, LayoutDashboard, Menu, X, Shield, Swords, Upload, Settings } from 'lucide-react'
 import { UserLabel } from './UserLabel'
 import { UserAvatar } from './UserAvatar'
 import { GameSwitcher } from './GameSwitcher'
@@ -10,6 +11,7 @@ import pkg from '../../package.json'
 
 export default function Layout() {
   const { user, logout, hasPermission } = useAuth()
+  const { settings, isFeatureEnabled } = useSiteSettings()
   const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -20,9 +22,13 @@ export default function Layout() {
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-8">
               <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <Trophy className="h-8 w-8 text-indigo-500" />
+                {settings.siteLogo ? (
+                  <img src={settings.siteLogo} alt={settings.siteName} className="h-8 w-8 object-contain rounded" />
+                ) : (
+                  <Trophy className="h-8 w-8 text-indigo-500" />
+                )}
                 <div className="flex flex-col">
-                  <span className="text-xl font-bold text-white leading-none">VibeTourney</span>
+                  <span className="text-xl font-bold text-white leading-none">{settings.siteName}</span>
                   <span className="text-[10px] text-zinc-500 font-mono">v{pkg.version}</span>
                 </div>
               </Link>
@@ -39,30 +45,38 @@ export default function Layout() {
                       Dashboard
                     </Button>
                   </Link>
-                  <Link to="/leaderboard">
-                    <Button variant={location.pathname === '/leaderboard' ? 'secondary' : 'ghost'} size="sm">
-                      <Users className="mr-2 h-4 w-4" />
-                      Leaderboard
-                    </Button>
-                  </Link>
-                  <Link to="/duels">
-                    <Button variant={location.pathname === '/duels' ? 'secondary' : 'ghost'} size="sm">
-                      <Swords className="mr-2 h-4 w-4" />
-                      Duel Room
-                    </Button>
-                  </Link>
-                  <Link to="/decks">
-                    <Button variant={location.pathname === '/decks' ? 'secondary' : 'ghost'} size="sm">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      My Decks
-                    </Button>
-                  </Link>
-                  <Link to="/custom-decks">
-                    <Button variant={location.pathname === '/custom-decks' ? 'secondary' : 'ghost'} size="sm">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Custom Decks
-                    </Button>
-                  </Link>
+                  {isFeatureEnabled('leaderboard') && (
+                    <Link to="/leaderboard">
+                      <Button variant={location.pathname === '/leaderboard' ? 'secondary' : 'ghost'} size="sm">
+                        <Users className="mr-2 h-4 w-4" />
+                        Leaderboard
+                      </Button>
+                    </Link>
+                  )}
+                  {isFeatureEnabled('duel_room') && (
+                    <Link to="/duels">
+                      <Button variant={location.pathname === '/duels' ? 'secondary' : 'ghost'} size="sm">
+                        <Swords className="mr-2 h-4 w-4" />
+                        Duel Room
+                      </Button>
+                    </Link>
+                  )}
+                  {isFeatureEnabled('decks') && (
+                    <Link to="/decks">
+                      <Button variant={location.pathname === '/decks' ? 'secondary' : 'ghost'} size="sm">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        My Decks
+                      </Button>
+                    </Link>
+                  )}
+                  {isFeatureEnabled('custom_decks') && (
+                    <Link to="/custom-decks">
+                      <Button variant={location.pathname === '/custom-decks' ? 'secondary' : 'ghost'} size="sm">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Custom Decks
+                      </Button>
+                    </Link>
+                  )}
                   {hasPermission('admin.access') && (
                     <Link to="/admin">
                       <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} size="sm">
@@ -84,6 +98,11 @@ export default function Layout() {
                   <span className="text-sm text-zinc-400 flex items-center gap-1">
                     Signed in as <Link to={`/users/${user.id}`} className="text-white font-medium hover:underline"><UserLabel username={user.username} displayName={user.displayName} color={user.color} /></Link>
                   </span>
+                  <Link to="/security">
+                    <Button variant="ghost" size="sm">
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </Link>
                   <Button variant="outline" size="sm" onClick={logout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign out
@@ -122,32 +141,40 @@ export default function Layout() {
                       Dashboard
                     </Button>
                   </Link>
-                  <Link to="/leaderboard" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant={location.pathname === '/leaderboard' ? 'secondary' : 'ghost'} className="w-full justify-start">
-                      <Users className="mr-2 h-4 w-4" />
-                      Leaderboard
-                    </Button>
-                  </Link>
-                  <Link to="/duels" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant={location.pathname === '/duels' ? 'secondary' : 'ghost'} className="w-full justify-start">
-                      <Swords className="mr-2 h-4 w-4" />
-                      Duel Room
-                    </Button>
-                  </Link>
-                  <Link to="/decks" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant={location.pathname === '/decks' ? 'secondary' : 'ghost'} className="w-full justify-start">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      My Decks
-                    </Button>
-                  </Link>
-                  <Link to="/custom-decks" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant={location.pathname === '/custom-decks' ? 'secondary' : 'ghost'} className="w-full justify-start">
-                      <Upload className="mr-2 h-4 w-4" />
-                      Custom Decks
-                    </Button>
-                  </Link>
+                  {isFeatureEnabled('leaderboard') && (
+                    <Link to="/leaderboard" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant={location.pathname === '/leaderboard' ? 'secondary' : 'ghost'} className="w-full justify-start">
+                        <Users className="mr-2 h-4 w-4" />
+                        Leaderboard
+                      </Button>
+                    </Link>
+                  )}
+                  {isFeatureEnabled('duel_room') && (
+                    <Link to="/duels" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant={location.pathname === '/duels' ? 'secondary' : 'ghost'} className="w-full justify-start">
+                        <Swords className="mr-2 h-4 w-4" />
+                        Duel Room
+                      </Button>
+                    </Link>
+                  )}
+                  {isFeatureEnabled('decks') && (
+                    <Link to="/decks" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant={location.pathname === '/decks' ? 'secondary' : 'ghost'} className="w-full justify-start">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        My Decks
+                      </Button>
+                    </Link>
+                  )}
+                  {isFeatureEnabled('custom_decks') && (
+                    <Link to="/custom-decks" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant={location.pathname === '/custom-decks' ? 'secondary' : 'ghost'} className="w-full justify-start">
+                        <Upload className="mr-2 h-4 w-4" />
+                        Custom Decks
+                      </Button>
+                    </Link>
+                  )}
                   {hasPermission('admin.access') && (
-                    <Link to="/admin">
+                    <Link to="/admin" onClick={() => setIsMenuOpen(false)}>
                       <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} size="sm">
                         <Shield className="mr-2 h-4 w-4" />
                         Admin
@@ -163,6 +190,12 @@ export default function Layout() {
                       Signed in as <Link to={`/users/${user.id}`} className="text-white font-medium hover:underline" onClick={() => setIsMenuOpen(false)}><UserLabel username={user.username} displayName={user.displayName} color={user.color} /></Link>
                     </div>
                   </div>
+                  <Link to="/security" onClick={() => setIsMenuOpen(false)}>
+                    <Button variant={location.pathname === '/security' ? 'secondary' : 'ghost'} className="w-full justify-start">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Security Settings
+                    </Button>
+                  </Link>
                   <Button variant="outline" className="w-full justify-start" onClick={() => { logout(); setIsMenuOpen(false) }}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign out
@@ -190,7 +223,7 @@ export default function Layout() {
 
       <footer className="border-t border-white/10 bg-zinc-900/50 backdrop-blur-xl py-6 mt-auto">
         <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-zinc-500 text-sm">
-          <p>© 2025 VibeTourney. Open Source under <a href="http://www.wtfpl.net/" target="_blank" rel="noreferrer" className="underline hover:text-white">WTFPL</a> License.</p>
+          <p>© 2025 {settings.siteName}. Open Source under <a href="http://www.wtfpl.net/" target="_blank" rel="noreferrer" className="underline hover:text-white">WTFPL</a> License.</p>
           <a 
             href="https://github.com/first5455/vibe-tournament-organization" 
             target="_blank" 
