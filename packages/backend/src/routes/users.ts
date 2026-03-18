@@ -153,6 +153,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       avatarUrl: users.avatarUrl,
       passwordHash: users.passwordHash,
       tokenVersion: users.tokenVersion,
+      points: users.points,
     })
     .from(users)
     .where(eq(users.id, parseInt(params.id)))
@@ -401,6 +402,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       createdAt: users.createdAt,
       color: users.color,
       avatarUrl: users.avatarUrl,
+      points: users.points,
       mmr: gameId ? userGameStats.mmr : sql<number>`0`
     }).from(users)
     .leftJoin(roles, eq(users.roleId, roles.id)) // Join roles
@@ -480,6 +482,11 @@ export const userRoutes = new Elysia({ prefix: '/users' })
           updates.roleId = body.roleId
       }
       
+      // Update Points
+      if (body.points !== undefined) {
+          updates.points = body.points
+      }
+
       // Update MMR
       if (mmr !== undefined) {
           if (body.gameId) {
@@ -538,7 +545,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       mmr: t.Optional(t.Number()),
       gameId: t.Optional(t.Number()),
       color: t.Optional(t.String()),
-      avatarUrl: t.Optional(t.String())
+      avatarUrl: t.Optional(t.String()),
+      points: t.Optional(t.Number()),
     })
   })
   .delete('/:id', async ({ params, body, set }) => {

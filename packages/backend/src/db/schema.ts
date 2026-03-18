@@ -34,6 +34,7 @@ export const users = sqliteTable('users', {
   color: text('color').default('#ffffff'),
   avatarUrl: text('avatar_url'),
   tokenVersion: integer('token_version').default(0).notNull(),
+  points: integer('points').default(0).notNull(),
 })
 // Games Table
 export const games = sqliteTable('games', {

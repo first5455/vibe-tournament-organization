@@ -7,7 +7,7 @@ import { useGame } from '../contexts/GameContext'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
 import { Button } from '../components/ui/button'
-import { Trophy, Swords, Calendar, MoreVertical, ExternalLink, Plus, Layers, Upload, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Trophy, Swords, Calendar, MoreVertical, ExternalLink, Plus, Layers, Upload, Trash2, ChevronDown, ChevronUp, Coins } from 'lucide-react'
 import { useSiteSettings } from '../contexts/SiteSettingsContext'
 import { DeckCard, DeckWithStats } from '../components/DeckCard'
 import { DeckModal } from '../components/DeckModal'
@@ -24,6 +24,7 @@ interface UserProfile {
   avatarUrl?: string
   createdAt: string
   rank?: number
+  points?: number
   stats?: {
       gameId: number
       gameName: string
@@ -86,7 +87,7 @@ export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
   const { user: currentUser, hasPermission } = useAuth()
   const { selectedGame: activeGame, games } = useGame() // Alias to activeGame to minimize changes
-  const { isFeatureEnabled } = useSiteSettings()
+  const { isFeatureEnabled, settings: siteSettings } = useSiteSettings()
   const [user, setUser] = useState<UserProfile | null>(null)
   const [history, setHistory] = useState<TournamentHistory[]>([])
   const [duels, setDuels] = useState<DuelHistory[]>([])
@@ -224,6 +225,12 @@ export default function UserProfilePage() {
                 {/* {user.rank && <span className="text-zinc-400 mr-2">#{user.rank} •</span>} */} 
                 {/* Rank is currently global legacy, hiding it to avoid confusion or we need to fetch it per game */}
                 {displayMmr} MMR
+              </span>
+            </div>
+            <div className="flex items-center gap-2 bg-zinc-800/50 px-3 py-1 rounded-full">
+              <Coins className="w-4 h-4 text-amber-400" />
+              <span className="font-medium text-white">
+                {user.points ?? 0} {siteSettings.pointDisplayName}
               </span>
             </div>
             <div className="flex items-center gap-2">

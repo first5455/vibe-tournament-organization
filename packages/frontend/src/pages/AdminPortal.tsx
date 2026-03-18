@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useNavigate, Link } from 'react-router-dom'
-import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2, Users, UserPlus, RefreshCw, Plus } from 'lucide-react'
+import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2, Users, UserPlus, RefreshCw, Plus, Coins } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,7 @@ import { CreateUserDialog } from '../components/CreateUserDialog'
 import { useGame } from '../contexts/GameContext'
 import { useSiteSettings } from '../contexts/SiteSettingsContext'
 import { EditMMRDialog } from '../components/EditMMRDialog'
+import { EditPointsDialog } from '../components/EditPointsDialog'
 
 import { DeckModal } from '../components/DeckModal'
 import { User, Deck } from '../types'
@@ -43,7 +44,7 @@ const formatDate = (dateDict?: string) => {
 export default function AdminPortal() {
   const { user, refreshUser, hasPermission, isLoading: authLoading } = useAuth()
   const { refreshGames } = useGame()
-  const { refreshSettings } = useSiteSettings()
+  const { refreshSettings, settings: siteSettings } = useSiteSettings()
   const [activeTab, setActiveTab] = useState<'users' | 'tournaments' | 'duels' | 'decks' | 'customdecks' | 'games' | 'settings' | 'roles'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [tournaments, setTournaments] = useState<any[]>([])
@@ -88,6 +89,7 @@ export default function AdminPortal() {
     featureTournaments: true,
     oauthGoogleClientId: '',
     defaultLanguage: 'en',
+    pointDisplayName: 'Points',
   })
 
   // Settings Save Handler
@@ -110,6 +112,7 @@ export default function AdminPortal() {
                 featureTournaments: settingsForm.featureTournaments,
                 oauthGoogleClientId: settingsForm.oauthGoogleClientId,
                 defaultLanguage: settingsForm.defaultLanguage,
+                pointDisplayName: settingsForm.pointDisplayName,
             })
         })
         await refreshSettings()
@@ -158,6 +161,8 @@ export default function AdminPortal() {
   const [showCreateUser, setShowCreateUser] = useState(false)
   const [editMMRDialogIsOpen, setEditMMRDialogIsOpen] = useState(false)
   const [editMMRUser, setEditMMRUser] = useState<User | null>(null)
+  const [editPointsDialogIsOpen, setEditPointsDialogIsOpen] = useState(false)
+  const [editPointsUser, setEditPointsUser] = useState<User | null>(null)
 
   // Deck Management State
   const [deckModalOpen, setDeckModalOpen] = useState(false)
@@ -230,6 +235,7 @@ export default function AdminPortal() {
             featureTournaments: data.featureTournaments ?? true,
             oauthGoogleClientId: data.oauthGoogleClientId || '',
             defaultLanguage: data.defaultLanguage || 'en',
+            pointDisplayName: data.pointDisplayName || 'Points',
         })
         setAvailableRoles(rolesData)
       }
@@ -312,6 +318,11 @@ export default function AdminPortal() {
   const editMMR = (targetUser: User) => {
     setEditMMRUser(targetUser)
     setEditMMRDialogIsOpen(true)
+  }
+
+  const editPoints = (targetUser: User) => {
+    setEditPointsUser(targetUser)
+    setEditPointsDialogIsOpen(true)
   }
 
 
@@ -780,6 +791,7 @@ export default function AdminPortal() {
                 <th className="px-4 py-3 font-medium">Username</th>
                 <th className="px-4 py-3 font-medium">Role</th>
                 <th className="px-4 py-3 font-medium">MMR</th>
+                <th className="px-4 py-3 font-medium">{siteSettings.pointDisplayName}</th>
                 <th className="px-4 py-3 font-medium">Joined</th>
                 <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
@@ -805,9 +817,12 @@ export default function AdminPortal() {
                     </span>
                   </td>
                   <td className="px-4 py-3 font-mono">
-                    {filterGameId !== 'all' && u.stats 
-                        ? (u.stats.find(s => s.gameId === parseInt(filterGameId))?.mmr ?? '-') 
+                    {filterGameId !== 'all' && u.stats
+                        ? (u.stats.find(s => s.gameId === parseInt(filterGameId))?.mmr ?? '-')
                         : '-'}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-amber-400">
+                    {u.points ?? 0}
                   </td>
                   <td className="px-4 py-3">{formatDate(u.createdAt)}</td>
                   <td className="px-4 py-3 text-right">
@@ -864,6 +879,10 @@ export default function AdminPortal() {
                               <DropdownMenuItem onClick={() => editMMR(u)}>
                                 <Trophy className="mr-2 h-4 w-4" />
                                 Edit MMR
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => editPoints(u)}>
+                                <Coins className="mr-2 h-4 w-4" />
+                                Edit {siteSettings.pointDisplayName}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => startEditColor(u)}>
                                 <Palette className="mr-2 h-4 w-4" />
@@ -1883,6 +1902,18 @@ export default function AdminPortal() {
                         <option value="th">ภาษาไทย</option>
                     </select>
                 </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Point Display Name</label>
+                    <p className="text-xs text-zinc-500 mb-2">Customize what "Points" are called across the site (e.g., Coins, Credits, Stars).</p>
+                    <input
+                        type="text"
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={settingsForm.pointDisplayName}
+                        onChange={(e) => setSettingsForm({...settingsForm, pointDisplayName: e.target.value})}
+                        placeholder="Points"
+                    />
+                </div>
             </div>
 
             {/* Feature Toggles */}
@@ -2052,6 +2083,16 @@ export default function AdminPortal() {
         requesterId={user?.id || 0}
       />
       
+      {/* Edit Points Dialog */}
+      <EditPointsDialog
+        isOpen={editPointsDialogIsOpen}
+        onClose={() => setEditPointsDialogIsOpen(false)}
+        user={editPointsUser}
+        onSuccess={loadData}
+        requesterId={user?.id || 0}
+        pointDisplayName={siteSettings.pointDisplayName}
+      />
+
       {/* Edit MMR Dialog */}
       <EditMMRDialog
         isOpen={editMMRDialogIsOpen}

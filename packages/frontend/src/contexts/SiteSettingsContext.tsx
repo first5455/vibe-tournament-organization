@@ -11,6 +11,7 @@ interface SiteSettings {
   featureCustomDecks: boolean
   featureTournaments: boolean
   defaultLanguage: string
+  pointDisplayName: string
 }
 
 interface SiteSettingsContextType {
@@ -29,6 +30,7 @@ const defaultSettings: SiteSettings = {
   featureCustomDecks: true,
   featureTournaments: true,
   defaultLanguage: 'en',
+  pointDisplayName: 'Points',
 }
 
 const SiteSettingsContext = createContext<SiteSettingsContextType>({
@@ -54,6 +56,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
         featureCustomDecks: data.featureCustomDecks ?? true,
         featureTournaments: data.featureTournaments ?? true,
         defaultLanguage: data.defaultLanguage || 'en',
+        pointDisplayName: data.pointDisplayName || 'Points',
       }
       setSettings(newSettings)
 
