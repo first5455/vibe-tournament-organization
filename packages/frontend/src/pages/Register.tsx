@@ -119,7 +119,7 @@ export default function Register() {
           </Button>
 
           <GoogleSignInButton
-            onSuccess={(userData, isNewUser) => {
+            onSuccess={(userData, _isNewUser) => {
               login('dummy-token', userData)
               navigate('/')
             }}

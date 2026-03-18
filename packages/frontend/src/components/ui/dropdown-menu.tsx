@@ -30,10 +30,10 @@ interface DropdownMenuItemProps {
 const DropdownContext = React.createContext<{
   isOpen: boolean
   setIsOpen: (open: boolean) => void
-  triggerRef: React.RefObject<HTMLElement>
-  contentRef: React.RefObject<HTMLDivElement>
-}>({ 
-  isOpen: false, 
+  triggerRef: React.RefObject<HTMLElement | null>
+  contentRef: React.RefObject<HTMLDivElement | null>
+}>({
+  isOpen: false,
   setIsOpen: () => {},
   triggerRef: { current: null },
   contentRef: { current: null }
@@ -79,7 +79,7 @@ export function DropdownMenuTrigger({ children, className, asChild }: DropdownMe
     return React.cloneElement(children as React.ReactElement<any>, {
       ref: triggerRef,
       onClick: handleClick,
-      className: cn(children.props.className, className),
+      className: cn((children.props as Record<string, any>).className, className),
       'aria-expanded': isOpen
     })
   }

@@ -121,7 +121,7 @@ export default function SecuritySettings() {
     }
   }
 
-  const handleLinkOAuth = async (userData: any) => {
+  const handleLinkOAuth = async (_userData: any) => {
     // The GoogleSignInButton handles the OAuth flow, but for linking
     // we need to use the link endpoint instead
     fetchOAuthAccounts()

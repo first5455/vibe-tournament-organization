@@ -97,7 +97,7 @@ export default function Login() {
           </Button>
 
           <GoogleSignInButton
-            onSuccess={(userData, isNewUser) => {
+            onSuccess={(userData, _isNewUser) => {
               login('dummy-token', userData)
               navigate('/')
             }}
