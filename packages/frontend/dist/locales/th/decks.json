@@ -1,0 +1,41 @@
+{
+  "myDecks": "เด็คของฉัน",
+  "decks": "เด็ค",
+  "newDeck": "เด็คใหม่",
+  "loading": "กำลังโหลดเด็ค...",
+  "noDecks": "ไม่พบเด็ค สร้างเด็คเพื่อเริ่มต้น!",
+  "createFirstDeck": "สร้างเด็คแรก",
+  "custom": {
+    "title": "อัปโหลดเด็คกำหนดเอง",
+    "myDecks": "เด็คของฉัน",
+    "noDecks": "ยังไม่มีเด็คกำหนดเอง",
+    "selectDeck": "เลือกเด็คเพื่อดูและจัดการการ์ด",
+    "addCard": "เพิ่มการ์ด",
+    "noCards": "ไม่มีการ์ดในเด็คนี้",
+    "uploadFirstCard": "อัปโหลดการ์ดแรก",
+    "quantity": "จำนวน:",
+    "cardName": "ชื่อการ์ด...",
+    "unnamedCard": "การ์ดไม่มีชื่อ",
+    "createDeck": {
+      "title": "สร้างเด็คใหม่",
+      "name": "ชื่อเด็ค *",
+      "namePlaceholder": "เช่น เด็ค TCG ของฉัน",
+      "description": "คำอธิบาย (ไม่บังคับ)",
+      "descriptionPlaceholder": "อธิบายเด็คของคุณ...",
+      "submit": "สร้างเด็ค"
+    },
+    "addCardDialog": {
+      "title": "เพิ่มการ์ด",
+      "image": "รูปการ์ด *",
+      "name": "ชื่อการ์ด (ไม่บังคับ)",
+      "namePlaceholder": "เช่น Blue Eyes White Dragon",
+      "quantity": "จำนวน",
+      "uploading": "กำลังอัปโหลด..."
+    },
+    "exportDeck": "ส่งออกเด็ค:",
+    "copyToClipboard": "คัดลอก",
+    "copied": "คัดลอกแล้ว!",
+    "uniqueCards": "การ์ดไม่ซ้ำ",
+    "total": "ทั้งหมด"
+  }
+}

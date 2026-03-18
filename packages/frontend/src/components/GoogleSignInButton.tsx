@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 
 interface GoogleSignInButtonProps {
@@ -20,6 +21,7 @@ declare global {
 }
 
 export function GoogleSignInButton({ onSuccess, onError }: GoogleSignInButtonProps) {
+  const { t } = useTranslation('common')
   const buttonRef = useRef<HTMLDivElement>(null)
   const [clientId, setClientId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -100,7 +102,7 @@ export function GoogleSignInButton({ onSuccess, onError }: GoogleSignInButtonPro
           <div className="w-full border-t border-zinc-800" />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="bg-zinc-900/50 px-4 text-zinc-500">or continue with</span>
+          <span className="bg-zinc-900/50 px-4 text-zinc-500">{t('orContinueWith')}</span>
         </div>
       </div>
       <div ref={buttonRef} className="w-full flex justify-center" />

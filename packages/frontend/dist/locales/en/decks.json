@@ -1,0 +1,41 @@
+{
+  "myDecks": "My Decks",
+  "decks": "Decks",
+  "newDeck": "New Deck",
+  "loading": "Loading decks...",
+  "noDecks": "No decks found. Create one to get started!",
+  "createFirstDeck": "Create First Deck",
+  "custom": {
+    "title": "Custom Deck Upload",
+    "myDecks": "My Decks",
+    "noDecks": "No custom decks yet",
+    "selectDeck": "Select a deck to view and manage cards",
+    "addCard": "Add Card",
+    "noCards": "No cards in this deck",
+    "uploadFirstCard": "Upload First Card",
+    "quantity": "Quantity:",
+    "cardName": "Card name...",
+    "unnamedCard": "Unnamed Card",
+    "createDeck": {
+      "title": "Create New Deck",
+      "name": "Deck Name *",
+      "namePlaceholder": "e.g. My TCG Deck",
+      "description": "Description (Optional)",
+      "descriptionPlaceholder": "Describe your deck...",
+      "submit": "Create Deck"
+    },
+    "addCardDialog": {
+      "title": "Add Card",
+      "image": "Card Image *",
+      "name": "Card Name (Optional)",
+      "namePlaceholder": "e.g. Blue Eyes White Dragon",
+      "quantity": "Quantity",
+      "uploading": "Uploading..."
+    },
+    "exportDeck": "Export Deck:",
+    "copyToClipboard": "Copy to Clipboard",
+    "copied": "Copied!",
+    "uniqueCards": "unique cards",
+    "total": "total"
+  }
+}

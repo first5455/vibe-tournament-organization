@@ -1,0 +1,101 @@
+{
+  "settings": {
+    "title": "Profile Settings",
+    "avatarUrl": "Profile Picture URL",
+    "avatarPlaceholder": "https://example.com/image.jpg",
+    "preview": "Preview:",
+    "failedToLoad": "Failed to load image",
+    "urlWarning": "URL must start with http:// or https://",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "What should we call you?",
+    "username": "Username",
+    "customColor": "Custom Color",
+    "colorDescription": "Pick a color to stand out!",
+    "newPassword": "New Password (leave blank to keep current)",
+    "dangerZone": "Danger Zone",
+    "deleteAccount": "Delete Account",
+    "deleteConfirm": "Are you sure you want to delete your account? This cannot be undone.",
+    "updateSuccess": "Profile updated successfully"
+  },
+  "user": {
+    "loading": "Loading profile...",
+    "notFound": "User not found",
+    "tournamentWinrate": "Tournament Winrate",
+    "duelWinrate": "Duel Winrate",
+    "dailyPerformance": "Daily Performance",
+    "played": "Played",
+    "winLoss": "Win - Loss",
+    "playerDecks": "Player Decks",
+    "noDecks": "No decks created yet",
+    "customDecks": "Custom Decks",
+    "noCustomDecks": "No custom decks created yet",
+    "uniqueCards": "unique cards",
+    "totalCards": "total cards",
+    "viewCards": "View Cards",
+    "hideCards": "Hide Cards",
+    "deleteCustomDeck": "Delete this custom deck? All cards and images will be removed.",
+    "quantity": "Quantity:",
+    "unnamedCard": "Unnamed Card",
+    "deleteCardConfirm": "Delete \"{{cardName}}\" from the deck?",
+    "tournamentHistory": "Tournament History",
+    "noTournamentHistory": "No tournament history yet",
+    "rank": "Rank #",
+    "date": "Date:",
+    "deck": "Deck:",
+    "score": "Score:",
+    "noteLabel": "Note:",
+    "duelHistory": "Duel History",
+    "noDuelHistory": "No duel history yet",
+    "youWentFirst": "YOU WENT 1ST",
+    "oppWentFirst": "OPP WENT 1ST",
+    "createDeckFor": "Create Deck for",
+    "editDeck": "Edit Deck",
+    "createDeck": "Create Deck"
+  },
+  "security": {
+    "title": "Security Settings",
+    "subtitle": "Manage your password, security questions, and linked accounts",
+    "setPassword": {
+      "title": "Set Security Password",
+      "changeTitle": "Change Password",
+      "description": "Set a password so you can also log in with username and password. This password can be reset by an admin if needed.",
+      "newPassword": "New Password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "setButton": "Set Password",
+      "updateButton": "Update Password"
+    },
+    "securityQuestion": {
+      "title": "Security Question",
+      "description": "Set a security question to recover your account if you forget your password.",
+      "selectQuestion": "Select a question...",
+      "questions": {
+        "petName": "What is your pet's name?",
+        "maidenName": "What is your mother's maiden name?",
+        "firstCar": "What was your first car?",
+        "birthCity": "What city were you born in?"
+      },
+      "answer": "Security Answer",
+      "answerPlaceholder": "Answer to your question",
+      "save": "Save Security Question"
+    },
+    "linkedAccounts": {
+      "title": "Linked Accounts",
+      "description": "Manage your connected social accounts for quick sign-in.",
+      "noAccounts": "No linked accounts",
+      "linkNew": "Link a new account:",
+      "unlinkConfirm": "Unlink your {{provider}} account? You can re-link it later.",
+      "unlink": "Unlink"
+    },
+    "errors": {
+      "passwordMinLength": "Password must be at least 4 characters",
+      "passwordMismatch": "Passwords do not match",
+      "selectQuestion": "Please select a question and provide an answer"
+    },
+    "success": {
+      "passwordUpdated": "Password updated successfully",
+      "questionUpdated": "Security question updated successfully"
+    }
+  }
+}

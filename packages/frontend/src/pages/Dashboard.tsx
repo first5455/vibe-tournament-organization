@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { Plus, Calendar, Trophy, RefreshCw, ChevronDown, ChevronRight, Crown } from 'lucide-react'
@@ -32,6 +33,7 @@ interface Tournament {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation(['dashboard', 'common'])
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
@@ -132,8 +134,8 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Tournaments</h1>
-          <p className="text-zinc-400">Manage and join tournaments</p>
+          <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
+          <p className="text-zinc-400">{t('subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -142,14 +144,14 @@ export default function Dashboard() {
             onClick={handleRefresh}
             disabled={isCoolingDown}
             className={`text-zinc-400 hover:text-white ${isCoolingDown ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={isCoolingDown ? "Please wait..." : "Refresh list"}
+            title={isCoolingDown ? t('common:actions.pleaseWait') : t('common:actions.refreshList')}
           >
             <RefreshCw className={`h-6 w-6 ${isCoolingDown ? 'animate-spin' : ''}`} />
           </Button>
           {(hasPermission('tournaments.manage_own') || hasPermission('tournaments.manage_all')) && (
             <Button onClick={() => setIsCreating(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Tournament
+              {t('createTournament')}
             </Button>
           )}
         </div>
@@ -158,21 +160,21 @@ export default function Dashboard() {
       {isCreating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-xl">
-            <h2 className="mb-4 text-xl font-bold text-white">Create Tournament</h2>
+            <h2 className="mb-4 text-xl font-bold text-white">{t('createDialog.title')}</h2>
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-400">Tournament Name</label>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">{t('createDialog.name')}</label>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="Enter name..."
+                  placeholder={t('createDialog.namePlaceholder')}
                   autoFocus
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-400">Tournament Type</label>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">{t('createDialog.type')}</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -184,7 +186,7 @@ export default function Dashboard() {
                     }`}
                   >
                     {newType === 'swiss' && <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                    Swiss System
+                    {t('createDialog.swiss')}
                   </button>
                   <button
                     type="button"
@@ -196,13 +198,13 @@ export default function Dashboard() {
                     }`}
                   >
                     {newType === 'round_robin' && <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                    Round Robin
+                    {t('createDialog.roundRobin')}
                   </button>
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
-                <Button onClick={createTournament}>Create</Button>
+                <Button variant="ghost" onClick={() => setIsCreating(false)}>{t('common:actions.cancel')}</Button>
+                <Button onClick={createTournament}>{t('common:actions.create')}</Button>
               </div>
             </div>
           </div>
@@ -210,21 +212,21 @@ export default function Dashboard() {
       )}
 
       {isLoading ? (
-        <div className="text-center text-zinc-500">Loading tournaments...</div>
+        <div className="text-center text-zinc-500">{t('loading')}</div>
       ) : tournaments.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-12 text-center">
           <Trophy className="mx-auto h-12 w-12 text-zinc-700" />
-          <h3 className="mt-4 text-lg font-medium text-white">No tournaments yet</h3>
-          <p className="mt-2 text-zinc-400">Create your first tournament to get started.</p>
+          <h3 className="mt-4 text-lg font-medium text-white">{t('noTournaments')}</h3>
+          <p className="mt-2 text-zinc-400">{t('noTournamentsDesc')}</p>
         </div>
       ) : (
         <div className="space-y-12">
           {/* Active & Pending Tournaments */}
           <section>
-            <h2 className="mb-4 text-xl font-bold text-white">Active Tournaments</h2>
+            <h2 className="mb-4 text-xl font-bold text-white">{t('activeTournaments')}</h2>
             {tournaments.filter(t => t.status !== 'completed').length === 0 ? (
               <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-8 text-center">
-                <p className="text-zinc-400">No active tournaments running right now.</p>
+                <p className="text-zinc-400">{t('noActiveTournaments')}</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -265,11 +267,11 @@ export default function Dashboard() {
                       <div className="mt-4 flex items-center gap-4 text-sm text-zinc-500">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          <span>Created: {formatDate(tournament.createdAt)}</span>
+                          <span>{t('created')} {formatDate(tournament.createdAt)}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Trophy className="h-4 w-4" />
-                          <span>Players: {tournament.participantCount}</span>
+                          <span>{t('players')} {tournament.participantCount}</span>
                         </div>
                       </div>
                     </Link>
@@ -286,7 +288,7 @@ export default function Dashboard() {
                 className="flex items-center gap-2 mb-4 text-xl font-bold text-white hover:text-indigo-400 transition-colors"
               >
                 {isCompletedExpanded ? <ChevronDown className="h-6 w-6" /> : <ChevronRight className="h-6 w-6" />}
-                Completed Tournaments
+                {t('completedTournaments')}
               </button>
               
               {isCompletedExpanded && (
@@ -349,7 +351,7 @@ export default function Dashboard() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Trophy className="h-4 w-4" />
-                          <span>Players: {tournament.participantCount}</span>
+                          <span>{t('players')} {tournament.participantCount}</span>
                         </div>
                       </div>
                     </Link>

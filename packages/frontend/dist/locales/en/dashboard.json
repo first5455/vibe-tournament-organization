@@ -1,0 +1,21 @@
+{
+  "title": "Tournaments",
+  "subtitle": "Manage and join tournaments",
+  "createTournament": "Create Tournament",
+  "createDialog": {
+    "title": "Create Tournament",
+    "name": "Tournament Name",
+    "namePlaceholder": "Enter name...",
+    "type": "Tournament Type",
+    "swiss": "Swiss System",
+    "roundRobin": "Round Robin"
+  },
+  "loading": "Loading tournaments...",
+  "noTournaments": "No tournaments yet",
+  "noTournamentsDesc": "Create your first tournament to get started.",
+  "activeTournaments": "Active Tournaments",
+  "noActiveTournaments": "No active tournaments running right now.",
+  "completedTournaments": "Completed Tournaments",
+  "created": "Created:",
+  "players": "Players:"
+}

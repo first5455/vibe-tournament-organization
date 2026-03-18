@@ -87,6 +87,7 @@ export default function AdminPortal() {
     featureCustomDecks: true,
     featureTournaments: true,
     oauthGoogleClientId: '',
+    defaultLanguage: 'en',
   })
 
   // Settings Save Handler
@@ -108,6 +109,7 @@ export default function AdminPortal() {
                 featureCustomDecks: settingsForm.featureCustomDecks,
                 featureTournaments: settingsForm.featureTournaments,
                 oauthGoogleClientId: settingsForm.oauthGoogleClientId,
+                defaultLanguage: settingsForm.defaultLanguage,
             })
         })
         await refreshSettings()
@@ -228,6 +230,7 @@ export default function AdminPortal() {
             featureCustomDecks: data.featureCustomDecks ?? true,
             featureTournaments: data.featureTournaments ?? true,
             oauthGoogleClientId: data.oauthGoogleClientId || '',
+            defaultLanguage: data.defaultLanguage || 'en',
         })
         setAvailableRoles(rolesData)
       }
@@ -968,7 +971,7 @@ export default function AdminPortal() {
                   </td>
                   <td className="px-4 py-3 text-zinc-300">{t.gameName}</td>
                   <td className="px-4 py-3 text-right flex items-center justify-end gap-2">
-                    {(hasPermission('tournaments.manage')) && (
+                    {(hasPermission('tournaments.manage_all')) && (
                       <>
                         <Button 
                           variant="ghost" 
@@ -1867,6 +1870,19 @@ export default function AdminPortal() {
                             <span className="text-sm text-zinc-400">Logo preview</span>
                         </div>
                     )}
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-300">Default Language</label>
+                    <p className="text-xs text-zinc-500 mb-2">Default language for new users who haven't set a preference.</p>
+                    <select
+                        className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={settingsForm.defaultLanguage}
+                        onChange={(e) => setSettingsForm({...settingsForm, defaultLanguage: e.target.value})}
+                    >
+                        <option value="en">English</option>
+                        <option value="th">ภาษาไทย</option>
+                    </select>
                 </div>
             </div>
 

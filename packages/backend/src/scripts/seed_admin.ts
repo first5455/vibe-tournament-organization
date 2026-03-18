@@ -35,6 +35,7 @@ async function main() {
       'tournaments.manage_own',
       'tournaments.manage_all',
       'settings.manage',
+      'duels.manage',
       'decks.manage',
       'games.manage'
   ]

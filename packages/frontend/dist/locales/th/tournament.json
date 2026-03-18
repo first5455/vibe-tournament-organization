@@ -1,0 +1,20 @@
+{
+  "loading": "กำลังโหลด...",
+  "notFound": "ไม่พบทัวร์นาเมนต์",
+  "exportExcel": "ส่งออกเป็น Excel",
+  "exportPdf": "ส่งออกเป็น PDF",
+  "participants": "ผู้เข้าร่วม",
+  "addParticipant": "เพิ่มผู้เข้าร่วม",
+  "removeParticipant": "ลบผู้เข้าร่วม",
+  "startTournament": "เริ่มทัวร์นาเมนต์",
+  "completeTournament": "จบทัวร์นาเมนต์",
+  "matches": "แมตช์",
+  "noMatches": "ยังไม่มีแมตช์",
+  "createdBy": "สร้างโดย",
+  "round": "รอบ",
+  "standings": "ตารางคะแนน",
+  "bracket": "สายการแข่ง",
+  "results": "ผลการแข่ง",
+  "winner": "ผู้ชนะ",
+  "score": "คะแนน"
+}

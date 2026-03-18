@@ -30,10 +30,12 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       featureTournaments: settingsMap['feature_tournaments'] !== 'false',
       // OAuth
       oauthGoogleClientId: settingsMap['oauth_google_client_id'] || '',
+      // Language
+      defaultLanguage: settingsMap['default_language'] || 'en',
     }
   })
   .post('/', async ({ body, set }) => {
-    const { userId, maintenanceMode, maintenanceMessage, defaultRoleId, ownerRoleId, siteName, siteLogo, featureLeaderboard, featureDuelRoom, featureDecks, featureCustomDecks, featureTournaments, oauthGoogleClientId } = body
+    const { userId, maintenanceMode, maintenanceMessage, defaultRoleId, ownerRoleId, siteName, siteLogo, featureLeaderboard, featureDuelRoom, featureDecks, featureCustomDecks, featureTournaments, oauthGoogleClientId, defaultLanguage } = body
     
     // Auth Check
     const requesterPermissions = await db.select({
@@ -113,6 +115,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       'site_name': siteName,
       'site_logo': siteLogo,
       'oauth_google_client_id': oauthGoogleClientId,
+      'default_language': defaultLanguage,
     }
     for (const [key, value] of Object.entries(stringSettings)) {
       if (value !== undefined) {
@@ -152,5 +155,6 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       featureCustomDecks: t.Optional(t.Boolean()),
       featureTournaments: t.Optional(t.Boolean()),
       oauthGoogleClientId: t.Optional(t.String()),
+      defaultLanguage: t.Optional(t.String()),
     })
   })

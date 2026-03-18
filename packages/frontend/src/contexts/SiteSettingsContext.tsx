@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api'
+import i18n from '../i18n'
 
 interface SiteSettings {
   siteName: string
@@ -9,6 +10,7 @@ interface SiteSettings {
   featureDecks: boolean
   featureCustomDecks: boolean
   featureTournaments: boolean
+  defaultLanguage: string
 }
 
 interface SiteSettingsContextType {
@@ -26,6 +28,7 @@ const defaultSettings: SiteSettings = {
   featureDecks: true,
   featureCustomDecks: true,
   featureTournaments: true,
+  defaultLanguage: 'en',
 }
 
 const SiteSettingsContext = createContext<SiteSettingsContextType>({
@@ -42,7 +45,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
   const refreshSettings = useCallback(async () => {
     try {
       const data = await api('/settings')
-      setSettings({
+      const newSettings = {
         siteName: data.siteName || 'VibeTourney',
         siteLogo: data.siteLogo || '',
         featureLeaderboard: data.featureLeaderboard ?? true,
@@ -50,7 +53,14 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
         featureDecks: data.featureDecks ?? true,
         featureCustomDecks: data.featureCustomDecks ?? true,
         featureTournaments: data.featureTournaments ?? true,
-      })
+        defaultLanguage: data.defaultLanguage || 'en',
+      }
+      setSettings(newSettings)
+
+      // Apply admin default language if user hasn't chosen one yet
+      if (!localStorage.getItem('i18nextLng')) {
+        i18n.changeLanguage(newSettings.defaultLanguage)
+      }
     } catch (err) {
       console.error('Failed to fetch site settings', err)
     } finally {

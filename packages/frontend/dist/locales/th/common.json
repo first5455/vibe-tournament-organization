@@ -1,0 +1,51 @@
+{
+  "nav": {
+    "dashboard": "แดชบอร์ด",
+    "leaderboard": "อันดับผู้เล่น",
+    "duelRoom": "ห้องดวล",
+    "myDecks": "เด็คของฉัน",
+    "customDecks": "เด็คกำหนดเอง",
+    "admin": "ผู้ดูแล",
+    "securitySettings": "ตั้งค่าความปลอดภัย",
+    "signOut": "ออกจากระบบ",
+    "signIn": "เข้าสู่ระบบ",
+    "signUp": "สมัครสมาชิก",
+    "signedInAs": "เข้าสู่ระบบเป็น"
+  },
+  "footer": {
+    "copyright": "© {{year}} {{siteName}}. โอเพนซอร์สภายใต้",
+    "license": "WTFPL",
+    "licenseText": "ไลเซนส์"
+  },
+  "actions": {
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "create": "สร้าง",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "close": "ปิด",
+    "confirm": "ยืนยัน",
+    "refresh": "รีเฟรช",
+    "search": "ค้นหา",
+    "back": "กลับ",
+    "next": "ถัดไป",
+    "loading": "กำลังโหลด...",
+    "pleaseWait": "กรุณารอสักครู่...",
+    "saveChanges": "บันทึกการเปลี่ยนแปลง",
+    "refreshList": "รีเฟรชรายการ"
+  },
+  "status": {
+    "active": "กำลังดำเนินการ",
+    "completed": "เสร็จสิ้น",
+    "pending": "รอดำเนินการ",
+    "inProgress": "กำลังดำเนินการ"
+  },
+  "orContinueWith": "หรือดำเนินการด้วย",
+  "vs": "VS",
+  "noResults": "ไม่พบผลลัพธ์",
+  "language": "ภาษา",
+  "languages": {
+    "en": "English",
+    "th": "ภาษาไทย"
+  }
+}

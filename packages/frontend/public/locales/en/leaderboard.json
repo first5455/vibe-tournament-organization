@@ -1,0 +1,9 @@
+{
+  "title": "Global Leaderboard",
+  "subtitle": "Top players by MMR",
+  "refreshLeaderboard": "Refresh leaderboard",
+  "loading": "Loading rankings...",
+  "rank": "Rank",
+  "player": "Player",
+  "mmr": "MMR"
+}

@@ -1,0 +1,12 @@
+{
+  "loading": "Loading games...",
+  "selectGame": "Select a Game",
+  "selectGameDesc": "Choose a game to manage tournaments and view statistics.",
+  "noDescription": "No description available",
+  "select": "Select",
+  "noGames": "No games found. Please contact an administrator.",
+  "switcher": {
+    "selectGame": "Select Game",
+    "viewAllGames": "View All Games"
+  }
+}

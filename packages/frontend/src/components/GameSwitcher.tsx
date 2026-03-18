@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useGame } from '../contexts/GameContext';
 import { Button } from './ui/button';
 import {
@@ -11,6 +12,7 @@ import {
 import { ChevronDown, Gamepad2, Grid } from 'lucide-react';
 
 export function GameSwitcher() {
+  const { t } = useTranslation('game');
   const { games, selectedGame, setSelectedGame } = useGame();
   const navigate = useNavigate();
 
@@ -30,7 +32,7 @@ export function GameSwitcher() {
               <span className="hidden sm:inline-block">{selectedGame.name}</span>
             </>
           ) : (
-            <span>Select Game</span>
+            <span>{t('switcher.selectGame')}</span>
           )}
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
@@ -57,7 +59,7 @@ export function GameSwitcher() {
           onClick={() => navigate('/select-game')}
         >
           <Grid className="mr-2 h-4 w-4" />
-          View All Games
+          {t('switcher.viewAllGames')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
@@ -7,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { GoogleSignInButton } from '../components/GoogleSignInButton'
 
 export default function Login() {
+  const { t } = useTranslation('auth')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -41,8 +43,8 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
       <div className="w-full max-w-md space-y-8 rounded-xl bg-zinc-900/50 p-8 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl">
         <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white">Welcome back</h2>
-          <p className="mt-2 text-sm text-zinc-400">Sign in to your account</p>
+          <h2 className="text-3xl font-bold tracking-tight text-white">{t('login.title')}</h2>
+          <p className="mt-2 text-sm text-zinc-400">{t('login.subtitle')}</p>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -55,7 +57,7 @@ export default function Login() {
           <div className="space-y-4">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-zinc-400">
-                Username
+                {t('login.username')}
               </label>
               <Input
                 id="username"
@@ -64,13 +66,13 @@ export default function Login() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="mt-1"
-                placeholder="Enter your username"
+                placeholder={t('login.usernamePlaceholder')}
               />
             </div>
             
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-zinc-400">
-                Password
+                {t('login.password')}
               </label>
               <Input
                 id="password"
@@ -79,19 +81,19 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1"
-                placeholder="Enter your password"
+                placeholder={t('login.passwordPlaceholder')}
               />
             </div>
             
             <div className="flex justify-end">
               <Link to="/forgot-password" className="text-sm font-medium text-indigo-400 hover:text-indigo-300">
-                Forgot password?
+                {t('login.forgotPassword')}
               </Link>
             </div>
           </div>
 
           <Button type="submit" className="w-full" size="lg">
-            Sign in
+            {t('login.signIn')}
           </Button>
 
           <GoogleSignInButton
@@ -103,9 +105,9 @@ export default function Login() {
           />
 
           <p className="text-center text-sm text-zinc-400">
-            Don't have an account?{' '}
+            {t('login.noAccount')}{' '}
             <Link to="/register" className="font-medium text-indigo-400 hover:text-indigo-300">
-              Sign up
+              {t('login.signUp')}
             </Link>
           </p>
         </form>

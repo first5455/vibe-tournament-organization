@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
@@ -15,6 +16,7 @@ interface OAuthAccount {
 }
 
 export default function SecuritySettings() {
+  const { t } = useTranslation('profile')
   const { user, refreshUser } = useAuth()
   const [oauthAccounts, setOauthAccounts] = useState<OAuthAccount[]>([])
   const [loading, setLoading] = useState(true)
@@ -55,11 +57,11 @@ export default function SecuritySettings() {
     setPasswordSuccess('')
 
     if (newPassword.length < 4) {
-      setPasswordError('Password must be at least 4 characters')
+      setPasswordError(t('security.errors.passwordMinLength'))
       return
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('Passwords do not match')
+      setPasswordError(t('security.errors.passwordMismatch'))
       return
     }
 
@@ -71,7 +73,7 @@ export default function SecuritySettings() {
           password: newPassword,
         }),
       })
-      setPasswordSuccess('Password updated successfully')
+      setPasswordSuccess(t('security.success.passwordUpdated'))
       setNewPassword('')
       setConfirmPassword('')
     } catch (err: any) {
@@ -85,7 +87,7 @@ export default function SecuritySettings() {
     setSecuritySuccess('')
 
     if (!securityQuestion || !securityAnswer) {
-      setSecurityError('Please select a question and provide an answer')
+      setSecurityError(t('security.errors.selectQuestion'))
       return
     }
 
@@ -98,7 +100,7 @@ export default function SecuritySettings() {
           securityAnswer,
         }),
       })
-      setSecuritySuccess('Security question updated successfully')
+      setSecuritySuccess(t('security.success.questionUpdated'))
       setSecurityAnswer('')
     } catch (err: any) {
       setSecurityError(err.message || 'Failed to update security question')
@@ -106,7 +108,7 @@ export default function SecuritySettings() {
   }
 
   const handleUnlinkOAuth = async (provider: string) => {
-    if (!confirm(`Unlink your ${provider} account? You can re-link it later.`)) return
+    if (!confirm(t('security.linkedAccounts.unlinkConfirm', { provider }))) return
     try {
       await api(`/auth/oauth/unlink/${provider}`, {
         method: 'DELETE',
@@ -126,26 +128,26 @@ export default function SecuritySettings() {
     refreshUser()
   }
 
-  if (loading) return <div className="flex justify-center items-center h-96 text-zinc-500">Loading...</div>
+  if (loading) return <div className="flex justify-center items-center h-96 text-zinc-500">{t('user.loading')}</div>
 
   const isOAuthUser = oauthAccounts.length > 0
 
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white">Security Settings</h1>
-        <p className="text-zinc-400 mt-1">Manage your password, security questions, and linked accounts</p>
+        <h1 className="text-3xl font-bold text-white">{t('security.title')}</h1>
+        <p className="text-zinc-400 mt-1">{t('security.subtitle')}</p>
       </div>
 
       {/* Password Section */}
       <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-6 space-y-4">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <Key className="h-5 w-5 text-indigo-500" />
-          {isOAuthUser ? 'Set Security Password' : 'Change Password'}
+          {isOAuthUser ? t('security.setPassword.title') : t('security.setPassword.changeTitle')}
         </h2>
         {isOAuthUser && (
           <p className="text-sm text-zinc-400">
-            Set a password so you can also log in with username and password. This password can be reset by an admin if needed.
+            {t('security.setPassword.description')}
           </p>
         )}
 
@@ -162,27 +164,27 @@ export default function SecuritySettings() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-1">New Password</label>
+            <label className="block text-sm font-medium text-zinc-400 mb-1">{t('security.setPassword.newPassword')}</label>
             <Input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Enter new password"
+              placeholder={t('security.setPassword.newPasswordPlaceholder')}
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-1">Confirm Password</label>
+            <label className="block text-sm font-medium text-zinc-400 mb-1">{t('security.setPassword.confirmPassword')}</label>
             <Input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm new password"
+              placeholder={t('security.setPassword.confirmPasswordPlaceholder')}
               required
             />
           </div>
           <Button type="submit">
-            {isOAuthUser ? 'Set Password' : 'Update Password'}
+            {isOAuthUser ? t('security.setPassword.setButton') : t('security.setPassword.updateButton')}
           </Button>
         </form>
       </div>
@@ -191,10 +193,10 @@ export default function SecuritySettings() {
       <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-6 space-y-4">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <Shield className="h-5 w-5 text-amber-500" />
-          Security Question
+          {t('security.securityQuestion.title')}
         </h2>
         <p className="text-sm text-zinc-400">
-          Set a security question to recover your account if you forget your password.
+          {t('security.securityQuestion.description')}
         </p>
 
         <form onSubmit={handleSetSecurityQuestion} className="space-y-4">
@@ -210,31 +212,31 @@ export default function SecuritySettings() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-1">Security Question</label>
+            <label className="block text-sm font-medium text-zinc-400 mb-1">{t('security.securityQuestion.title')}</label>
             <select
               className="flex h-10 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
               value={securityQuestion}
               onChange={(e) => setSecurityQuestion(e.target.value)}
               required
             >
-              <option value="">Select a question...</option>
-              <option value="What is your pet's name?">What is your pet's name?</option>
-              <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-              <option value="What was your first car?">What was your first car?</option>
-              <option value="What city were you born in?">What city were you born in?</option>
+              <option value="">{t('security.securityQuestion.selectQuestion')}</option>
+              <option value="What is your pet's name?">{t('security.securityQuestion.questions.petName')}</option>
+              <option value="What is your mother's maiden name?">{t('security.securityQuestion.questions.maidenName')}</option>
+              <option value="What was your first car?">{t('security.securityQuestion.questions.firstCar')}</option>
+              <option value="What city were you born in?">{t('security.securityQuestion.questions.birthCity')}</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-1">Security Answer</label>
+            <label className="block text-sm font-medium text-zinc-400 mb-1">{t('security.securityQuestion.answer')}</label>
             <Input
               type="text"
               value={securityAnswer}
               onChange={(e) => setSecurityAnswer(e.target.value)}
-              placeholder="Answer to your question"
+              placeholder={t('security.securityQuestion.answerPlaceholder')}
               required
             />
           </div>
-          <Button type="submit">Save Security Question</Button>
+          <Button type="submit">{t('security.securityQuestion.save')}</Button>
         </form>
       </div>
 
@@ -242,10 +244,10 @@ export default function SecuritySettings() {
       <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-6 space-y-4">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <Link2 className="h-5 w-5 text-emerald-500" />
-          Linked Accounts
+          {t('security.linkedAccounts.title')}
         </h2>
         <p className="text-sm text-zinc-400">
-          Manage your connected social accounts for quick sign-in.
+          {t('security.linkedAccounts.description')}
         </p>
 
         {oauthAccounts.length > 0 ? (
@@ -273,19 +275,19 @@ export default function SecuritySettings() {
                   className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                 >
                   <Unlink className="h-4 w-4 mr-1" />
-                  Unlink
+                  {t('security.linkedAccounts.unlink')}
                 </Button>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-zinc-500">No linked accounts</p>
+          <p className="text-sm text-zinc-500">{t('security.linkedAccounts.noAccounts')}</p>
         )}
 
         {/* Link new account */}
         {!oauthAccounts.find(a => a.provider === 'google') && (
           <div className="pt-2">
-            <p className="text-sm text-zinc-400 mb-2">Link a new account:</p>
+            <p className="text-sm text-zinc-400 mb-2">{t('security.linkedAccounts.linkNew')}</p>
             <GoogleSignInButton
               onSuccess={async (userData) => {
                 // If we get here via the regular flow, user is already logged in

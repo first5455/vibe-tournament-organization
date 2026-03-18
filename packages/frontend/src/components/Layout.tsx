@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../lib/auth'
 import { useSiteSettings } from '../contexts/SiteSettingsContext'
 import { Button } from './ui/button'
@@ -7,11 +8,13 @@ import { Trophy, Users, LogOut, LayoutDashboard, Menu, X, Shield, Swords, Upload
 import { UserLabel } from './UserLabel'
 import { UserAvatar } from './UserAvatar'
 import { GameSwitcher } from './GameSwitcher'
+import { LanguageSwitcher } from './LanguageSwitcher'
 import pkg from '../../package.json'
 
 export default function Layout() {
   const { user, logout, hasPermission } = useAuth()
   const { settings, isFeatureEnabled } = useSiteSettings()
+  const { t } = useTranslation('common')
   const location = useLocation()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -32,24 +35,24 @@ export default function Layout() {
                   <span className="text-[10px] text-zinc-500 font-mono">v{pkg.version}</span>
                 </div>
               </Link>
-              
+
               <div className="hidden md:block">
                 <GameSwitcher />
               </div>
-              
+
               {user && (
                 <div className="hidden md:flex items-center gap-1">
                   <Link to="/">
                     <Button variant={location.pathname === '/' ? 'secondary' : 'ghost'} size="sm">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
+                      {t('nav.dashboard')}
                     </Button>
                   </Link>
                   {isFeatureEnabled('leaderboard') && (
                     <Link to="/leaderboard">
                       <Button variant={location.pathname === '/leaderboard' ? 'secondary' : 'ghost'} size="sm">
                         <Users className="mr-2 h-4 w-4" />
-                        Leaderboard
+                        {t('nav.leaderboard')}
                       </Button>
                     </Link>
                   )}
@@ -57,7 +60,7 @@ export default function Layout() {
                     <Link to="/duels">
                       <Button variant={location.pathname === '/duels' ? 'secondary' : 'ghost'} size="sm">
                         <Swords className="mr-2 h-4 w-4" />
-                        Duel Room
+                        {t('nav.duelRoom')}
                       </Button>
                     </Link>
                   )}
@@ -65,7 +68,7 @@ export default function Layout() {
                     <Link to="/decks">
                       <Button variant={location.pathname === '/decks' ? 'secondary' : 'ghost'} size="sm">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
-                        My Decks
+                        {t('nav.myDecks')}
                       </Button>
                     </Link>
                   )}
@@ -73,7 +76,7 @@ export default function Layout() {
                     <Link to="/custom-decks">
                       <Button variant={location.pathname === '/custom-decks' ? 'secondary' : 'ghost'} size="sm">
                         <Upload className="mr-2 h-4 w-4" />
-                        Custom Decks
+                        {t('nav.customDecks')}
                       </Button>
                     </Link>
                   )}
@@ -81,7 +84,7 @@ export default function Layout() {
                     <Link to="/admin">
                       <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} size="sm">
                         <Shield className="mr-2 h-4 w-4" />
-                        Admin
+                        {t('nav.admin')}
                       </Button>
                     </Link>
                   )}
@@ -90,13 +93,14 @@ export default function Layout() {
             </div>
 
             <div className="hidden md:flex items-center gap-4">
+              <LanguageSwitcher />
               {user ? (
                 <div className="flex items-center gap-4">
                   <Link to={`/users/${user.id}`}>
                     <UserAvatar username={user.username} displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
                   </Link>
                   <span className="text-sm text-zinc-400 flex items-center gap-1">
-                    Signed in as <Link to={`/users/${user.id}`} className="text-white font-medium hover:underline"><UserLabel username={user.username} displayName={user.displayName} color={user.color} /></Link>
+                    {t('nav.signedInAs')} <Link to={`/users/${user.id}`} className="text-white font-medium hover:underline"><UserLabel username={user.username} displayName={user.displayName} color={user.color} /></Link>
                   </span>
                   <Link to="/security">
                     <Button variant="ghost" size="sm">
@@ -105,23 +109,24 @@ export default function Layout() {
                   </Link>
                   <Button variant="outline" size="sm" onClick={logout}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
+                    {t('nav.signOut')}
                   </Button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Link to="/login">
-                    <Button variant="ghost" size="sm">Sign in</Button>
+                    <Button variant="ghost" size="sm">{t('nav.signIn')}</Button>
                   </Link>
                   <Link to="/register">
-                    <Button variant="primary" size="sm">Sign up</Button>
+                    <Button variant="primary" size="sm">{t('nav.signUp')}</Button>
                   </Link>
                 </div>
               )}
             </div>
 
             {/* Mobile menu button */}
-            <div className="flex md:hidden">
+            <div className="flex md:hidden items-center gap-2">
+              <LanguageSwitcher />
               <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(!isMenuOpen)}>
                 {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </Button>
@@ -138,14 +143,14 @@ export default function Layout() {
                   <Link to="/" onClick={() => setIsMenuOpen(false)}>
                     <Button variant={location.pathname === '/' ? 'secondary' : 'ghost'} className="w-full justify-start">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
+                      {t('nav.dashboard')}
                     </Button>
                   </Link>
                   {isFeatureEnabled('leaderboard') && (
                     <Link to="/leaderboard" onClick={() => setIsMenuOpen(false)}>
                       <Button variant={location.pathname === '/leaderboard' ? 'secondary' : 'ghost'} className="w-full justify-start">
                         <Users className="mr-2 h-4 w-4" />
-                        Leaderboard
+                        {t('nav.leaderboard')}
                       </Button>
                     </Link>
                   )}
@@ -153,7 +158,7 @@ export default function Layout() {
                     <Link to="/duels" onClick={() => setIsMenuOpen(false)}>
                       <Button variant={location.pathname === '/duels' ? 'secondary' : 'ghost'} className="w-full justify-start">
                         <Swords className="mr-2 h-4 w-4" />
-                        Duel Room
+                        {t('nav.duelRoom')}
                       </Button>
                     </Link>
                   )}
@@ -161,7 +166,7 @@ export default function Layout() {
                     <Link to="/decks" onClick={() => setIsMenuOpen(false)}>
                       <Button variant={location.pathname === '/decks' ? 'secondary' : 'ghost'} className="w-full justify-start">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
-                        My Decks
+                        {t('nav.myDecks')}
                       </Button>
                     </Link>
                   )}
@@ -169,7 +174,7 @@ export default function Layout() {
                     <Link to="/custom-decks" onClick={() => setIsMenuOpen(false)}>
                       <Button variant={location.pathname === '/custom-decks' ? 'secondary' : 'ghost'} className="w-full justify-start">
                         <Upload className="mr-2 h-4 w-4" />
-                        Custom Decks
+                        {t('nav.customDecks')}
                       </Button>
                     </Link>
                   )}
@@ -177,7 +182,7 @@ export default function Layout() {
                     <Link to="/admin" onClick={() => setIsMenuOpen(false)}>
                       <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} size="sm">
                         <Shield className="mr-2 h-4 w-4" />
-                        Admin
+                        {t('nav.admin')}
                       </Button>
                     </Link>
                   )}
@@ -187,28 +192,28 @@ export default function Layout() {
                       <UserAvatar username={user.username} displayName={user.displayName} avatarUrl={user.avatarUrl} size="sm" />
                     </Link>
                     <div className="text-sm text-zinc-400 flex items-center gap-1">
-                      Signed in as <Link to={`/users/${user.id}`} className="text-white font-medium hover:underline" onClick={() => setIsMenuOpen(false)}><UserLabel username={user.username} displayName={user.displayName} color={user.color} /></Link>
+                      {t('nav.signedInAs')} <Link to={`/users/${user.id}`} className="text-white font-medium hover:underline" onClick={() => setIsMenuOpen(false)}><UserLabel username={user.username} displayName={user.displayName} color={user.color} /></Link>
                     </div>
                   </div>
                   <Link to="/security" onClick={() => setIsMenuOpen(false)}>
                     <Button variant={location.pathname === '/security' ? 'secondary' : 'ghost'} className="w-full justify-start">
                       <Settings className="mr-2 h-4 w-4" />
-                      Security Settings
+                      {t('nav.securitySettings')}
                     </Button>
                   </Link>
                   <Button variant="outline" className="w-full justify-start" onClick={() => { logout(); setIsMenuOpen(false) }}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
+                    {t('nav.signOut')}
                   </Button>
                 </>
               )}
               {!user && (
                 <div className="flex flex-col gap-2 p-2">
                   <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">Sign in</Button>
+                    <Button variant="ghost" className="w-full justify-start">{t('nav.signIn')}</Button>
                   </Link>
                   <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-                    <Button variant="primary" className="w-full justify-start">Sign up</Button>
+                    <Button variant="primary" className="w-full justify-start">{t('nav.signUp')}</Button>
                   </Link>
                 </div>
               )}
@@ -223,11 +228,11 @@ export default function Layout() {
 
       <footer className="border-t border-white/10 bg-zinc-900/50 backdrop-blur-xl py-6 mt-auto">
         <div className="w-full px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4 text-zinc-500 text-sm">
-          <p>© 2025 {settings.siteName}. Open Source under <a href="http://www.wtfpl.net/" target="_blank" rel="noreferrer" className="underline hover:text-white">WTFPL</a> License.</p>
-          <a 
-            href="https://github.com/first5455/vibe-tournament-organization" 
-            target="_blank" 
-            rel="noreferrer" 
+          <p>{t('footer.copyright', { year: new Date().getFullYear(), siteName: settings.siteName })} <a href="http://www.wtfpl.net/" target="_blank" rel="noreferrer" className="underline hover:text-white">{t('footer.license')}</a> {t('footer.licenseText')}</p>
+          <a
+            href="https://github.com/first5455/vibe-tournament-organization"
+            target="_blank"
+            rel="noreferrer"
             className="hover:text-white transition-colors flex items-center gap-2"
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden="true">

@@ -154,7 +154,32 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     })
   })
   .put('/profile', async ({ body, set }) => {
-    const { userId, username, displayName, password, color, avatarUrl, securityQuestion, securityAnswer } = body
+    const { userId, requesterId, username, displayName, password, color, avatarUrl, securityQuestion, securityAnswer } = body
+
+    // Auth check: must be self-edit or have users.manage permission
+    if (!requesterId) {
+      set.status = 401
+      return { error: 'Authentication required' }
+    }
+
+    const isSelfUpdate = requesterId === userId
+
+    if (!isSelfUpdate) {
+      const requesterPerms = await db
+        .select({ slug: permissions.slug })
+        .from(permissions)
+        .innerJoin(rolePermissions, eq(permissions.id, rolePermissions.permissionId))
+        .innerJoin(roles, eq(rolePermissions.roleId, roles.id))
+        .innerJoin(users, eq(users.roleId, roles.id))
+        .where(eq(users.id, requesterId))
+        .all()
+
+      const canManageUsers = requesterPerms.some(p => p.slug === 'users.manage')
+      if (!canManageUsers) {
+        set.status = 403
+        return { error: 'You can only update your own profile' }
+      }
+    }
 
     const user = await db.select().from(users).where(eq(users.id, userId)).get()
     if (!user) {
@@ -162,7 +187,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return { error: 'User not found' }
     }
 
-    const updates: any = {}
+    const updates: Record<string, string> = {}
 
     if (username && username !== user.username) {
       const existing = await db.select().from(users).where(eq(users.username, username)).get()
@@ -206,6 +231,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   }, {
     body: t.Object({
       userId: t.Number(),
+      requesterId: t.Number(),
       username: t.Optional(t.String()),
       displayName: t.Optional(t.String()),
       password: t.Optional(t.String()),
@@ -216,23 +242,45 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     })
   })
   .delete('/account', async ({ body, set }) => {
-    const { userId } = body
+    const { userId, requesterId } = body
 
-    // TODO: Handle cascading deletes (participants, tournaments, matches)
-    // For now, just delete the user. Foreign key constraints might fail if not set to CASCADE.
-    // SQLite default is usually NO ACTION.
-    
-    // Let's try to delete.
+    // Auth check: must be self-delete or have users.manage permission
+    if (!requesterId) {
+      set.status = 401
+      return { error: 'Authentication required' }
+    }
+
+    const isSelfDelete = requesterId === userId
+
+    if (!isSelfDelete) {
+      const requesterPerms = await db
+        .select({ slug: permissions.slug })
+        .from(permissions)
+        .innerJoin(rolePermissions, eq(permissions.id, rolePermissions.permissionId))
+        .innerJoin(roles, eq(rolePermissions.roleId, roles.id))
+        .innerJoin(users, eq(users.roleId, roles.id))
+        .where(eq(users.id, requesterId))
+        .all()
+
+      const canManageUsers = requesterPerms.some(p => p.slug === 'users.manage')
+      if (!canManageUsers) {
+        set.status = 403
+        return { error: 'You can only delete your own account' }
+      }
+    }
+
     try {
       await db.delete(users).where(eq(users.id, userId)).run()
       return { success: true }
-    } catch (e: any) {
-      console.error('Failed to delete user:', e)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unknown error'
+      console.error('Failed to delete user:', message)
       set.status = 500
       return { error: 'Failed to delete account. You may be part of active tournaments.' }
     }
   }, {
     body: t.Object({
-      userId: t.Number()
+      userId: t.Number(),
+      requesterId: t.Number()
     })
   })
