@@ -1,8 +1,9 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, customDecks, customDeckCards, roles, permissions, rolePermissions } from '../db/schema'
+import { users, customDecks, customDeckCards } from '../db/schema'
 import { eq, desc, and } from 'drizzle-orm'
 import { uploadToChibisafe, deleteFromChibisafe } from '../lib/chibisafe'
+import { hasPermission, hasAnyPermission } from '../utils'
 
 export const customDeckRoutes = new Elysia({ prefix: '/custom-decks' })
   // Upload image to chibisafe
@@ -93,18 +94,8 @@ export const customDeckRoutes = new Elysia({ prefix: '/custom-decks' })
     }
 
     // Check admin permission
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, parseInt(requesterId)))
-    .all()
+    const hasManagePermission = await hasAnyPermission(parseInt(requesterId), ['decks.manage', 'admin.access'])
 
-    const hasManagePermission = requesterPermissions.some(r => r.permissionSlug === 'decks.manage' || r.permissionSlug === 'admin.access')
-    
     if (!hasManagePermission) {
       set.status = 403
       return { error: 'Forbidden' }
@@ -202,17 +193,7 @@ export const customDeckRoutes = new Elysia({ prefix: '/custom-decks' })
     }
 
     // Auth check: user can only create for themselves or admin can create for anyone
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasManagePermission = requesterPermissions.some(r => r.permissionSlug === 'decks.manage')
+    const hasManagePermission = await hasPermission(requesterId, 'decks.manage')
     const isOwner = userId === requesterId
 
     if (!hasManagePermission && !isOwner) {
@@ -250,17 +231,7 @@ export const customDeckRoutes = new Elysia({ prefix: '/custom-decks' })
     }
 
     // Auth check: Owner or Admin
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasManagePermission = requesterPermissions.some(r => r.permissionSlug === 'decks.manage')
+    const hasManagePermission = await hasPermission(requesterId, 'decks.manage')
     const isOwner = deck.userId === requesterId
 
     if (!hasManagePermission && !isOwner) {
@@ -302,17 +273,7 @@ export const customDeckRoutes = new Elysia({ prefix: '/custom-decks' })
     }
 
     // Auth check: Owner or Admin
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasManagePermission = requesterPermissions.some(r => r.permissionSlug === 'decks.manage')
+    const hasManagePermission = await hasPermission(requesterId, 'decks.manage')
     const isOwner = deck.userId === requesterId
 
     if (!hasManagePermission && !isOwner) {
@@ -355,17 +316,7 @@ export const customDeckRoutes = new Elysia({ prefix: '/custom-decks' })
     }
 
     // Auth check
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasManagePermission = requesterPermissions.some(r => r.permissionSlug === 'decks.manage')
+    const hasManagePermission = await hasPermission(requesterId, 'decks.manage')
     const isOwner = deck.userId === requesterId
 
     if (!hasManagePermission && !isOwner) {
@@ -429,17 +380,7 @@ export const customDeckRoutes = new Elysia({ prefix: '/custom-decks' })
     }
 
     // Auth check
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasManagePermission = requesterPermissions.some(r => r.permissionSlug === 'decks.manage')
+    const hasManagePermission = await hasPermission(requesterId, 'decks.manage')
     const isOwner = deck.userId === requesterId
 
     if (!hasManagePermission && !isOwner) {
@@ -495,17 +436,7 @@ export const customDeckRoutes = new Elysia({ prefix: '/custom-decks' })
     }
 
     // Auth check
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasManagePermission = requesterPermissions.some(r => r.permissionSlug === 'decks.manage')
+    const hasManagePermission = await hasPermission(requesterId, 'decks.manage')
     const isOwner = deck.userId === requesterId
 
     if (!hasManagePermission && !isOwner) {

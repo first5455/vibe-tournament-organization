@@ -6,6 +6,55 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.4.0] - 2026-03-17
+
+### Added
+
+- **Google OAuth Login**: Sign in with Google account support
+  - Provider-agnostic OAuth architecture ready for future providers (Discord, GitHub, etc.)
+  - Auto-generated password for first-time OAuth users
+  - New `oauth_accounts` database table linking users to OAuth providers
+  - Google Identity Services integration with official sign-in button on Login/Register pages
+  - OAuth provider configuration via Admin Portal (no environment variables needed)
+
+- **Security Settings Page**: New `/security` page for user account security management
+  - Set or change password (essential for OAuth users who need a fallback password)
+  - Configure security question and answer for password recovery
+  - View and manage linked OAuth accounts (link/unlink providers)
+  - Accessible via gear icon in navigation bar
+
+- **Site Branding**: Admin can customize website name and logo
+  - Configurable site name displayed in header and footer
+  - Custom logo URL with image preview in admin settings
+  - Dynamic branding across all pages via SiteSettingsContext
+
+- **Feature Toggles**: Admin can enable/disable major features
+  - Toggle switches for: Leaderboard, Duel Room, Decks, Custom Decks, Tournaments
+  - Disabled features are hidden from navigation menu, profile pages, and route-blocked
+  - `FeatureRoute` component for route-level access control
+
+- **Tournament Export**: Export tournament data to Excel and PDF
+  - Excel export includes all rounds, results, standings, and cross table (round robin)
+  - PDF export includes summary, standings, and winner highlight
+  - Dynamic imports for code-splitting (xlsx/jspdf loaded on demand)
+
+- **Admin Portal - OAuth Providers**: New OAuth Providers section in Settings tab
+  - Configure Google OAuth Client ID
+  - Easy to extend for additional providers
+
+### Changed
+
+- **Permissions**: Replaced dead `tournaments.create` and `tournaments.manage` permissions with `tournaments.manage_own` and `tournaments.manage_all` in seed script
+- **Profile Endpoint**: `PUT /auth/profile` now supports `securityQuestion` and `securityAnswer` fields
+
+### Technical
+
+- **Database Migration**: Added `0013_oauth_accounts.sql` for OAuth accounts table
+- **Provider Verifiers Pattern**: Extensible `providerVerifiers` map for adding new OAuth providers with minimal code
+- **SiteSettingsContext**: New React context providing feature flags and site branding to all components
+- **Code Splitting**: Heavy export libraries (xlsx, jspdf) are lazy-loaded only when export buttons are clicked
+
+
 ## [1.3.2] - 2025-12-26
 
 ### Added

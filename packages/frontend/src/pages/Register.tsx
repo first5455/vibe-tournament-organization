@@ -25,7 +25,7 @@ export default function Register() {
         body: JSON.stringify(formData),
       })
       
-      login('dummy-token', res.user)
+      login(crypto.randomUUID(), res.user)
       navigate('/')
     } catch (err: any) {
       setError(err.message)

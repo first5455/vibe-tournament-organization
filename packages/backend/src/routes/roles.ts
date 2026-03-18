@@ -1,8 +1,9 @@
 
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { roles, permissions, rolePermissions, users, systemSettings } from '../db/schema'
-import { eq, and } from 'drizzle-orm'
+import { roles, permissions, rolePermissions, systemSettings } from '../db/schema'
+import { eq } from 'drizzle-orm'
+import { hasPermission } from '../utils'
 
 export const rolesRoutes = new Elysia({ prefix: '/roles' })
   .get('/', async () => {
@@ -33,20 +34,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     const { name, description, requesterId } = body
     
     // Permission Check
-    const requesterPermissions = await db.select({
-        roleName: roles.name,
-        permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'roles.manage')
-
-    if (!hasPermission) {
+    if (!await hasPermission(requesterId, 'roles.manage')) {
         set.status = 403
         return { error: 'Unauthorized: Missing roles.manage permission' }
     }
@@ -71,30 +59,17 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     const id = parseInt(params.id)
     
     // Permission Check
-    const requesterPermissions = await db.select({
-        roleName: roles.name,
-        permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'roles.manage')
-
-    if (!hasPermission) {
+    if (!await hasPermission(requesterId, 'roles.manage')) {
         set.status = 403
         return { error: 'Unauthorized' }
     }
-    
+
     const role = await db.select().from(roles).where(eq(roles.id, id)).get()
     if (!role) {
         set.status = 404
         return { error: 'Role not found' }
     }
-    
+
     // Allow renaming system roles as per user request
     // if (role.isSystem && name !== role.name) { ... } REMOVED
     
@@ -130,31 +105,18 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     const { requesterId } = body
 
     // Permission Check
-    const requesterPermissions = await db.select({
-        roleName: roles.name,
-        permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'roles.manage')
-
-    if (!hasPermission) {
+    if (!await hasPermission(requesterId, 'roles.manage')) {
         set.status = 403
         return { error: 'Unauthorized' }
     }
 
     const role = await db.select().from(roles).where(eq(roles.id, id)).get()
-    
+
     if (!role) {
         set.status = 404
         return { error: 'Role not found' }
     }
-    
+
     if (role.isSystem) {
         set.status = 400
         return { error: 'Cannot delete system roles' }
@@ -176,20 +138,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
       const { permissionIds, requesterId } = body
       
       // Permission Check
-      const requesterPermissions = await db.select({
-          roleName: roles.name,
-          permissionSlug: permissions.slug
-      })
-      .from(users)
-      .leftJoin(roles, eq(users.roleId, roles.id))
-      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(eq(users.id, requesterId))
-      .all()
-
-      const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'roles.manage')
-
-      if (!hasPermission) {
+      if (!await hasPermission(requesterId, 'roles.manage')) {
           set.status = 403
           return { error: 'Unauthorized' }
       }

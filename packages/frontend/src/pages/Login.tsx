@@ -27,9 +27,7 @@ export default function Login() {
         body: JSON.stringify({ username, password }),
       })
       
-      // Assuming backend returns { user: ... }
-      // I'll simulate a token for now.
-      login('dummy-token', res.user)
+      login(crypto.randomUUID(), res.user)
       navigate('/')
     } catch (err: any) {
       setError(err.message)

@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { users, games, userGameStats, roles, permissions, rolePermissions, systemSettings } from '../db/schema'
 import { eq } from 'drizzle-orm'
+import { hasPermission } from '../utils'
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
   .post('/register', async ({ body, set }) => {
@@ -154,7 +155,20 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     })
   })
   .put('/profile', async ({ body, set }) => {
-    const { userId, username, displayName, password, color, avatarUrl } = body
+    const { userId, requesterId, username, displayName, password, color, avatarUrl } = body
+
+    if (!requesterId) {
+      set.status = 401
+      return { error: 'Authentication required' }
+    }
+
+    const isSelf = requesterId === userId
+    if (!isSelf) {
+      if (!await hasPermission(requesterId, 'users.manage')) {
+        set.status = 403
+        return { error: 'You can only update your own profile' }
+      }
+    }
 
     const user = await db.select().from(users).where(eq(users.id, userId)).get()
     if (!user) {
@@ -162,7 +176,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       return { error: 'User not found' }
     }
 
-    const updates: any = {}
+    const updates: Record<string, string> = {}
 
     if (username && username !== user.username) {
       const existing = await db.select().from(users).where(eq(users.username, username)).get()
@@ -198,6 +212,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   }, {
     body: t.Object({
       userId: t.Number(),
+      requesterId: t.Number(),
       username: t.Optional(t.String()),
       displayName: t.Optional(t.String()),
       password: t.Optional(t.String()),
@@ -206,7 +221,20 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     })
   })
   .delete('/account', async ({ body, set }) => {
-    const { userId } = body
+    const { userId, requesterId } = body
+
+    if (!requesterId) {
+      set.status = 401
+      return { error: 'Authentication required' }
+    }
+
+    const isSelf = requesterId === userId
+    if (!isSelf) {
+      if (!await hasPermission(requesterId, 'users.manage')) {
+        set.status = 403
+        return { error: 'You can only delete your own account' }
+      }
+    }
 
     // TODO: Handle cascading deletes (participants, tournaments, matches)
     // For now, just delete the user. Foreign key constraints might fail if not set to CASCADE.
@@ -216,13 +244,14 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     try {
       await db.delete(users).where(eq(users.id, userId)).run()
       return { success: true }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Failed to delete user:', e)
       set.status = 500
       return { error: 'Failed to delete account. You may be part of active tournaments.' }
     }
   }, {
     body: t.Object({
-      userId: t.Number()
+      userId: t.Number(),
+      requesterId: t.Number()
     })
   })

@@ -1,11 +1,9 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { duelRooms, users, decks, games, userGameStats, roles, permissions, rolePermissions } from '../db/schema'
+import { duelRooms, users, decks, games, userGameStats } from '../db/schema'
 import { eq, and, or, desc, aliasedTable, sql } from 'drizzle-orm'
-import { getRank } from '../utils'
+import { getRank, hasPermission, hasAnyPermission } from '../utils'
 import { events, EVENTS } from '../lib/events'
-
-console.log('Duels routes module loaded')
 
 export const duelRoutes = new Elysia({ prefix: '/duels' })
   .get('/', async ({ query }) => {
@@ -15,17 +13,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     let showAll = false
     if (admin === 'true' && requesterId) {
       // Auth check
-      const requesterPermissions = await db.select({
-        permissionSlug: permissions.slug
-      })
-      .from(users)
-      .leftJoin(roles, eq(users.roleId, roles.id))
-      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(eq(users.id, parseInt(requesterId)))
-      .all()
-      
-      if (requesterPermissions.some(r => r.permissionSlug === 'admin.access' || r.permissionSlug === 'duels.manage')) {
+      if (await hasAnyPermission(parseInt(requesterId), ['admin.access', 'duels.manage'])) {
         showAll = true
       }
     }
@@ -180,18 +168,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     }
 
     // Permission Check
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
+    const canManage = await hasPermission(userId, 'duels.manage')
 
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'duels.manage')
-    
     const targetId = targetUserId || userId
     const isPlayer1 = duel.player1Id === targetId
     const isPlayer2 = duel.player2Id === targetId
@@ -201,7 +179,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
         set.status = 403
         return { error: 'Unauthorized' }
     }
-    
+
     // Check if requester is part of this duel (if not admin)
     if (!canManage && duel.player1Id !== userId && duel.player2Id !== userId) {
         set.status = 403
@@ -231,9 +209,9 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     return { success: true }
   }, {
     params: t.Object({ id: t.String() }),
-    body: t.Object({ 
+    body: t.Object({
         userId: t.Number(), // Requester
-        targetUserId: t.Optional(t.Number()), // Target 
+        targetUserId: t.Optional(t.Number()), // Target
         deckId: t.Nullable(t.Number())
     })
   })
@@ -279,17 +257,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       set.status = 400
       return { error: 'Duel is not ready' }
     }
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
-
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'duels.manage')
+    const canManage = await hasPermission(userId, 'duels.manage')
 
     if (duel.player1Id !== userId && !canManage) {
       set.status = 403
@@ -322,17 +290,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       return { error: 'Duel is not active' }
     }
     // Permission Check
-    const reporterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, reportedBy))
-    .all()
-
-    const canManage = reporterPermissions.some(r => r.permissionSlug === 'duels.manage')
+    const canManage = await hasPermission(reportedBy, 'duels.manage')
 
     if (duel.player1Id !== reportedBy && duel.player2Id !== reportedBy && !canManage) {
       set.status = 403
@@ -475,18 +433,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     }
 
     // Permission Check
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
+    const canManage = await hasPermission(userId, 'duels.manage')
 
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'duels.manage')
-    
     const targetId = targetUserId || userId
     const isPlayer1 = duel.player1Id === targetId
     const isPlayer2 = duel.player2Id === targetId
@@ -576,17 +524,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       set.status = 400
       return { error: 'Duel is not ready' }
     }
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
-
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'duels.manage')
+    const canManage = await hasPermission(userId, 'duels.manage')
 
     if (duel.player1Id !== userId && !canManage) {
       set.status = 403
@@ -616,17 +554,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       return { error: 'Duel not found' }
     }
 
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
-
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'duels.manage')
+    const canManage = await hasPermission(userId, 'duels.manage')
 
     if (duel.player1Id !== userId && !canManage) {
       set.status = 403
@@ -664,17 +592,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       return { error: 'Duel is not active' }
     }
     // Permission Check
-    const reporterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, reportedBy))
-    .all()
-
-    const canManage = reporterPermissions.some(r => r.permissionSlug === 'duels.manage')
+    const canManage = await hasPermission(reportedBy, 'duels.manage')
 
     if (duel.player1Id !== reportedBy && duel.player2Id !== reportedBy && !canManage) {
       set.status = 403
@@ -774,17 +692,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
     }
 
     // Check permissions: User must be admin or the target player
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
-
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'duels.manage')
+    const canManage = await hasPermission(userId, 'duels.manage')
     const isTargetPlayer = targetPlayerId === userId
 
     if (!canManage && !isTargetPlayer) {
@@ -829,18 +737,8 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       return { error: 'Duel not found' }
     }
 
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
-    
     // This route is explicitly for manual result setting by admin
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'duels.manage')
+    const canManage = await hasPermission(userId, 'duels.manage')
 
     if (!canManage) {
       set.status = 403
@@ -924,20 +822,9 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       return { error: 'Duel not found' }
     }
 
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
-    
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'duels.manage')
+    const canManage = await hasPermission(userId, 'duels.manage')
 
     if (!canManage) {
-
       set.status = 403
       return { error: 'Unauthorized' }
     }
@@ -1129,17 +1016,7 @@ export const duelRoutes = new Elysia({ prefix: '/duels' })
       return { error: 'Duel not found' }
     }
 
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
-
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'duels.manage')
+    const canManage = await hasPermission(userId, 'duels.manage')
     const isPlayer1 = duel.player1Id === userId
     const isPlayer2 = duel.player2Id === userId
 

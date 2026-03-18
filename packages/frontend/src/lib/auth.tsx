@@ -92,13 +92,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initAuth()
 
-    // Refresh on window focus
-    const onFocus = () => {
-        const user = localStorage.getItem('user')
-        if (user) refreshUser()
+    // Refresh on window focus — read from localStorage to avoid stale closure
+    const onFocus = async () => {
+        const savedUser = localStorage.getItem('user')
+        const token = localStorage.getItem('token')
+        if (!savedUser || !token) return
+        try {
+          const parsed = JSON.parse(savedUser)
+          if (parsed?.id) {
+            const res = await api(`/users/${parsed.id}`)
+            if (res.user) {
+              const updated = { ...parsed, ...res.user }
+              localStorage.setItem('user', JSON.stringify(updated))
+              setUser(updated)
+            }
+          }
+        } catch {
+          // ignore refresh errors on focus
+        }
     }
     window.addEventListener('focus', onFocus)
-    
+
     return () => {
         window.removeEventListener('focus', onFocus)
     }

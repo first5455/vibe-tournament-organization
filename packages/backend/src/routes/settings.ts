@@ -1,7 +1,8 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { systemSettings, users, roles, rolePermissions, permissions } from '../db/schema'
+import { systemSettings, users } from '../db/schema'
 import { eq } from 'drizzle-orm'
+import { hasPermission } from '../utils'
 
 export const settingsRoutes = new Elysia({ prefix: '/settings' })
   .get('/', async () => {
@@ -25,17 +26,7 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
     const { userId, maintenanceMode, maintenanceMessage, defaultRoleId, ownerRoleId } = body
     
     // Auth Check
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, userId))
-    .all()
-
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'settings.manage')
+    const canManage = await hasPermission(userId, 'settings.manage')
 
     if (!canManage) {
       set.status = 403

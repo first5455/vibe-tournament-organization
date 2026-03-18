@@ -1,7 +1,8 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, tournaments, matches, participants, duelRooms, userGameStats, roles, permissions, rolePermissions } from '../db/schema'
-import { eq, and, like, sql } from 'drizzle-orm'
+import { users, tournaments, matches, participants, duelRooms, userGameStats } from '../db/schema'
+import { eq, and, like, sql, inArray } from 'drizzle-orm'
+import { hasPermission } from '../utils'
 
 export const adminRoutes = new Elysia({ prefix: '/admin' })
   .guard({
@@ -12,19 +13,9 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         return { error: 'Unauthorized' }
       }
       
-      const requesterPermissions = await db.select({
-        permissionSlug: permissions.slug,
-      })
-      .from(users)
-      .leftJoin(roles, eq(users.roleId, roles.id))
-      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(eq(users.id, parseInt(requesterId)))
-      .all()
-      
-      const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'admin.access')
+      const permitted = await hasPermission(parseInt(requesterId), 'admin.access')
 
-      if (!hasPermission) {
+      if (!permitted) {
         set.status = 403
         return { error: 'Forbidden' }
       }
@@ -44,10 +35,10 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
         if (tIds.length > 0) {
             // Delete matches
             // We need to iterate or use raw SQL if too many, but for now inArray is fine
-            await db.delete(matches).where(sql`tournament_id IN ${tIds}`).run()
-            
+            await db.delete(matches).where(inArray(matches.tournamentId, tIds)).run()
+
             // Delete participants
-            await db.delete(participants).where(sql`tournament_id IN ${tIds}`).run()
+            await db.delete(participants).where(inArray(participants.tournamentId, tIds)).run()
             
             // Delete tournaments
             await db.delete(tournaments).where(eq(tournaments.gameId, gId)).run()

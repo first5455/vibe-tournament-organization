@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
 import { useRefresh } from '../hooks/useRefresh'
+import { useWebSocket } from '../hooks/useWebSocket'
 import { useGame } from '../contexts/GameContext'
 
 interface Duel {
@@ -71,42 +72,17 @@ export default function DuelDashboard() {
     if (selectedGame) {
       loadDuels()
     }
-
-    let ws: WebSocket | null = null
-    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true' && selectedGame) {
-      try {
-        ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
-        
-        ws.onopen = () => {
-          ws?.send(JSON.stringify({ type: 'SUBSCRIBE_DUELS' }))
-        }
-
-        ws.onmessage = (event) => {
-          const data = JSON.parse(event.data)
-          if (data.type === 'UPDATE_DUELS_LIST') {
-            loadDuels()
-          }
-        }
-        
-        ws.onerror = () => {}
-
-      } catch (e) {
-        console.error('WS Exception', e)
-      }
-    }
-    
-    // Heartbeat
-    const interval = setInterval(() => {
-        if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'PING' }))
-        }
-    }, 30000)
-
-    return () => {
-      clearInterval(interval)
-      if (ws) ws.close()
-    }
   }, [selectedGame?.id])
+
+  useWebSocket({
+    subscriptions: [{ type: 'SUBSCRIBE_DUELS' }],
+    onMessage: (data) => {
+      if (data.type === 'UPDATE_DUELS_LIST') {
+        loadDuels()
+      }
+    },
+    enabled: !!selectedGame,
+  })
 
   useEffect(() => {
     const fetchDecks = async () => {

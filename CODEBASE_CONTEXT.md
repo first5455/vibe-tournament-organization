@@ -1,6 +1,6 @@
 # CODEBASE_CONTEXT.md
 
-> **Auto-generated architectural reference** — v1.3.2 — Last updated: 2026-03-16
+> **Auto-generated architectural reference** — v1.4.0 — Last updated: 2026-03-18
 
 ---
 
@@ -11,6 +11,14 @@ This is a **tournament & competitive gaming organization platform** built for ma
 The primary users are **tournament organizers** (admins who create/manage tournaments, games, and system settings) and **players** (who register, join tournaments, duel, manage decks, and track stats). The application enforces a granular **Role-Based Access Control (RBAC)** system — permissions like `admin.access`, `tournaments.manage_all`, `roles.manage`, etc. are checked server-side on every mutating endpoint.
 
 Core business logic includes: Swiss/Round Robin pairing generation with backtracking to avoid repeat matchups, Elo MMR calculation with K=32, BYE handling, head-to-head tiebreakers, maintenance mode gating, and real-time updates via WebSocket pub/sub.
+
+### v1.4.0 Changes
+- **i18n**: Multi-language support (English + Thai) via `react-i18next` with namespace-based translation loading from `/locales/{lng}/{ns}.json`
+- **Permission utilities**: Centralized `hasPermission()` / `hasAnyPermission()` / `getUserPermissions()` in `src/utils.ts` — all route handlers refactored to use these
+- **WebSocket hook**: `useWebSocket()` hook with auto-reconnect, heartbeat, and topic subscriptions
+- **OAuth support**: Provider-agnostic OAuth (Google) via `oauthAccounts` table
+- **Site settings**: Admin-configurable branding (site name, logo, footer), feature flags, default language
+- **Security**: Auth checks on profile/account endpoints, `requesterId` validation
 
 ---
 
@@ -70,7 +78,7 @@ vibe-tournament-organization/
 │   │   │   ├── lib/
 │   │   │   │   ├── events.ts        # EventEmitter + event constants
 │   │   │   │   └── chibisafe.ts     # Upload/delete images to Chibisafe CDN
-│   │   │   ├── utils.ts             # getRank() helper
+│   │   │   ├── utils.ts             # getRank(), hasPermission(), getUserPermissions()
 │   │   │   └── scripts/             # One-off migration/debug scripts
 │   │   └── vercel.json              # Vercel deployment config
 │   │
@@ -80,20 +88,26 @@ vibe-tournament-organization/
 │       ├── tailwind.config.js       # Tailwind config (zinc palette)
 │       ├── index.html               # SPA entry point
 │       ├── src/
-│       │   ├── main.tsx             # ReactDOM.createRoot
+│       │   ├── main.tsx             # ReactDOM.createRoot (imports i18n before App)
 │       │   ├── App.tsx              # Router, AuthProvider, GameProvider, route guards
+│       │   ├── i18n.ts              # i18next config (HTTP backend, language detector)
 │       │   ├── types.ts             # Shared TypeScript interfaces
 │       │   ├── lib/
 │       │   │   ├── api.ts           # Fetch wrapper with auth headers
 │       │   │   ├── auth.tsx         # AuthProvider context + useAuth hook
 │       │   │   └── utils.ts         # cn() classname merger (clsx + tailwind-merge)
 │       │   ├── contexts/
-│       │   │   └── GameContext.tsx   # GameProvider context + useGame hook
+│       │   │   ├── GameContext.tsx   # GameProvider context + useGame hook
+│       │   │   └── SiteSettingsContext.tsx  # Branding, feature flags, default language
 │       │   ├── hooks/
+│       │   │   ├── useWebSocket.ts        # WebSocket with auto-reconnect + heartbeat
 │       │   │   ├── useFocusRevalidate.ts  # Refetch data on window focus
 │       │   │   └── useRefresh.ts          # Manual refresh trigger
 │       │   ├── pages/               # 15 page-level components
-│       │   └── components/          # 14 reusable components + ui/ + admin/ subdirs
+│       │   └── components/          # Reusable components + LanguageSwitcher + ui/ + admin/
+│       └── public/locales/          # i18n translation files
+│           ├── en/                  # English (11 namespace JSON files)
+│           └── th/                  # Thai (11 namespace JSON files)
 │       └── vercel.json              # SPA rewrite rules
 ```
 
@@ -279,9 +293,22 @@ interface DuelRoom {
 
 interface SystemSetting {
   key: string                     // PK: 'maintenance_mode' | 'maintenance_message' |
-                                  //     'default_role_id' | 'owner_role_id'
+                                  //     'default_role_id' | 'owner_role_id' |
+                                  //     'site_name' | 'site_logo_url' | 'footer_text' |
+                                  //     'default_language' | 'enable_oauth' | 'enable_registration'
   value: string
   updatedAt: string
+}
+
+interface OAuthAccount {
+  id: number
+  userId: number                  // → users.id
+  provider: string                // e.g. 'google'
+  providerAccountId: string       // external user ID
+  email: string | null
+  displayName: string | null
+  avatarUrl: string | null
+  createdAt: string
 }
 ```
 
@@ -292,6 +319,7 @@ User ──1:N──▶ Deck
 User ──1:N──▶ CustomDeck ──1:N──▶ CustomDeckCard
 User ──1:N──▶ UserGameStats ◀──N:1── Game
 User ──M:1──▶ Role ──M:N──▶ Permission
+User ──1:N──▶ OAuthAccount
 Game ──1:N──▶ Tournament ──1:N──▶ Participant ──1:N──▶ Match
 Game ──1:N──▶ DuelRoom
 User ──1:N──▶ Participant (or guest via guestName)
@@ -458,8 +486,8 @@ All routes are Elysia plugins mounted on the main app in `src/index.ts`.
 
 | Method | Path | Body | Permission |
 |--------|------|------|-----------|
-| `GET` | `/` | — | — (returns maintenance status, default/owner role IDs) |
-| `POST` | `/` | `{ userId, maintenanceMode?, maintenanceMessage?, defaultRoleId?, ownerRoleId? }` | `settings.manage` |
+| `GET` | `/` | — | — (returns maintenance status, branding, feature flags, default language) |
+| `POST` | `/` | `{ userId, maintenanceMode?, maintenanceMessage?, defaultRoleId?, ownerRoleId?, siteName?, siteLogoUrl?, footerText?, defaultLanguage?, enableOAuth?, enableRegistration? }` | `settings.manage` |
 
 ---
 
@@ -569,12 +597,27 @@ function api(path: string, options?: RequestInit): Promise<any>
 - Attaches `Authorization: Bearer {token}` from `localStorage`.
 - `cache: 'no-store'` on all requests.
 
-### WebSocket (inline in pages)
+### WebSocket (`hooks/useWebSocket.ts`)
 
-- Pages like `TournamentView`, `DuelRoom`, `Leaderboard`, and `Dashboard` open raw WebSocket connections to `{API_URL}/ws`.
-- Subscribe by sending `{ type: 'SUBSCRIBE_TOURNAMENT', tournamentId }` etc.
-- Heartbeat: client sends `{ type: 'PING' }`, server responds `{ type: 'PONG' }`.
-- On update messages, pages call their `fetchData()` to refresh via REST.
+```typescript
+useWebSocket({
+  subscriptions: [{ type: 'SUBSCRIBE_TOURNAMENTS' }],
+  onMessage: (data) => { if (data.type === 'UPDATE') refresh() },
+  enabled: !!selectedGame,
+})
+```
+
+- Centralized hook with auto-reconnect, heartbeat (`PING`/`PONG`), and cleanup.
+- Subscribe by passing subscription objects; hook sends them on connect.
+- On update messages, callback triggers REST refresh.
+- Enabled via `VITE_USE_WEBSOCKETS=true` env var.
+
+### i18n (`i18n.ts`)
+
+- Uses `react-i18next` with `i18next-http-backend` for runtime translation loading.
+- Translations loaded from `/locales/{lng}/{ns}.json` (11 namespaces: common, auth, dashboard, leaderboard, duel, decks, profile, game, maintenance, tournament, admin).
+- Language detection: localStorage → navigator fallback.
+- Admin-configurable default language via `system_settings.default_language`.
 
 ---
 

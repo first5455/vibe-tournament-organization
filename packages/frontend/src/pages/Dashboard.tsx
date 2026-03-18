@@ -7,6 +7,7 @@ import { useAuth } from '../lib/auth'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useRefresh } from '../hooks/useRefresh'
+import { useWebSocket } from '../hooks/useWebSocket'
 import { formatDate } from '../lib/utils'
 import { useGame } from '../contexts/GameContext'
 
@@ -48,41 +49,15 @@ export default function Dashboard() {
     }
   }, [selectedGame])
 
-  useEffect(() => {
-    let ws: WebSocket | null = null
-
-    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true') {
-        ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
-
-        ws.onopen = () => {
-            ws?.send(JSON.stringify({ type: 'SUBSCRIBE_TOURNAMENTS' }))
-        }
-
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data)
-                if (data.type === 'UPDATE_TOURNAMENTS_LIST') {
-                    if (selectedGame) {
-                        loadTournaments()
-                    }
-                }
-            } catch (e) {
-                console.error(e)
-            }
-        }
-    }
-
-    const interval = setInterval(() => {
-        if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'PING' }))
-        }
-    }, 30000)
-
-    return () => {
-        clearInterval(interval)
-        ws?.close()
-    }
-  }, [selectedGame])
+  useWebSocket({
+    subscriptions: [{ type: 'SUBSCRIBE_TOURNAMENTS' }],
+    onMessage: (data) => {
+      if (data.type === 'UPDATE_TOURNAMENTS_LIST' && selectedGame) {
+        loadTournaments()
+      }
+    },
+    enabled: !!selectedGame,
+  })
 
   const loadTournaments = async () => {
     if (!selectedGame) return

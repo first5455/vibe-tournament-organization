@@ -2,7 +2,7 @@ import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games, roles, permissions, rolePermissions, systemSettings } from '../db/schema'
 import { eq, desc, sql, or, and, isNull } from 'drizzle-orm'
-import { getRank } from '../utils'
+import { getRank, hasPermission } from '../utils'
 import { events, EVENTS } from '../lib/events'
 
 
@@ -37,20 +37,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     const { requesterId, username, password, displayName } = body
     
     // Auth check
-    const requesterPermissions = await db.select({
-      roleName: roles.name,
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'users.manage')
-
-    if (!hasPermission) {
+    if (!hasPermission(requesterId, 'users.manage')) {
       set.status = 403
       return { error: 'Forbidden' }
     }
@@ -62,7 +49,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       return { error: 'Username already taken' }
     }
 
-    const passwordHash = await Bun.password.hash(password || 'password') // Default password if not provided, though generic
+    const passwordHash = await Bun.password.hash(password || crypto.randomUUID())
     
     // Fetch default role
     let defaultRoleId: number | undefined
@@ -93,7 +80,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
         }).run()
     }
 
-    return { user: result }
+    const { passwordHash: _, ...safeResult } = result
+    return { user: safeResult }
   }, {
     body: t.Object({
       requesterId: t.Number(),
@@ -366,20 +354,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     const requester = await db.select().from(users).where(eq(users.id, parseInt(requesterId))).get()
     
     // Check permissions
-    const requesterPermissions = await db.select({
-      roleName: roles.name,
-      permissionSlug: permissions.slug,
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, parseInt(requesterId)))
-    .all()
-
-    const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'users.manage')
-
-    if (!requester || !hasPermission) {
+    if (!requester || !hasPermission(parseInt(requesterId), 'users.manage')) {
       set.status = 403
       return { error: 'Forbidden' }
     }
@@ -429,18 +404,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     const isSelfUpdate = requesterId === parseInt(params.id)
     
     // Always check permissions to determine if sensitive fields (Role, MMR) can be updated
-    const requesterPermissions = await db.select({
-        roleName: roles.name,
-        permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-    
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'users.manage')
+    const canManage = hasPermission(requesterId, 'users.manage')
 
     if (!isSelfUpdate && !canManage) {
       set.status = 403
@@ -523,6 +487,10 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     }
 
     const updatedUser = await db.select().from(users).where(eq(users.id, parseInt(params.id))).get()
+    if (updatedUser) {
+      const { passwordHash, ...safeUser } = updatedUser
+      return { user: safeUser }
+    }
     return { user: updatedUser }
   }, {
     params: t.Object({
@@ -544,20 +512,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
   .delete('/:id', async ({ params, body, set }) => {
     const { requesterId, hardDelete } = body
     
-    const requesterPermissions = await db.select({
-      roleName: roles.name,
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, requesterId))
-    .all()
-
-    const hasPermission = requesterPermissions.some(r => r.permissionSlug === 'users.manage')
-
-    if (!hasPermission) {
+    if (!hasPermission(requesterId, 'users.manage')) {
       set.status = 403
       return { error: 'Forbidden' }
     }

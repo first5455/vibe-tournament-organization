@@ -1,33 +1,27 @@
 
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { games, users, userGameStats, roles, rolePermissions, permissions } from '../db/schema'
+import { games, users, userGameStats } from '../db/schema'
 import { eq } from 'drizzle-orm'
+import { hasPermission } from '../utils'
 
 export const gamesRoutes = new Elysia({ prefix: '/games' })
   .get('/', async () => {
     return await db.select().from(games)
   })
-  .post('/', async ({ body, query }) => {
-    // Permission Check
+  .post('/', async ({ body, query, set }) => {
     // Permission Check
     if (!body.requesterId) {
-      throw new Error('Unauthorized')
+      set.status = 401
+      return { error: 'Unauthorized' }
     }
 
-    const requesterPermissions = await db.select({
-      permissionSlug: permissions.slug
-    })
-    .from(users)
-    .leftJoin(roles, eq(users.roleId, roles.id))
-    .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-    .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(eq(users.id, body.requesterId))
-    .all()
+    const canManage = await hasPermission(body.requesterId, 'games.manage')
 
-    const canManage = requesterPermissions.some(r => r.permissionSlug === 'games.manage')
-    
-    if (!canManage) throw new Error('Unauthorized')
+    if (!canManage) {
+      set.status = 403
+      return { error: 'Forbidden' }
+    }
 
     const newGame = await db.insert(games).values({
       name: body.name,
@@ -64,25 +58,19 @@ export const gamesRoutes = new Elysia({ prefix: '/games' })
       requesterId: t.Optional(t.String())
     })
   })
-  .put('/:id', async ({ params, body, query }) => {
+  .put('/:id', async ({ params, body, query, set }) => {
       // Permission Check
       if (!body.requesterId) {
-          throw new Error('Unauthorized')
+          set.status = 401
+          return { error: 'Unauthorized' }
       }
 
-      const requesterPermissions = await db.select({
-        permissionSlug: permissions.slug
-      })
-      .from(users)
-      .leftJoin(roles, eq(users.roleId, roles.id))
-      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(eq(users.id, body.requesterId))
-      .all()
-  
-      const canManage = requesterPermissions.some(r => r.permissionSlug === 'games.manage')
-      
-      if (!canManage) throw new Error('Unauthorized')
+      const canManage = await hasPermission(body.requesterId, 'games.manage')
+
+      if (!canManage) {
+          set.status = 403
+          return { error: 'Forbidden' }
+      }
 
       const updatedGame = await db.update(games)
           .set({
@@ -107,25 +95,19 @@ export const gamesRoutes = new Elysia({ prefix: '/games' })
           requesterId: t.Optional(t.String())
       })
   })
-  .delete('/:id', async ({ params, query }) => {
+  .delete('/:id', async ({ params, query, set }) => {
       // Permission Check
       if (!query.requesterId) {
-          throw new Error('Unauthorized')
+          set.status = 401
+          return { error: 'Unauthorized' }
       }
 
-      const requesterPermissions = await db.select({
-        permissionSlug: permissions.slug
-      })
-      .from(users)
-      .leftJoin(roles, eq(users.roleId, roles.id))
-      .leftJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
-      .leftJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(eq(users.id, parseInt(query.requesterId)))
-      .all()
-  
-      const canManage = requesterPermissions.some(r => r.permissionSlug === 'games.manage')
-      
-      if (!canManage) throw new Error('Unauthorized')
+      const canManage = await hasPermission(parseInt(query.requesterId), 'games.manage')
+
+      if (!canManage) {
+          set.status = 403
+          return { error: 'Forbidden' }
+      }
 
       // Check if game has tournaments? (Optional safety)
 

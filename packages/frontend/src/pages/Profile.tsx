@@ -5,7 +5,7 @@ import { useAuth } from '../lib/auth'
 import { Button } from '../components/ui/button'
 
 export default function Profile() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateUser } = useAuth()
   const navigate = useNavigate()
   const [username, setUsername] = useState(user?.username || '')
   const [displayName, setDisplayName] = useState(user?.displayName || '')
@@ -23,6 +23,7 @@ export default function Profile() {
         method: 'PUT',
         body: JSON.stringify({
           userId: user?.id,
+          requesterId: user?.id,
           username: username !== user?.username ? username : undefined,
           displayName: displayName !== user?.displayName ? displayName : undefined,
           password: password || undefined,
@@ -31,20 +32,8 @@ export default function Profile() {
         })
       })
       
-      // Update local user state if username changed
       if (res.user) {
-        // We need a way to update the user in context without full login
-        // For now, let's just re-login silently or ask user to relogin?
-        // Actually, the useAuth likely persists to localStorage.
-        // Let's manually update localStorage and reload? 
-        // Or better, use the login function with the new data.
-        // But we don't have the token here if it changed (it didn't).
-        // Let's just assume the context will refresh or we force it.
-        // Since useAuth reads from localStorage on mount, we can update localStorage.
-        const stored = JSON.parse(localStorage.getItem('user') || '{}')
-        localStorage.setItem('user', JSON.stringify({ ...stored, ...res.user }))
-        // Force reload to update context
-        window.location.reload()
+        updateUser(res.user)
       }
       
       setMessage('Profile updated successfully')
@@ -60,7 +49,7 @@ export default function Profile() {
     try {
       await api('/auth/account', {
         method: 'DELETE',
-        body: JSON.stringify({ userId: user?.id })
+        body: JSON.stringify({ userId: user?.id, requesterId: user?.id })
       })
       logout()
       navigate('/')

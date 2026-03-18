@@ -5,6 +5,7 @@ import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { Button } from '../components/ui/button'
 import { useRefresh } from '../hooks/useRefresh'
+import { useWebSocket } from '../hooks/useWebSocket'
 import { useFocusRevalidate } from '../hooks/useFocusRevalidate'
 import { useGame } from '../contexts/GameContext'
 
@@ -44,45 +45,17 @@ export default function Leaderboard() {
       loadLeaderboard()
     }
 
-    // WebSocket connection
-    let ws: WebSocket | null = null
-    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true' && selectedGame) {
-      try {
-        ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
-        
-        ws.onopen = () => {
-          // Connected
-        }
-
-        ws.onmessage = (event) => {
-          const data = JSON.parse(event.data)
-          if (data.type === 'UPDATE_LEADERBOARD') {
-            loadLeaderboard()
-          }
-        }
-        
-        // Suppress simple errors in dev to avoid noise
-        ws.onerror = () => {}
-
-      } catch (e) {
-        console.error('WS Exception', e)
-      }
-    }
-
-    // Heartbeat
-    const interval = setInterval(() => {
-        if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'PING' }))
-        }
-    }, 30000)
-
-    return () => {
-      clearInterval(interval)
-      if (ws) {
-        ws.close()
-      }
-    }
   }, [selectedGame?.id])
+
+  useWebSocket({
+    subscriptions: [],
+    onMessage: (data) => {
+      if (data.type === 'UPDATE_LEADERBOARD') {
+        loadLeaderboard()
+      }
+    },
+    enabled: !!selectedGame,
+  })
 
   useFocusRevalidate(loadLeaderboard, 30000)
 

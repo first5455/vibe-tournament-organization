@@ -8,6 +8,7 @@ import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 
 import { useRefresh } from '../hooks/useRefresh'
+import { useWebSocket } from '../hooks/useWebSocket'
 import { formatDate } from '../lib/utils'
 import { UserSearchSelect } from '../components/UserSearchSelect'
 import { CreateUserDialog } from '../components/CreateUserDialog'
@@ -94,54 +95,17 @@ export default function TournamentView() {
 
   useEffect(() => {
     loadTournament()
-
-    let ws: WebSocket | null = null
-    
-    if (import.meta.env.VITE_USE_WEBSOCKETS === 'true') {
-      try {
-        const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws'
-        ws = new WebSocket(wsUrl)
-        
-        ws.onopen = () => {
-          if (id) {
-            ws?.send(JSON.stringify({ type: 'SUBSCRIBE_TOURNAMENT', tournamentId: parseInt(id) }))
-          }
-        }
-
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data)
-            if (data.type === 'UPDATE_TOURNAMENT') {
-
-              loadTournament()
-            }
-          } catch (e) {
-            console.error('WS Message Parse Error', e)
-          }
-        }
-        
-        ws.onerror = (e) => {
-          console.error('WebSocket error:', e)
-        }
-      } catch (e) {
-        console.error('Failed to initialize WebSocket:', e)
-      }
-    }
-
-    // Heartbeat
-    const interval = setInterval(() => {
-        if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'PING' }))
-        }
-    }, 30000)
-
-    return () => {
-      clearInterval(interval)
-      if (ws) {
-        ws.close()
-      }
-    }
   }, [id])
+
+  useWebSocket({
+    subscriptions: id ? [{ type: 'SUBSCRIBE_TOURNAMENT', tournamentId: parseInt(id) }] : [],
+    onMessage: (data) => {
+      if (data.type === 'UPDATE_TOURNAMENT') {
+        loadTournament()
+      }
+    },
+    enabled: !!id,
+  })
 
   useEffect(() => {
     const fetchUserDecks = async () => {

@@ -63,16 +63,12 @@ export const matchRoutes = new Elysia({ prefix: '/matches' })
       .where(eq(matches.id, matchId))
       .run()
 
-    // Update participant score
+    // Update participant score atomically
     // Winner gets 1 point
-    const participant = winnerId ? await db.select().from(participants)
-      .where(eq(participants.id, winnerId))
-      .get() : null
-    
-    if (participant) {
+    if (winnerId) {
       await db.update(participants)
-        .set({ score: participant.score + 1 })
-        .where(eq(participants.id, participant.id))
+        .set({ score: sql`${participants.score} + 1` })
+        .where(eq(participants.id, winnerId))
         .run()
     }
 
