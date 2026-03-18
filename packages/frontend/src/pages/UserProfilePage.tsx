@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useGame } from '../contexts/GameContext'
 import { UserAvatar } from '../components/UserAvatar'
 import { UserLabel } from '../components/UserLabel'
 import { Button } from '../components/ui/button'
-import { Trophy, Swords, Calendar, MoreVertical, ExternalLink, Plus, Layers, Upload, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Trophy, Swords, Calendar, MoreVertical, ExternalLink, Plus, Layers, Upload, Trash2, ChevronDown, ChevronUp, Coins } from 'lucide-react'
+import { useSiteSettings } from '../contexts/SiteSettingsContext'
 import { DeckCard, DeckWithStats } from '../components/DeckCard'
 import { DeckModal } from '../components/DeckModal'
 import { ProfileSettingsDialog } from '../components/ProfileSettingsDialog'
@@ -22,6 +24,7 @@ interface UserProfile {
   avatarUrl?: string
   createdAt: string
   rank?: number
+  points?: number
   stats?: {
       gameId: number
       gameName: string
@@ -80,9 +83,11 @@ interface DuelHistory {
 }
 
 export default function UserProfilePage() {
+  const { t } = useTranslation('profile')
   const { id } = useParams<{ id: string }>()
   const { user: currentUser, hasPermission } = useAuth()
   const { selectedGame: activeGame, games } = useGame() // Alias to activeGame to minimize changes
+  const { isFeatureEnabled, settings: siteSettings } = useSiteSettings()
   const [user, setUser] = useState<UserProfile | null>(null)
   const [history, setHistory] = useState<TournamentHistory[]>([])
   const [duels, setDuels] = useState<DuelHistory[]>([])
@@ -108,19 +113,23 @@ export default function UserProfilePage() {
       setDuels(historyRes.duels || [])
 
       // Fetch decks
-      try {
-        const decksRes = await api(`/decks?userId=${id}${activeGame ? `&gameId=${activeGame.id}` : ''}`)
-        setDecks(decksRes)
-      } catch (e) {
-        console.error('Failed to fetch decks', e)
+      if (isFeatureEnabled('decks')) {
+        try {
+          const decksRes = await api(`/decks?userId=${id}${activeGame ? `&gameId=${activeGame.id}` : ''}`)
+          setDecks(decksRes)
+        } catch (e) {
+          console.error('Failed to fetch decks', e)
+        }
       }
 
       // Fetch custom decks
-      try {
-        const customDecksRes = await api(`/custom-decks?userId=${id}${activeGame ? `&gameId=${activeGame.id}` : ''}`)
-        setCustomDecks(customDecksRes)
-      } catch (e) {
-        console.error('Failed to fetch custom decks', e)
+      if (isFeatureEnabled('custom_decks')) {
+        try {
+          const customDecksRes = await api(`/custom-decks?userId=${id}${activeGame ? `&gameId=${activeGame.id}` : ''}`)
+          setCustomDecks(customDecksRes)
+        } catch (e) {
+          console.error('Failed to fetch custom decks', e)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch user data:', error)
@@ -133,8 +142,8 @@ export default function UserProfilePage() {
     fetchData()
   }, [id, activeGame])
 
-  if (loading) return <div className="flex justify-center items-center h-96 text-zinc-500">Loading profile...</div>
-  if (!user) return <div className="flex justify-center items-center h-96 text-red-500">User not found</div>
+  if (loading) return <div className="flex justify-center items-center h-96 text-zinc-500">{t('user.loading')}</div>
+  if (!user) return <div className="flex justify-center items-center h-96 text-red-500">{t('user.notFound')}</div>
 
   const canEdit = currentUser?.id === user.id || hasPermission('users.manage')
   const canManageDecks = hasPermission('decks.manage')
@@ -218,6 +227,12 @@ export default function UserProfilePage() {
                 {displayMmr} MMR
               </span>
             </div>
+            <div className="flex items-center gap-2 bg-zinc-800/50 px-3 py-1 rounded-full">
+              <Coins className="w-4 h-4 text-amber-400" />
+              <span className="font-medium text-white">
+                {user.points ?? 0} {siteSettings.pointDisplayName}
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               <span>Joined {formatDate(user.createdAt)}</span>
@@ -235,7 +250,7 @@ export default function UserProfilePage() {
         {/* Stats Cards */}
         <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-4 flex items-center justify-between">
            <div className="space-y-1">
-             <p className="text-sm text-zinc-400">Tournament Winrate</p>
+             <p className="text-sm text-zinc-400">{t('user.tournamentWinrate')}</p>
              <p className="text-2xl font-bold text-white">
                {gameStats?.tournamentWins !== undefined && (gameStats.tournamentWins + (gameStats.tournamentLosses||0)) > 0
                  ? `${Math.round((gameStats.tournamentWins / (gameStats.tournamentWins + (gameStats.tournamentLosses||0))) * 100)}%`
@@ -245,9 +260,9 @@ export default function UserProfilePage() {
              </p>
              <p className="text-sm text-zinc-500">
                {gameStats?.tournamentWins !== undefined ? (
-                   `${(gameStats.tournamentWins + (gameStats.tournamentLosses||0))} Played (${gameStats.tournamentWins} Win - ${gameStats.tournamentLosses} Loss)`
+                   `${(gameStats.tournamentWins + (gameStats.tournamentLosses||0))} ${t('user.played')} (${gameStats.tournamentWins} ${t('user.winLoss').split(' - ')[0]} - ${gameStats.tournamentLosses} ${t('user.winLoss').split(' - ')[1]})`
                ) : (
-                   `${history.filter(h => h.status === 'completed').length} Played (${history.filter(h => h.status === 'completed' && h.rank === 1).length} Win - ${history.filter(h => h.status === 'completed').length - history.filter(h => h.status === 'completed' && h.rank === 1).length} Loss)`
+                   `${history.filter(h => h.status === 'completed').length} ${t('user.played')} (${history.filter(h => h.status === 'completed' && h.rank === 1).length} ${t('user.winLoss').split(' - ')[0]} - ${history.filter(h => h.status === 'completed').length - history.filter(h => h.status === 'completed' && h.rank === 1).length} ${t('user.winLoss').split(' - ')[1]})`
                )}
              </p>
            </div>
@@ -255,7 +270,7 @@ export default function UserProfilePage() {
         </div>
         <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-4 flex items-center justify-between">
            <div className="space-y-1">
-             <p className="text-sm text-zinc-400">Duel Winrate</p>
+             <p className="text-sm text-zinc-400">{t('user.duelWinrate')}</p>
              <p className="text-2xl font-bold text-white">
                {gameStats?.duelWins !== undefined && (gameStats.duelWins + (gameStats.duelLosses||0)) > 0
                   ? `${Math.round((gameStats.duelWins / (gameStats.duelWins + (gameStats.duelLosses||0))) * 100)}%`
@@ -265,9 +280,9 @@ export default function UserProfilePage() {
              </p>
              <p className="text-sm text-zinc-500">
                {gameStats?.duelWins !== undefined ? (
-                   `${(gameStats.duelWins + (gameStats.duelLosses||0))} Played (${gameStats.duelWins} Win - ${gameStats.duelLosses} Loss)`
+                   `${(gameStats.duelWins + (gameStats.duelLosses||0))} ${t('user.played')} (${gameStats.duelWins} ${t('user.winLoss').split(' - ')[0]} - ${gameStats.duelLosses} ${t('user.winLoss').split(' - ')[1]})`
                ) : (
-                   `${duels.filter(d => d.status === 'completed').length} Played (${duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length} Win - {duels.filter(d => d.status === 'completed').length - duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length} Loss)`
+                   `${duels.filter(d => d.status === 'completed').length} ${t('user.played')} (${duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length} ${t('user.winLoss').split(' - ')[0]} - ${duels.filter(d => d.status === 'completed').length - duels.filter(d => d.status === 'completed' && d.winnerId === user.id).length} ${t('user.winLoss').split(' - ')[1]})`
                )}
              </p>
            </div>
@@ -275,7 +290,7 @@ export default function UserProfilePage() {
         </div>
         <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-4 flex items-center justify-between">
            <div className="space-y-1">
-             <p className="text-sm text-zinc-400">Daily Performance</p>
+             <p className="text-sm text-zinc-400">{t('user.dailyPerformance')}</p>
              <p className="text-2xl font-bold text-white">
                {(() => {
                  const today = new Date().toLocaleDateString()
@@ -292,7 +307,7 @@ export default function UserProfilePage() {
                  const todaysDuels = duels.filter(d => new Date(d.createdAt).toLocaleDateString() === today && d.status === 'completed')
                  const wins = todaysDuels.filter(d => d.winnerId === user.id).length
                  const losses = todaysDuels.length - wins
-                 return `${todaysDuels.length} Played (${wins} Win - ${losses} Loss)`
+                 return `${todaysDuels.length} ${t('user.played')} (${wins} ${t('user.winLoss').split(' - ')[0]} - ${losses} ${t('user.winLoss').split(' - ')[1]})`
                })()}
              </p>
            </div>
@@ -300,23 +315,23 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      {isFeatureEnabled('decks') && <div className="space-y-4">
         <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Layers className="text-purple-500" />
-                Player Decks
+                {t('user.playerDecks')}
             </h2>
             {canEdit && (
                 <Button onClick={() => { setEditingDeck(null); setIsDeckModalOpen(true) }} size="sm" className="bg-purple-600 hover:bg-purple-700">
                     <Plus className="w-4 h-4 mr-2" />
-                    New Deck
+                    {t('decks:newDeck')}
                 </Button>
             )}
         </div>
         
         {decks.length === 0 ? (
             <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-8 text-center text-zinc-500">
-                No decks created yet
+                {t('user.noDecks')}
             </div>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -331,20 +346,20 @@ export default function UserProfilePage() {
                 ))}
             </div>
         )}
-      </div>
+      </div>}
 
       {/* Custom Decks Section */}
-      <div className="space-y-4">
+      {isFeatureEnabled('custom_decks') && <div className="space-y-4">
         <div className="flex justify-between items-center">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Upload className="text-indigo-500" />
-                Custom Decks
+                {t('user.customDecks')}
             </h2>
         </div>
         
         {customDecks.length === 0 ? (
             <div className="bg-zinc-900/50 border border-white/5 rounded-xl p-8 text-center text-zinc-500">
-                No custom decks created yet
+                {t('user.noCustomDecks')}
             </div>
         ) : (
             <div className="space-y-3">
@@ -360,9 +375,9 @@ export default function UserProfilePage() {
                             <p className="text-sm text-zinc-400 mt-1">{deck.description}</p>
                           )}
                           <div className="flex items-center gap-4 mt-2 text-sm text-zinc-500">
-                            <span>{deck.cardCount} unique cards</span>
+                            <span>{deck.cardCount} {t('user.uniqueCards')}</span>
                             <span>•</span>
-                            <span>{deck.totalCards} total cards</span>
+                            <span>{deck.totalCards} {t('user.totalCards')}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -397,12 +412,12 @@ export default function UserProfilePage() {
                             {isExpanded ? (
                               <>
                                 <ChevronUp className="w-4 h-4 mr-1" />
-                                Hide Cards
+                                {t('user.hideCards')}
                               </>
                             ) : (
                               <>
                                 <ChevronDown className="w-4 h-4 mr-1" />
-                                View Cards
+                                {t('user.viewCards')}
                               </>
                             )}
                           </Button>
@@ -412,7 +427,7 @@ export default function UserProfilePage() {
                               size="icon"
                               className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                               onClick={async () => {
-                                if (!confirm('Delete this custom deck? All cards and images will be removed.')) return
+                                if (!confirm(t('user.deleteCustomDeck'))) return
                                 try {
                                   await api(`/custom-decks/${deck.id}`, {
                                     method: 'DELETE',
@@ -439,7 +454,7 @@ export default function UserProfilePage() {
                                 <div className="w-16 h-16 flex-shrink-0 bg-zinc-800 rounded overflow-hidden">
                                   <img 
                                     src={card.imageUrl} 
-                                    alt={card.cardName || 'Card'} 
+                                    alt={card.cardName || t('user.unnamedCard')}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64"%3E%3Crect fill="%23334155" width="64" height="64"/%3E%3C/svg%3E'
@@ -448,10 +463,10 @@ export default function UserProfilePage() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium text-white truncate">
-                                    {card.cardName || 'Unnamed Card'}
+                                    {card.cardName || t('user.unnamedCard')}
                                   </p>
                                   <p className="text-sm text-zinc-500">
-                                    Quantity: {card.quantity}
+                                    {t('user.quantity')} {card.quantity}
                                   </p>
                                 </div>
                                 {canManageDecks && (
@@ -460,7 +475,7 @@ export default function UserProfilePage() {
                                     size="icon"
                                     className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
                                     onClick={async () => {
-                                      if (!confirm(`Delete "${card.cardName || 'this card'}" from the deck?`)) return
+                                      if (!confirm(t('user.deleteCardConfirm', { cardName: card.cardName || t('user.unnamedCard') }))) return
                                       try {
                                         await api(`/custom-decks/${deck.id}/cards/${card.id}`, {
                                           method: 'DELETE',
@@ -489,18 +504,18 @@ export default function UserProfilePage() {
                 })}
             </div>
         )}
-      </div>
+      </div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Tournament History */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Trophy className="text-indigo-500" />
-            Tournament History
+            {t('user.tournamentHistory')}
           </h2>
           <div className="bg-zinc-900/50 border border-white/5 rounded-xl overflow-hidden max-h-[600px] overflow-y-auto custom-scrollbar">
             {history.length === 0 ? (
-              <div className="p-8 text-center text-zinc-500">No tournament history yet</div>
+              <div className="p-8 text-center text-zinc-500">{t('user.noTournamentHistory')}</div>
             ) : (
               <div className="divide-y divide-white/5">
                 {history.map((item, i) => (
@@ -511,15 +526,15 @@ export default function UserProfilePage() {
                         item.rank === 1 ? 'bg-yellow-500/20 text-yellow-400' : 
                         item.rank <= 3 ? 'bg-zinc-700 text-zinc-300' : 'bg-zinc-800 text-zinc-500'
                       }`}>
-                        Rank #{item.rank} / {item.totalParticipants}
+                        {t('user.rank')}{item.rank} / {item.totalParticipants}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm text-zinc-400">
-                      <span>{item.tournamentDate.startsWith('Started:') ? item.tournamentDate : `Date: ${formatDate(item.tournamentDate)}`}</span>
+                      <span>{item.tournamentDate.startsWith('Started:') ? item.tournamentDate : `${t('user.date')} ${formatDate(item.tournamentDate)}`}</span>
                       <div className="flex items-center gap-4">
                         {item.deck && (
                             <div className="flex items-center gap-1">
-                                <span className="text-zinc-500">Deck:</span>
+                                <span className="text-zinc-500">{t('user.deck')}</span>
                                 {item.deck.link ? (
                                     <Button 
                                         variant="outline" 
@@ -535,12 +550,12 @@ export default function UserProfilePage() {
                                 )}
                             </div>
                         )}
-                        <span>Score: {item.score}</span>
+                        <span>{t('user.score')} {item.score}</span>
                       </div>
                     </div>
                     {item.note && (
                       <div className="mt-2 text-sm text-zinc-500 bg-zinc-950/50 p-2 rounded border border-white/5">
-                        Note: {item.note}
+                        {t('user.noteLabel')} {item.note}
                       </div>
                     )}
                   </div>
@@ -554,11 +569,11 @@ export default function UserProfilePage() {
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Swords className="text-red-500" />
-            Duel History
+            {t('user.duelHistory')}
           </h2>
           <div className="bg-zinc-900/50 border border-white/5 rounded-xl overflow-hidden max-h-[600px] overflow-y-auto custom-scrollbar">
             {duels.length === 0 ? (
-              <div className="p-8 text-center text-zinc-500">No duel history yet</div>
+              <div className="p-8 text-center text-zinc-500">{t('user.noDuelHistory')}</div>
             ) : (
               <div className="divide-y divide-white/5">
                 {duels.map((duel) => {
@@ -594,7 +609,7 @@ export default function UserProfilePage() {
                                   ? 'bg-zinc-800 text-zinc-300 border-zinc-700' 
                                   : 'text-zinc-600 border-zinc-800'
                               }`}>
-                                  {duel.firstPlayerId === user.id ? 'YOU WENT 1ST' : 'OPP WENT 1ST'}
+                                  {duel.firstPlayerId === user.id ? t('user.youWentFirst') : t('user.oppWentFirst')}
                               </span>
                           )}
                         </div>
@@ -614,7 +629,7 @@ export default function UserProfilePage() {
                       </div>
                       {duel.deck && (
                           <div className="mt-2 text-xs flex justify-end items-center gap-1">
-                            <span className="text-zinc-500">Deck:</span>
+                            <span className="text-zinc-500">{t('user.deck')}</span>
                             {duel.deck.link ? (
                                 <Button 
                                     variant="outline" 
@@ -666,8 +681,8 @@ export default function UserProfilePage() {
         games={games}
         onSubmit={handleDeckSubmit}
         initialData={editingDeck}
-        title={editingDeck ? "Edit Deck" : `Create Deck for ${user.displayName || user.username}`}
-        submitLabel={editingDeck ? "Save Changes" : "Create Deck"}
+        title={editingDeck ? t('user.editDeck') : `${t('user.createDeckFor')} ${user.displayName || user.username}`}
+        submitLabel={editingDeck ? t('common:actions.saveChanges') : t('user.createDeck')}
       />
     </div>
   )

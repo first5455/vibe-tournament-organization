@@ -1,5 +1,6 @@
 import { ShieldAlert, LogIn } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Button } from '../components/ui/button'
 
 interface MaintenancePageProps {
@@ -7,6 +8,7 @@ interface MaintenancePageProps {
 }
 
 export function MaintenancePage({ message }: MaintenancePageProps) {
+  const { t } = useTranslation('maintenance')
   const navigate = useNavigate()
 
   return (
@@ -17,16 +19,16 @@ export function MaintenancePage({ message }: MaintenancePageProps) {
         </div>
         
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-white">Maintenance Mode</h1>
+          <h1 className="text-2xl font-bold text-white">{t('title')}</h1>
           <p className="text-zinc-400">
-            {message || 'The system is currently undergoing maintenance. Please check back later.'}
+            {message || t('defaultMessage')}
           </p>
         </div>
 
         <div className="pt-4 border-t border-white/5 w-full">
            <Button variant="outline" className="w-full gap-2 border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-800" onClick={() => navigate('/login')}>
              <LogIn className="w-4 h-4" />
-             Login as Admin
+             {t('loginAsAdmin')}
            </Button>
         </div>
       </div>

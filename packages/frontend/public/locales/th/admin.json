@@ -1,0 +1,50 @@
+{
+  "title": "พอร์ทัลผู้ดูแล",
+  "tabs": {
+    "users": "ผู้ใช้",
+    "games": "เกม",
+    "roles": "บทบาท",
+    "settings": "ตั้งค่า",
+    "duels": "ดวล"
+  },
+  "settings": {
+    "siteBranding": "แบรนด์เว็บไซต์",
+    "siteName": "ชื่อเว็บไซต์",
+    "siteLogo": "URL โลโก้เว็บไซต์",
+    "logoPreview": "ตัวอย่าง:",
+    "featureToggles": "เปิด/ปิดฟีเจอร์",
+    "featureDesc": "เปิดหรือปิดฟีเจอร์ทั่วทั้งแพลตฟอร์ม",
+    "features": {
+      "leaderboard": "อันดับผู้เล่น",
+      "leaderboardDesc": "อันดับผู้เล่นและ MMR",
+      "duelRoom": "ห้องดวล",
+      "duelRoomDesc": "ท้าดวล 1v1 ระหว่างผู้เล่น",
+      "decks": "เด็ค",
+      "decksDesc": "จัดการเด็คของผู้เล่น",
+      "customDecks": "เด็คกำหนดเอง",
+      "customDecksDesc": "อัปโหลดเด็คกำหนดเองพร้อมรูปภาพ",
+      "tournaments": "ทัวร์นาเมนต์",
+      "tournamentsDesc": "สร้างและจัดการทัวร์นาเมนต์"
+    },
+    "oauthProviders": "ผู้ให้บริการ OAuth",
+    "oauthDesc": "กำหนดค่าผู้ให้บริการเข้าสู่ระบบโซเชียล เว้น Client ID ว่างเพื่อปิดใช้งาน",
+    "googleClientId": "Google OAuth Client ID",
+    "googleClientIdPlaceholder": "เช่น 123456789.apps.googleusercontent.com",
+    "googleClientIdHelp": "รับได้จาก Google Cloud Console → APIs & Services → Credentials",
+    "maintenanceMode": "โหมดบำรุงรักษา",
+    "maintenanceDesc": "เมื่อเปิดใช้งาน เฉพาะผู้ดูแลเท่านั้นที่สามารถเข้าถึงเว็บไซต์ได้ ผู้ใช้อื่นจะถูกเปลี่ยนเส้นทางไปยังหน้าบำรุงรักษา",
+    "maintenanceMessage": "ข้อความบำรุงรักษา",
+    "maintenancePlaceholder": "กรอกข้อความที่จะแสดงให้ผู้ใช้เห็น...",
+    "defaultRole": "บทบาทเริ่มต้นของผู้ใช้",
+    "defaultRoleDesc": "บทบาทที่กำหนดให้ผู้ใช้ใหม่เมื่อลงทะเบียน",
+    "noDefaultRole": "ไม่มีบทบาทเริ่มต้น (ผู้เยี่ยมชม)",
+    "ownerRole": "บทบาทเจ้าของ (ผู้ดูแลสูงสุด)",
+    "ownerRoleDesc": "ผู้ใช้ในบทบาทนี้มีสถานะป้องกันและสามารถจัดการได้โดยเจ้าของคนอื่นเท่านั้น",
+    "noOwnerRole": "ยังไม่ได้กำหนดบทบาทเจ้าของ",
+    "ownerWarning": "เมื่อตั้งค่าแล้ว เฉพาะสมาชิกในบทบาทนี้เท่านั้นที่สามารถเปลี่ยนการตั้งค่านี้ได้",
+    "saveSettings": "บันทึกการตั้งค่า",
+    "savedSuccess": "บันทึกการตั้งค่าสำเร็จ",
+    "defaultLanguage": "ภาษาเริ่มต้น",
+    "defaultLanguageDesc": "ภาษาเริ่มต้นสำหรับผู้ใช้ใหม่ที่ยังไม่ได้ตั้งค่า"
+  }
+}

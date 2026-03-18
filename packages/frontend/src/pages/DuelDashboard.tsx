@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { Plus, Swords, RefreshCw } from 'lucide-react'
@@ -40,6 +41,7 @@ interface Deck {
 }
 
 export default function DuelDashboard() {
+  const { t } = useTranslation(['duel', 'common'])
   const [duels, setDuels] = useState<Duel[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
@@ -159,9 +161,9 @@ export default function DuelDashboard() {
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
             <Swords className="h-8 w-8 text-indigo-500" />
-            Duel Rooms
+            {t('duel:dashboard.title')}
           </h1>
-          <p className="text-zinc-400">Challenge others to 1v1 duels</p>
+          <p className="text-zinc-400">{t('duel:dashboard.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button 
@@ -170,13 +172,13 @@ export default function DuelDashboard() {
             onClick={handleRefresh}
             disabled={isCoolingDown}
             className={`text-zinc-400 hover:text-white ${isCoolingDown ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={isCoolingDown ? "Please wait..." : "Refresh list"}
+            title={isCoolingDown ? t('common:actions.pleaseWait') : t('common:actions.refreshList')}
           >
             <RefreshCw className={`h-6 w-6 ${isCoolingDown ? 'animate-spin' : ''}`} />
           </Button>
           <Button onClick={() => setIsCreating(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Create Room
+            {t('duel:dashboard.createRoom')}
           </Button>
         </div>
       </div>
@@ -184,35 +186,35 @@ export default function DuelDashboard() {
       {isCreating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-xl border border-zinc-800 bg-zinc-900 p-6 shadow-xl">
-            <h2 className="mb-4 text-xl font-bold text-white">Create Duel Room</h2>
+            <h2 className="mb-4 text-xl font-bold text-white">{t('duel:dashboard.createDialog.title')}</h2>
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-400">Room Name (Optional)</label>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">{t('duel:dashboard.createDialog.roomName')}</label>
                 <input
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="Default: DD-MM-YYYY HH:mm"
+                  placeholder={t('duel:dashboard.createDialog.roomNameDefault')}
                   autoFocus
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-400">Select Deck (Optional)</label>
+                <label className="mb-2 block text-sm font-medium text-zinc-400">{t('duel:dashboard.createDialog.selectDeck')}</label>
                 <select
                   value={selectedDeckId || ''}
                   onChange={(e) => setSelectedDeckId(e.target.value ? parseInt(e.target.value) : undefined)}
                   className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-white focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
-                  <option value="">No Deck</option>
+                  <option value="">{t('duel:dashboard.createDialog.noDeck')}</option>
                   {userDecks.map(deck => (
                     <option key={deck.id} value={deck.id}>{deck.name}</option>
                   ))}
                 </select>
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
-                <Button onClick={createDuel}>Create</Button>
+                <Button variant="ghost" onClick={() => setIsCreating(false)}>{t('common:actions.cancel')}</Button>
+                <Button onClick={createDuel}>{t('common:actions.create')}</Button>
               </div>
             </div>
           </div>
@@ -220,12 +222,12 @@ export default function DuelDashboard() {
       )}
 
       {isLoading ? (
-        <div className="text-center text-zinc-500">Loading duels...</div>
+        <div className="text-center text-zinc-500">{t('duel:dashboard.loading')}</div>
       ) : duels.length === 0 ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-12 text-center">
           <Swords className="mx-auto h-12 w-12 text-zinc-700" />
-          <h3 className="mt-4 text-lg font-medium text-white">No active duels</h3>
-          <p className="mt-2 text-zinc-400">Create a room to start a duel.</p>
+          <h3 className="mt-4 text-lg font-medium text-white">{t('duel:dashboard.noDuels')}</h3>
+          <p className="mt-2 text-zinc-400">{t('duel:dashboard.noDuelsDesc')}</p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -246,8 +248,8 @@ export default function DuelDashboard() {
                       duel.status === 'ready' ? 'bg-yellow-500/10 text-yellow-400' :
                       'bg-indigo-500/10 text-indigo-400'
                     }`}>
-                      {duel.status === 'open' ? 'Waiting for player' : 
-                       duel.status === 'ready' ? 'Ready to Start' : 'In Progress'}
+                      {duel.status === 'open' ? t('duel:dashboard.waitingForPlayer') :
+                       duel.status === 'ready' ? t('duel:dashboard.readyToStart') : t('duel:dashboard.inProgress')}
                     </span>
                   </div>
                   <div className="mt-4 grid grid-cols-[1fr,auto,1fr] gap-2 items-center">
@@ -274,7 +276,7 @@ export default function DuelDashboard() {
                       )}
                     </div>
                     
-                    <span className="text-zinc-600 font-bold text-sm">VS</span>
+                    <span className="text-zinc-600 font-bold text-sm">{t('common:vs')}</span>
                     
                     <div className="flex flex-col items-center">
                       {duel.player2Name ? (
@@ -301,7 +303,7 @@ export default function DuelDashboard() {
                           )}
                         </>
                       ) : (
-                        <span className="text-sm text-zinc-500 italic h-full flex items-center">Waiting...</span>
+                        <span className="text-sm text-zinc-500 italic h-full flex items-center">{t('duel:dashboard.waiting')}</span>
                       )}
                     </div>
                   </div>

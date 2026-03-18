@@ -1,0 +1,50 @@
+{
+  "title": "Admin Portal",
+  "tabs": {
+    "users": "Users",
+    "games": "Games",
+    "roles": "Roles",
+    "settings": "Settings",
+    "duels": "Duels"
+  },
+  "settings": {
+    "siteBranding": "Site Branding",
+    "siteName": "Site Name",
+    "siteLogo": "Site Logo URL",
+    "logoPreview": "Preview:",
+    "featureToggles": "Feature Toggles",
+    "featureDesc": "Enable or disable features across the entire platform.",
+    "features": {
+      "leaderboard": "Leaderboard",
+      "leaderboardDesc": "Player rankings and MMR leaderboard",
+      "duelRoom": "Duel Room",
+      "duelRoomDesc": "1v1 duel challenges between players",
+      "decks": "Decks",
+      "decksDesc": "Player deck management",
+      "customDecks": "Custom Decks",
+      "customDecksDesc": "Custom deck upload with images",
+      "tournaments": "Tournaments",
+      "tournamentsDesc": "Tournament creation and management"
+    },
+    "oauthProviders": "OAuth Providers",
+    "oauthDesc": "Configure social login providers. Leave Client ID empty to disable a provider.",
+    "googleClientId": "Google OAuth Client ID",
+    "googleClientIdPlaceholder": "e.g. 123456789.apps.googleusercontent.com",
+    "googleClientIdHelp": "Get this from the Google Cloud Console → APIs & Services → Credentials",
+    "maintenanceMode": "Maintenance Mode",
+    "maintenanceDesc": "When enabled, only administrators can access the site. All other users will be redirected to the maintenance page.",
+    "maintenanceMessage": "Maintenance Message",
+    "maintenancePlaceholder": "Enter a message to display to users...",
+    "defaultRole": "Default User Role",
+    "defaultRoleDesc": "Role assigned to new users upon registration.",
+    "noDefaultRole": "No Default Role (Guest)",
+    "ownerRole": "Owner Role (Super Admin)",
+    "ownerRoleDesc": "Users in this role have protected status and can only be managed by other Owners.",
+    "noOwnerRole": "No Owner Role Configured",
+    "ownerWarning": "Once set, only members of this role can change this setting.",
+    "saveSettings": "Save Settings",
+    "savedSuccess": "Settings saved successfully",
+    "defaultLanguage": "Default Language",
+    "defaultLanguageDesc": "Default language for new users who haven't set a preference."
+  }
+}

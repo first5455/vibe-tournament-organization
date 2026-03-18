@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { useAuth } from '../lib/auth'
-import { Trophy, Users, Play, RefreshCw } from 'lucide-react'
+import { Trophy, Users, Play, RefreshCw, FileSpreadsheet, FileText } from 'lucide-react'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 
@@ -14,6 +15,7 @@ import { CreateUserDialog } from '../components/CreateUserDialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Match, Participant, Deck } from '../types'
 import { MatchCard } from '../components/MatchCard'
+import { exportTournamentToExcel, exportTournamentToPDF } from '../lib/tournamentExport'
 
 interface Tournament {
   id: number
@@ -33,6 +35,7 @@ interface Tournament {
 
 export default function TournamentView() {
   const { id } = useParams<{ id: string }>()
+  const { t } = useTranslation(['tournament', 'common'])
   const [tournament, setTournament] = useState<Tournament | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [matches, setMatches] = useState<Match[]>([])
@@ -297,7 +300,6 @@ export default function TournamentView() {
         body: JSON.stringify({ 
           userId: selectedUser.id, 
           createdBy: user.id
-          // TODO: Admin selecting deck for user? maybe later
         })
       })
       setShowAddParticipant(false)
@@ -333,16 +335,6 @@ export default function TournamentView() {
     setTargetUserDecks([]) // Clear previous
     setNewDeckId(undefined)
 
-    // Initial selected deck? We don't have the ID in participant list easily unless we add it to API
-    // The API sends everything, let's check table cols. I added deckName/Color but not deckId to `participants` query in `tournaments.ts`?
-    // Let's check `backend/src/routes/tournaments.ts` ... I did `...getTableColumns(participants)` so `deckId` IS there.
-    // However, I need to cast it or update interface.
-    // Interface Participant has ... wait, where is deckId in interface?
-    // It's not in the interface in `TournamentView.tsx` line 14. I should add it.
-    
-    // For now assuming we can fix interface below or just access it as any for a sec, 
-    // but better to add it to interface.
-
     try {
       const decks = await api(`/decks?userId=${p.userId}`)
       setTargetUserDecks(decks)
@@ -368,7 +360,7 @@ export default function TournamentView() {
     }
   }
 
-  if (isLoading) return <div className="p-8 text-center text-zinc-500">Loading tournament data...</div>
+  if (isLoading) return <div className="p-8 text-center text-zinc-500">{t('tournament:loading')}</div>
   
   if (error) {
     return (
@@ -380,7 +372,7 @@ export default function TournamentView() {
     )
   }
 
-  if (!tournament) return <div className="p-8 text-center text-zinc-500">Tournament not found</div>
+  if (!tournament) return <div className="p-8 text-center text-zinc-500">{t('tournament:notFound')}</div>
 
   const isAdmin = (user?.id === tournament.createdBy && hasPermission('tournaments.manage_own')) || hasPermission('tournaments.manage_all')
 
@@ -395,8 +387,8 @@ export default function TournamentView() {
                 onChange={(e) => setEditName(e.target.value)}
                 className="bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-white"
               />
-              <Button onClick={updateTournament}>Save</Button>
-              <Button variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+              <Button onClick={updateTournament}>{t('common:actions.save')}</Button>
+              <Button variant="ghost" onClick={() => setIsEditing(false)}>{t('common:actions.cancel')}</Button>
             </div>
           ) : (
             <div className="flex items-center gap-3">
@@ -410,7 +402,7 @@ export default function TournamentView() {
                 onClick={handleRefresh}
                 disabled={isCoolingDown}
                 className={`text-zinc-400 hover:text-white ${isCoolingDown ? 'opacity-50 cursor-not-allowed' : ''}`}
-                title={isCoolingDown ? "Please wait..." : "Refresh tournament data"}
+                title={isCoolingDown ? t('common:actions.pleaseWait') : t('common:actions.refresh')}
               >
                 <RefreshCw className={`h-6 w-6 ${isCoolingDown ? 'animate-spin' : ''}`} />
               </Button>
@@ -420,7 +412,7 @@ export default function TournamentView() {
             {tournament.type !== 'round_robin' && (
               <span className="flex items-center gap-1">
                 <Trophy className="h-4 w-4" />
-                Round {tournament.currentRound}/{tournament.totalRounds}
+                {t('tournament:round')} {tournament.currentRound}/{tournament.totalRounds}
                 {tournament.status === 'active' && (
                   <span className="ml-1 text-xs text-zinc-500">
                     ({tournament.totalRounds - tournament.currentRound} left)
@@ -430,7 +422,7 @@ export default function TournamentView() {
             )}
             <span className="flex items-center gap-1">
               <Users className="h-4 w-4" />
-              {participants.length} Participants
+              {participants.length} {t('tournament:participants')}
             </span>
             {tournament.startDate && (
               <span className="text-xs text-zinc-500 border-l border-zinc-700 pl-4 ml-2">
@@ -446,7 +438,7 @@ export default function TournamentView() {
               <span className="text-xs text-zinc-500 border-l border-zinc-700 pl-4 ml-2 flex items-center gap-2">
                 <UserAvatar username={tournament.createdByName} displayName={tournament.createdByDisplayName || undefined} avatarUrl={tournament.createdByAvatarUrl} size="sm" className="h-5 w-5" />
                 <span className="flex items-center gap-1">
-                  Created by: <UserLabel username={tournament.createdByName} displayName={tournament.createdByDisplayName || undefined} color={tournament.createdByColor} className="text-zinc-300" userId={tournament.createdBy} />
+                  {t('tournament:createdBy')}: <UserLabel username={tournament.createdByName} displayName={tournament.createdByDisplayName || undefined} color={tournament.createdByColor} className="text-zinc-300" userId={tournament.createdBy} />
                 </span>
               </span>
             )}
@@ -454,10 +446,24 @@ export default function TournamentView() {
         </div>
         
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportTournamentToExcel(
+            { ...tournament, createdByName: tournament.createdByName },
+            participants, matches
+          )}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            {t('tournament:exportExcel')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportTournamentToPDF(
+            { ...tournament, createdByName: tournament.createdByName },
+            participants, matches
+          )}>
+            <FileText className="mr-2 h-4 w-4" />
+            {t('tournament:exportPdf')}
+          </Button>
           {isAdmin && (
             <>
-              <Button variant="outline" onClick={() => setIsEditing(true)}>Edit</Button>
-              <Button variant="destructive" onClick={deleteTournament}>Delete</Button>
+              <Button variant="outline" onClick={() => setIsEditing(true)}>{t('common:actions.edit')}</Button>
+              <Button variant="destructive" onClick={deleteTournament}>{t('common:actions.delete')}</Button>
             </>
           )}
           {tournament.status === 'active' && isAdmin && tournament.type !== 'round_robin' && (
@@ -512,7 +518,7 @@ export default function TournamentView() {
               }
             }}>
               <Trophy className="mr-2 h-4 w-4" />
-              Finish Tournament
+              {t('tournament:completeTournament')}
             </Button>
           )}
           {tournament.status === 'pending' && (
@@ -543,14 +549,14 @@ export default function TournamentView() {
               {isAdmin && (
                 <>
                   <Button onClick={() => setShowAddParticipant(!showAddParticipant)} variant="outline">
-                    Add Player
+                    {t('tournament:addParticipant')}
                   </Button>
                   <Button onClick={() => setShowGuestInput(!showGuestInput)} variant="outline">
                     Add Guest
                   </Button>
                   <Button onClick={startTournament}>
                     <Play className="mr-2 h-4 w-4" />
-                    Start Tournament
+                    {t('tournament:startTournament')}
                   </Button>
                 </>
               )}
@@ -601,7 +607,7 @@ export default function TournamentView() {
       {/* Matches Section */}
       {tournament.type === 'round_robin' ? (
         <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6 overflow-x-auto">
-          <h2 className="text-xl font-semibold text-white mb-4">Match Grid</h2>
+          <h2 className="text-xl font-semibold text-white mb-4">{t('tournament:matches')}</h2>
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -770,7 +776,7 @@ export default function TournamentView() {
 
       {/* Standings Section */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Standings</h2>
+        <h2 className="text-xl font-semibold text-white mb-4">{t('tournament:standings')}</h2>
         <div className="overflow-hidden rounded-lg border border-zinc-800">
           <table className="w-full text-left text-sm text-zinc-400">
             <thead className="bg-zinc-900 text-zinc-200">
@@ -779,7 +785,7 @@ export default function TournamentView() {
                 <th className="px-4 py-3 font-medium">Player</th>
                 <th className="px-4 py-3 font-medium">Deck</th>
                 <th className="px-4 py-3 font-medium">Note</th>
-                <th className="px-4 py-3 font-medium text-right">Score</th>
+                <th className="px-4 py-3 font-medium text-right">{t('tournament:score')}</th>
                 {isAdmin && <th className="px-4 py-3 font-medium text-right">Actions</th>}
               </tr>
             </thead>
@@ -986,7 +992,7 @@ export default function TournamentView() {
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="ghost" onClick={() => setReportingMatch(null)}>Cancel</Button>
+                <Button variant="ghost" onClick={() => setReportingMatch(null)}>{t('common:actions.cancel')}</Button>
                 <Button onClick={() => {
                   const s1 = parseInt(score1 || '0')
                   const s2 = parseInt(score2 || '0')
@@ -1031,8 +1037,8 @@ export default function TournamentView() {
                 </div>
             </div>
             <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setEditDeckOpen(false)}>Cancel</Button>
-                <Button onClick={saveDeckChange}>Save</Button>
+                <Button variant="ghost" onClick={() => setEditDeckOpen(false)}>{t('common:actions.cancel')}</Button>
+                <Button onClick={saveDeckChange}>{t('common:actions.save')}</Button>
             </div>
         </DialogContent>
       </Dialog>

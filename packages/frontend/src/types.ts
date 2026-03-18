@@ -6,6 +6,7 @@ export interface User {
   assignedRole?: { id: number, name: string } | null
   permissions?: string[]
   color?: string | null
+  points?: number
   createdAt?: string
   stats?: {
     gameId: number

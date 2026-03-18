@@ -1,0 +1,20 @@
+{
+  "loading": "Loading...",
+  "notFound": "Tournament not found",
+  "exportExcel": "Export as Excel",
+  "exportPdf": "Export as PDF",
+  "participants": "Participants",
+  "addParticipant": "Add Participant",
+  "removeParticipant": "Remove Participant",
+  "startTournament": "Start Tournament",
+  "completeTournament": "Complete Tournament",
+  "matches": "Matches",
+  "noMatches": "No matches yet",
+  "createdBy": "Created by",
+  "round": "Round",
+  "standings": "Standings",
+  "bracket": "Bracket",
+  "results": "Results",
+  "winner": "Winner",
+  "score": "Score"
+}

@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
-import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games, roles, permissions, rolePermissions, systemSettings } from '../db/schema'
+import { users, participants, tournaments, duelRooms, matches, decks, userGameStats, games, roles, permissions, rolePermissions, systemSettings, oauthAccounts } from '../db/schema'
 import { eq, desc, sql, or, and, isNull } from 'drizzle-orm'
 import { getRank } from '../utils'
 import { events, EVENTS } from '../lib/events'
@@ -153,6 +153,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       avatarUrl: users.avatarUrl,
       passwordHash: users.passwordHash,
       tokenVersion: users.tokenVersion,
+      points: users.points,
     })
     .from(users)
     .where(eq(users.id, parseInt(params.id)))
@@ -198,14 +199,22 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     
     const permissionSlugs = perms.map(p => p.slug)
 
-    return { 
-        user: { 
-            ...user, 
-            rank, 
+    // Fetch linked OAuth providers
+    const oauthLinks = await db
+        .select({ provider: oauthAccounts.provider })
+        .from(oauthAccounts)
+        .where(eq(oauthAccounts.userId, user.id))
+        .all()
+
+    return {
+        user: {
+            ...user,
+            rank,
             stats,
             assignedRole: role ? { id: role.id, name: role.name } : null,
-            permissions: permissionSlugs
-        } 
+            permissions: permissionSlugs,
+            oauthProviders: oauthLinks.map(l => l.provider)
+        }
     }
 
   }, {
@@ -393,6 +402,7 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       createdAt: users.createdAt,
       color: users.color,
       avatarUrl: users.avatarUrl,
+      points: users.points,
       mmr: gameId ? userGameStats.mmr : sql<number>`0`
     }).from(users)
     .leftJoin(roles, eq(users.roleId, roles.id)) // Join roles
@@ -468,18 +478,15 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     
     // Only admin/manager can update role and mmr
     if (canManage) {
-      // if (role) updates.role = role
       if (body.roleId) {
           updates.roleId = body.roleId
-          // Sync legacy role column if possible
-          try {
-              const r = await db.select().from(roles).where(eq(roles.id, body.roleId)).get()
-              if (r) {
-                  // updates.role = r.name === 'Admin' ? 'admin' : 'user'
-              }
-          } catch(e) { /* ignore */ }
       }
       
+      // Update Points
+      if (body.points !== undefined) {
+          updates.points = body.points
+      }
+
       // Update MMR
       if (mmr !== undefined) {
           if (body.gameId) {
@@ -538,7 +545,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
       mmr: t.Optional(t.Number()),
       gameId: t.Optional(t.Number()),
       color: t.Optional(t.String()),
-      avatarUrl: t.Optional(t.String())
+      avatarUrl: t.Optional(t.String()),
+      points: t.Optional(t.Number()),
     })
   })
   .delete('/:id', async ({ params, body, set }) => {

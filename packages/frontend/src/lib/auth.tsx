@@ -11,6 +11,7 @@ interface User {
   color?: string
   avatarUrl?: string
   tokenVersion?: number
+  oauthProviders?: string[]
 }
 
 interface AuthContextType {

@@ -18,11 +18,26 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       maintenanceMode: settingsMap['maintenance_mode'] === 'true',
       maintenanceMessage: settingsMap['maintenance_message'] || 'The system is currently undergoing maintenance. Please check back later.',
       defaultRoleId,
-      ownerRoleId
+      ownerRoleId,
+      // Site Branding
+      siteName: settingsMap['site_name'] || 'VibeTourney',
+      siteLogo: settingsMap['site_logo'] || '',
+      // Feature Toggles
+      featureLeaderboard: settingsMap['feature_leaderboard'] !== 'false',
+      featureDuelRoom: settingsMap['feature_duel_room'] !== 'false',
+      featureDecks: settingsMap['feature_decks'] !== 'false',
+      featureCustomDecks: settingsMap['feature_custom_decks'] !== 'false',
+      featureTournaments: settingsMap['feature_tournaments'] !== 'false',
+      // OAuth
+      oauthGoogleClientId: settingsMap['oauth_google_client_id'] || '',
+      // Language
+      defaultLanguage: settingsMap['default_language'] || 'en',
+      // Point Wallet
+      pointDisplayName: settingsMap['point_display_name'] || 'Points',
     }
   })
   .post('/', async ({ body, set }) => {
-    const { userId, maintenanceMode, maintenanceMessage, defaultRoleId, ownerRoleId } = body
+    const { userId, maintenanceMode, maintenanceMessage, defaultRoleId, ownerRoleId, siteName, siteLogo, featureLeaderboard, featureDuelRoom, featureDecks, featureCustomDecks, featureTournaments, oauthGoogleClientId, defaultLanguage, pointDisplayName } = body
     
     // Auth Check
     const requesterPermissions = await db.select({
@@ -97,6 +112,36 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       }).run()
     }
 
+    // Site Branding
+    const stringSettings: Record<string, string | undefined> = {
+      'site_name': siteName,
+      'site_logo': siteLogo,
+      'oauth_google_client_id': oauthGoogleClientId,
+      'default_language': defaultLanguage,
+      'point_display_name': pointDisplayName,
+    }
+    for (const [key, value] of Object.entries(stringSettings)) {
+      if (value !== undefined) {
+        await db.insert(systemSettings).values({ key, value })
+          .onConflictDoUpdate({ target: systemSettings.key, set: { value, updatedAt: new Date().toISOString() } }).run()
+      }
+    }
+
+    // Feature Toggles
+    const featureSettings: Record<string, boolean | undefined> = {
+      'feature_leaderboard': featureLeaderboard,
+      'feature_duel_room': featureDuelRoom,
+      'feature_decks': featureDecks,
+      'feature_custom_decks': featureCustomDecks,
+      'feature_tournaments': featureTournaments,
+    }
+    for (const [key, value] of Object.entries(featureSettings)) {
+      if (value !== undefined) {
+        await db.insert(systemSettings).values({ key, value: String(value) })
+          .onConflictDoUpdate({ target: systemSettings.key, set: { value: String(value), updatedAt: new Date().toISOString() } }).run()
+      }
+    }
+
     return { success: true }
   }, {
     body: t.Object({
@@ -104,6 +149,16 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
       maintenanceMode: t.Optional(t.Boolean()),
       maintenanceMessage: t.Optional(t.String()),
       defaultRoleId: t.Optional(t.Number()),
-      ownerRoleId: t.Optional(t.Number())
+      ownerRoleId: t.Optional(t.Number()),
+      siteName: t.Optional(t.String()),
+      siteLogo: t.Optional(t.String()),
+      featureLeaderboard: t.Optional(t.Boolean()),
+      featureDuelRoom: t.Optional(t.Boolean()),
+      featureDecks: t.Optional(t.Boolean()),
+      featureCustomDecks: t.Optional(t.Boolean()),
+      featureTournaments: t.Optional(t.Boolean()),
+      oauthGoogleClientId: t.Optional(t.String()),
+      defaultLanguage: t.Optional(t.String()),
+      pointDisplayName: t.Optional(t.String()),
     })
   })

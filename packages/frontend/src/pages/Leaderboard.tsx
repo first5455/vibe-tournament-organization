@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import { Trophy, Medal, RefreshCw } from 'lucide-react'
 import { UserLabel } from '../components/UserLabel'
@@ -18,6 +19,7 @@ interface User {
 }
 
 export default function Leaderboard() {
+  const { t } = useTranslation(['leaderboard', 'common'])
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -92,9 +94,9 @@ export default function Leaderboard() {
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <Trophy className="h-8 w-8 text-yellow-500" />
-            Global Leaderboard
+            {t('title')}
           </h1>
-          <p className="mt-2 text-zinc-400">Top players by MMR</p>
+          <p className="mt-2 text-zinc-400">{t('subtitle')}</p>
         </div>
         <Button 
           variant="ghost" 
@@ -102,7 +104,7 @@ export default function Leaderboard() {
           onClick={handleRefresh}
           disabled={isCoolingDown}
           className={`text-zinc-400 hover:text-white ${isCoolingDown ? 'opacity-50 cursor-not-allowed' : ''}`}
-          title={isCoolingDown ? "Please wait..." : "Refresh leaderboard"}
+          title={isCoolingDown ? t('common:actions.pleaseWait') : t('refreshLeaderboard')}
         >
           <RefreshCw className={`h-6 w-6 ${isCoolingDown ? 'animate-spin' : ''}`} />
         </Button>
@@ -110,15 +112,15 @@ export default function Leaderboard() {
 
       <div className="mx-auto max-w-2xl rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-zinc-500">Loading rankings...</div>
+          <div className="p-8 text-center text-zinc-500">{t('loading')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left min-w-[400px]">
               <thead className="bg-zinc-900/80 text-xs uppercase text-zinc-400">
                 <tr>
-                  <th className="px-3 sm:px-6 py-4 font-medium">Rank</th>
-                  <th className="px-3 sm:px-6 py-4 font-medium">Player</th>
-                  <th className="px-3 sm:px-6 py-4 font-medium text-right">MMR</th>
+                  <th className="px-3 sm:px-6 py-4 font-medium">{t('rank')}</th>
+                  <th className="px-3 sm:px-6 py-4 font-medium">{t('player')}</th>
+                  <th className="px-3 sm:px-6 py-4 font-medium text-right">{t('mmr')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">

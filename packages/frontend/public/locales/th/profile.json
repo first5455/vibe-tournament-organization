@@ -1,0 +1,101 @@
+{
+  "settings": {
+    "title": "ตั้งค่าโปรไฟล์",
+    "avatarUrl": "URL รูปโปรไฟล์",
+    "avatarPlaceholder": "https://example.com/image.jpg",
+    "preview": "ตัวอย่าง:",
+    "failedToLoad": "โหลดรูปไม่สำเร็จ",
+    "urlWarning": "URL ต้องขึ้นต้นด้วย http:// หรือ https://",
+    "displayName": "ชื่อที่แสดง",
+    "displayNamePlaceholder": "คุณอยากให้เราเรียกว่าอะไร?",
+    "username": "ชื่อผู้ใช้",
+    "customColor": "สีกำหนดเอง",
+    "colorDescription": "เลือกสีเพื่อให้โดดเด่น!",
+    "newPassword": "รหัสผ่านใหม่ (เว้นว่างเพื่อคงรหัสเดิม)",
+    "dangerZone": "พื้นที่อันตราย",
+    "deleteAccount": "ลบบัญชี",
+    "deleteConfirm": "คุณแน่ใจหรือไม่ว่าต้องการลบบัญชี? การดำเนินการนี้ไม่สามารถย้อนกลับได้",
+    "updateSuccess": "อัปเดตโปรไฟล์สำเร็จ"
+  },
+  "user": {
+    "loading": "กำลังโหลดโปรไฟล์...",
+    "notFound": "ไม่พบผู้ใช้",
+    "tournamentWinrate": "อัตราชนะทัวร์นาเมนต์",
+    "duelWinrate": "อัตราชนะดวล",
+    "dailyPerformance": "ผลงานประจำวัน",
+    "played": "เล่น",
+    "winLoss": "ชนะ - แพ้",
+    "playerDecks": "เด็คของผู้เล่น",
+    "noDecks": "ยังไม่มีเด็ค",
+    "customDecks": "เด็คกำหนดเอง",
+    "noCustomDecks": "ยังไม่มีเด็คกำหนดเอง",
+    "uniqueCards": "การ์ดไม่ซ้ำ",
+    "totalCards": "การ์ดทั้งหมด",
+    "viewCards": "ดูการ์ด",
+    "hideCards": "ซ่อนการ์ด",
+    "deleteCustomDeck": "ลบเด็คกำหนดเองนี้? การ์ดและรูปทั้งหมดจะถูกลบ",
+    "quantity": "จำนวน:",
+    "unnamedCard": "การ์ดไม่มีชื่อ",
+    "deleteCardConfirm": "ลบ \"{{cardName}}\" ออกจากเด็ค?",
+    "tournamentHistory": "ประวัติทัวร์นาเมนต์",
+    "noTournamentHistory": "ยังไม่มีประวัติทัวร์นาเมนต์",
+    "rank": "อันดับ #",
+    "date": "วันที่:",
+    "deck": "เด็ค:",
+    "score": "คะแนน:",
+    "noteLabel": "โน้ต:",
+    "duelHistory": "ประวัติดวล",
+    "noDuelHistory": "ยังไม่มีประวัติดวล",
+    "youWentFirst": "คุณเดินก่อน",
+    "oppWentFirst": "คู่ต่อสู้เดินก่อน",
+    "createDeckFor": "สร้างเด็คสำหรับ",
+    "editDeck": "แก้ไขเด็ค",
+    "createDeck": "สร้างเด็ค"
+  },
+  "security": {
+    "title": "ตั้งค่าความปลอดภัย",
+    "subtitle": "จัดการรหัสผ่าน คำถามความปลอดภัย และบัญชีที่เชื่อมต่อ",
+    "setPassword": {
+      "title": "ตั้งรหัสผ่านความปลอดภัย",
+      "changeTitle": "เปลี่ยนรหัสผ่าน",
+      "description": "ตั้งรหัสผ่านเพื่อให้คุณสามารถเข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่านได้ รหัสผ่านนี้สามารถรีเซ็ตโดยผู้ดูแลได้",
+      "newPassword": "รหัสผ่านใหม่",
+      "newPasswordPlaceholder": "กรอกรหัสผ่านใหม่",
+      "confirmPassword": "ยืนยันรหัสผ่าน",
+      "confirmPasswordPlaceholder": "ยืนยันรหัสผ่านใหม่",
+      "setButton": "ตั้งรหัสผ่าน",
+      "updateButton": "อัปเดตรหัสผ่าน"
+    },
+    "securityQuestion": {
+      "title": "คำถามความปลอดภัย",
+      "description": "ตั้งคำถามความปลอดภัยเพื่อกู้คืนบัญชีหากคุณลืมรหัสผ่าน",
+      "selectQuestion": "เลือกคำถาม...",
+      "questions": {
+        "petName": "สัตว์เลี้ยงของคุณชื่ออะไร?",
+        "maidenName": "นามสกุลเดิมของแม่คุณคืออะไร?",
+        "firstCar": "รถคันแรกของคุณคืออะไร?",
+        "birthCity": "คุณเกิดที่เมืองอะไร?"
+      },
+      "answer": "คำตอบความปลอดภัย",
+      "answerPlaceholder": "คำตอบสำหรับคำถามของคุณ",
+      "save": "บันทึกคำถามความปลอดภัย"
+    },
+    "linkedAccounts": {
+      "title": "บัญชีที่เชื่อมต่อ",
+      "description": "จัดการบัญชีโซเชียลที่เชื่อมต่อสำหรับการเข้าสู่ระบบอย่างรวดเร็ว",
+      "noAccounts": "ไม่มีบัญชีที่เชื่อมต่อ",
+      "linkNew": "เชื่อมต่อบัญชีใหม่:",
+      "unlinkConfirm": "ยกเลิกการเชื่อมต่อบัญชี {{provider}}? คุณสามารถเชื่อมต่อใหม่ได้ภายหลัง",
+      "unlink": "ยกเลิกการเชื่อมต่อ"
+    },
+    "errors": {
+      "passwordMinLength": "รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร",
+      "passwordMismatch": "รหัสผ่านไม่ตรงกัน",
+      "selectQuestion": "กรุณาเลือกคำถามและกรอกคำตอบ"
+    },
+    "success": {
+      "passwordUpdated": "อัปเดตรหัสผ่านสำเร็จ",
+      "questionUpdated": "อัปเดตคำถามความปลอดภัยสำเร็จ"
+    }
+  }
+}

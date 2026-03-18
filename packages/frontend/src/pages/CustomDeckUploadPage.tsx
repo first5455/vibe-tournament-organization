@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useGame } from '../contexts/GameContext'
@@ -32,6 +33,7 @@ interface DeckWithCards extends CustomDeck {
 }
 
 export default function CustomDeckUploadPage() {
+  const { t } = useTranslation(['decks', 'common'])
   const { user } = useAuth()
   const { selectedGame } = useGame()
   const [decks, setDecks] = useState<CustomDeck[]>([])
@@ -264,7 +266,7 @@ export default function CustomDeckUploadPage() {
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-            Custom Deck Upload
+            {t('decks:custom.title')}
           </h1>
           <div className="px-3 py-1 bg-zinc-800 rounded-full text-xs text-zinc-400 border border-zinc-700">
             {decks.length} Decks
@@ -272,7 +274,7 @@ export default function CustomDeckUploadPage() {
         </div>
         <Button onClick={() => setShowDeckModal(true)} className="bg-purple-600 hover:bg-purple-700">
           <Plus className="w-4 h-4 mr-2" />
-          New Deck
+          {t('decks:newDeck')}
         </Button>
       </div>
 
@@ -281,12 +283,12 @@ export default function CustomDeckUploadPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Deck List */}
         <div className="lg:col-span-1">
-          <h2 className="text-lg font-semibold text-white mb-4">My Decks</h2>
+          <h2 className="text-lg font-semibold text-white mb-4">{t('decks:custom.myDecks')}</h2>
           {isLoading ? (
             <div className="text-center text-zinc-500">Loading...</div>
           ) : decks.length === 0 ? (
             <div className="text-center py-8 bg-zinc-900/50 rounded-xl border border-zinc-800">
-              <div className="text-zinc-500 mb-4">No custom decks yet</div>
+              <div className="text-zinc-500 mb-4">{t('decks:custom.noDecks')}</div>
               <Button onClick={() => setShowDeckModal(true)} variant="outline" className="border-zinc-700">
                 Create First Deck
               </Button>
@@ -310,9 +312,9 @@ export default function CustomDeckUploadPage() {
                         <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{deck.description}</p>
                       )}
                       <div className="flex gap-2 mt-2 text-xs text-zinc-400">
-                        <span>{deck.cardCount} unique cards</span>
+                        <span>{deck.cardCount} {t('decks:custom.uniqueCards')}</span>
                         <span>•</span>
-                        <span>{deck.totalCards} total</span>
+                        <span>{deck.totalCards} {t('decks:custom.total')}</span>
                       </div>
                     </div>
                     <div className="flex gap-1">
@@ -344,15 +346,15 @@ export default function CustomDeckUploadPage() {
                 <h2 className="text-lg font-semibold text-white">{selectedDeck.name}</h2>
                 <Button onClick={() => setShowCardUpload(true)} className="bg-indigo-600 hover:bg-indigo-700">
                   <Upload className="w-4 h-4 mr-2" />
-                  Add Card
+                  {t('decks:custom.addCard')}
                 </Button>
               </div>
 
               {selectedDeck.cards.length === 0 ? (
                 <div className="text-center py-12 bg-zinc-900/50 rounded-xl border border-zinc-800">
-                  <div className="text-zinc-500 mb-4">No cards in this deck</div>
+                  <div className="text-zinc-500 mb-4">{t('decks:custom.noCards')}</div>
                   <Button onClick={() => setShowCardUpload(true)} variant="outline" className="border-zinc-700">
-                    Upload First Card
+                    {t('decks:custom.uploadFirstCard')}
                   </Button>
                 </div>
               ) : (
@@ -394,7 +396,7 @@ export default function CustomDeckUploadPage() {
                             }}
                             autoFocus
                             className="w-full text-sm text-white font-medium mb-2 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 focus:outline-none focus:border-indigo-500"
-                            placeholder="Card name..."
+                            placeholder={t('decks:custom.cardName')}
                           />
                         ) : (
                           <p 
@@ -405,11 +407,11 @@ export default function CustomDeckUploadPage() {
                             }}
                             title="Click to edit card name"
                           >
-                            {card.cardName || 'Unnamed Card'}
+                            {card.cardName || t('decks:custom.unnamedCard')}
                           </p>
                         )}
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-zinc-400">Quantity:</span>
+                          <span className="text-xs text-zinc-400">{t('decks:custom.quantity')}</span>
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleUpdateCardQuantity(card.id, card.quantity - 1)}
@@ -436,7 +438,7 @@ export default function CustomDeckUploadPage() {
           ) : (
             <div className="flex items-center justify-center h-full min-h-[400px] bg-zinc-900/50 rounded-xl border border-zinc-800">
               <div className="text-center">
-                <p className="text-zinc-500 mb-4">Select a deck to view and manage cards</p>
+                <p className="text-zinc-500 mb-4">{t('decks:custom.selectDeck')}</p>
               </div>
             </div>
           )}
@@ -447,35 +449,35 @@ export default function CustomDeckUploadPage() {
       {showDeckModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-white mb-4">Create New Deck</h2>
+            <h2 className="text-xl font-bold text-white mb-4">{t('decks:custom.createDeck.title')}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Deck Name *</label>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">{t('decks:custom.createDeck.name')}</label>
                 <input
                   type="text"
                   required
                   value={deckName}
                   onChange={(e) => setDeckName(e.target.value)}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500/50"
-                  placeholder="e.g. My TCG Deck"
+                  placeholder={t('decks:custom.createDeck.namePlaceholder')}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Description (Optional)</label>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">{t('decks:custom.createDeck.description')}</label>
                 <textarea
                   value={deckDescription}
                   onChange={(e) => setDeckDescription(e.target.value)}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500/50 resize-none"
-                  placeholder="Describe your deck..."
+                  placeholder={t('decks:custom.createDeck.descriptionPlaceholder')}
                   rows={3}
                 />
               </div>
               <div className="flex justify-end gap-2 mt-6">
                 <Button type="button" variant="ghost" onClick={() => setShowDeckModal(false)} className="text-zinc-400">
-                  Cancel
+                  {t('common:actions.cancel')}
                 </Button>
                 <Button onClick={handleCreateDeck} className="bg-purple-600 hover:bg-purple-700" disabled={!deckName}>
-                  Create Deck
+                  {t('decks:custom.createDeck.submit')}
                 </Button>
               </div>
             </div>
@@ -487,10 +489,10 @@ export default function CustomDeckUploadPage() {
       {showCardUpload && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-white mb-4">Add Card</h2>
+            <h2 className="text-xl font-bold text-white mb-4">{t('decks:custom.addCardDialog.title')}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Card Image *</label>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">{t('decks:custom.addCardDialog.image')}</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -499,17 +501,17 @@ export default function CustomDeckUploadPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Card Name (Optional)</label>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">{t('decks:custom.addCardDialog.name')}</label>
                 <input
                   type="text"
                   value={cardName}
                   onChange={(e) => setCardName(e.target.value)}
                   className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500/50"
-                  placeholder="e.g. Blue Eyes White Dragon"
+                  placeholder={t('decks:custom.addCardDialog.namePlaceholder')}
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Quantity</label>
+                <label className="block text-xs font-medium text-zinc-400 mb-1">{t('decks:custom.addCardDialog.quantity')}</label>
                 <input
                   type="number"
                   min="1"
@@ -520,10 +522,10 @@ export default function CustomDeckUploadPage() {
               </div>
               <div className="flex justify-end gap-2 mt-6">
                 <Button type="button" variant="ghost" onClick={() => setShowCardUpload(false)} className="text-zinc-400">
-                  Cancel
+                  {t('common:actions.cancel')}
                 </Button>
                 <Button onClick={handleUploadCard} className="bg-indigo-600 hover:bg-indigo-700" disabled={!cardImage || uploadingImage}>
-                  {uploadingImage ? 'Uploading...' : 'Add Card'}
+                  {uploadingImage ? t('decks:custom.addCardDialog.uploading') : t('decks:custom.addCard')}
                 </Button>
               </div>
             </div>
@@ -536,7 +538,7 @@ export default function CustomDeckUploadPage() {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={() => setShowExportModal(false)}>
           <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">Export Deck: {exportDeckName}</h3>
+              <h3 className="text-lg font-bold text-white">{t('decks:custom.exportDeck')} {exportDeckName}</h3>
               <Button variant="ghost" size="icon" onClick={() => setShowExportModal(false)} className="text-zinc-400 hover:text-white">
                 <X className="h-5 w-5" />
               </Button>
@@ -548,7 +550,7 @@ export default function CustomDeckUploadPage() {
 
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setShowExportModal(false)} className="text-zinc-400">
-                Close
+                {t('common:actions.close')}
               </Button>
               <Button 
                 onClick={handleCopyToClipboard} 
@@ -557,12 +559,12 @@ export default function CustomDeckUploadPage() {
                 {copiedToClipboard ? (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Copied!
+                    {t('decks:custom.copied')}
                   </>
                 ) : (
                   <>
                     <Copy className="w-4 h-4 mr-2" />
-                    Copy to Clipboard
+                    {t('decks:custom.copyToClipboard')}
                   </>
                 )}
               </Button>

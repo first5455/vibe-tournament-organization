@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import { useGame } from '../contexts/GameContext'
@@ -8,6 +9,7 @@ import { DeckCard, DeckWithStats } from '../components/DeckCard'
 import { DeckModal } from '../components/DeckModal'
 
 export default function DecksPage() {
+  const { t } = useTranslation('decks')
   const { user } = useAuth()
   const [decks, setDecks] = useState<DeckWithStats[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -99,27 +101,27 @@ export default function DecksPage() {
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
-            My Decks
+            {t('myDecks')}
           </h1>
           <div className="px-3 py-1 bg-zinc-800 rounded-full text-xs text-zinc-400 border border-zinc-700">
-            {decks.length} Decks
+            {decks.length} {t('decks')}
           </div>
         </div>
         <Button onClick={handleOpenCreate} className="bg-purple-600 hover:bg-purple-700">
           <Plus className="w-4 h-4 mr-2" />
-          New Deck
+          {t('newDeck')}
         </Button>
       </div>
 
       {error && <div className="mb-4 p-3 bg-red-500/20 text-red-400 rounded-lg">{error}</div>}
 
       {isLoading ? (
-        <div className="text-center text-zinc-500">Loading decks...</div>
+        <div className="text-center text-zinc-500">{t('loading')}</div>
       ) : decks.length === 0 ? (
         <div className="text-center py-12 bg-zinc-900/50 rounded-xl border border-zinc-800">
-          <div className="text-zinc-500 mb-4">No decks found. Create one to get started!</div>
+          <div className="text-zinc-500 mb-4">{t('noDecks')}</div>
           <Button onClick={handleOpenCreate} variant="outline" className="border-zinc-700 text-zinc-300">
-            Create First Deck
+            {t('createFirstDeck')}
           </Button>
         </div>
       ) : (

@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
 import { Link, useNavigate } from 'react-router-dom'
 
 export default function ForgotPassword() {
+  const { t } = useTranslation('auth')
   const [step, setStep] = useState<'username' | 'answer' | 'reset'>('username')
   const [username, setUsername] = useState('')
   const [question, setQuestion] = useState('')
@@ -40,7 +42,7 @@ export default function ForgotPassword() {
           newPassword
         })
       })
-      alert('Password reset successfully! Please login.')
+      alert(t('forgotPassword.success'))
       navigate('/login')
     } catch (err: any) {
       setError(err.message)
@@ -51,8 +53,8 @@ export default function ForgotPassword() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
       <div className="w-full max-w-md space-y-8 rounded-xl bg-zinc-900/50 p-8 shadow-2xl ring-1 ring-white/10 backdrop-blur-xl">
         <div className="text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white">Reset Password</h2>
-          <p className="mt-2 text-sm text-zinc-400">Recover your account</p>
+          <h2 className="text-3xl font-bold tracking-tight text-white">{t('forgotPassword.title')}</h2>
+          <p className="mt-2 text-sm text-zinc-400">{t('forgotPassword.subtitle')}</p>
         </div>
         
         {error && (
@@ -65,7 +67,7 @@ export default function ForgotPassword() {
           <form className="mt-8 space-y-6" onSubmit={handleUsernameSubmit}>
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-zinc-400">
-                Username
+                {t('forgotPassword.username')}
               </label>
               <Input
                 id="username"
@@ -74,11 +76,11 @@ export default function ForgotPassword() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="mt-1"
-                placeholder="Enter your username"
+                placeholder={t('forgotPassword.usernamePlaceholder')}
               />
             </div>
             <Button type="submit" className="w-full" size="lg">
-              Next
+              {t('forgotPassword.next')}
             </Button>
           </form>
         )}
@@ -87,12 +89,12 @@ export default function ForgotPassword() {
           <form className="mt-8 space-y-6" onSubmit={handleResetSubmit}>
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-2">
-                Security Question:
+                {t('forgotPassword.securityQuestion')}
               </label>
               <p className="text-white mb-4">{question}</p>
-              
+
               <label htmlFor="answer" className="block text-sm font-medium text-zinc-400">
-                Your Answer
+                {t('forgotPassword.answerLabel')}
               </label>
               <Input
                 id="answer"
@@ -101,13 +103,13 @@ export default function ForgotPassword() {
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 className="mt-1"
-                placeholder="Enter your answer"
+                placeholder={t('forgotPassword.answerPlaceholder')}
               />
             </div>
 
             <div>
               <label htmlFor="newPassword" className="block text-sm font-medium text-zinc-400">
-                New Password
+                {t('forgotPassword.newPassword')}
               </label>
               <Input
                 id="newPassword"
@@ -116,19 +118,19 @@ export default function ForgotPassword() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="mt-1"
-                placeholder="Choose a new password"
+                placeholder={t('forgotPassword.newPasswordPlaceholder')}
               />
             </div>
 
             <Button type="submit" className="w-full" size="lg">
-              Reset Password
+              {t('forgotPassword.resetPassword')}
             </Button>
           </form>
         )}
 
         <div className="text-center">
           <Link to="/login" className="text-sm font-medium text-indigo-400 hover:text-indigo-300">
-            Back to Login
+            {t('forgotPassword.backToLogin')}
           </Link>
         </div>
       </div>

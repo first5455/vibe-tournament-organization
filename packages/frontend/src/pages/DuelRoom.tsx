@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
@@ -54,6 +55,7 @@ interface Duel {
 }
 
 export default function DuelRoom() {
+  const { t } = useTranslation(['duel', 'common'])
   const { id } = useParams()
   const navigate = useNavigate()
   const { user, hasPermission } = useAuth()
@@ -98,7 +100,6 @@ export default function DuelRoom() {
         ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
         
         ws.onopen = () => {
-          // console.log('WS Connected')
           ws?.send(JSON.stringify({ type: 'SUBSCRIBE_DUEL', duelId: id }))
         }
         
@@ -349,8 +350,8 @@ export default function DuelRoom() {
     }
   }
 
-  if (loading) return <div className="text-center p-8 text-zinc-500">Loading...</div>
-  if (!duel) return <div className="text-center p-8 text-red-400">Duel not found</div>
+  if (loading) return <div className="text-center p-8 text-zinc-500">{t('common:actions.loading')}</div>
+  if (!duel) return <div className="text-center p-8 text-red-400">{t('duel:room.duelNotFound')}</div>
 
   const isPlayer1 = user?.id === duel.player1?.id
   const isPlayer2 = user?.id === duel.player2?.id
@@ -383,7 +384,7 @@ export default function DuelRoom() {
               onClick={handleRefresh}
               disabled={isCoolingDown}
               className={`ml-2 text-zinc-500 hover:text-zinc-300 transition-all ${isCoolingDown ? 'opacity-50 cursor-not-allowed' : ''}`}
-              title={isCoolingDown ? "Please wait..." : "Refresh"}
+              title={isCoolingDown ? t('common:actions.pleaseWait') : t('common:actions.refresh')}
             >
               <RefreshCw className={`w-6 h-6 ${isCoolingDown ? 'animate-spin' : ''}`} />
             </Button>
@@ -392,13 +393,13 @@ export default function DuelRoom() {
         
         <div className="flex gap-2">
           {(isPlayer1 || isAdmin) && (duel.status === 'open' || duel.status === 'ready') && (
-            <Button variant="destructive" onClick={handleDelete}>Delete Room</Button>
+            <Button variant="destructive" onClick={handleDelete}>{t('duel:room.deleteRoom')}</Button>
           )}
           {(isPlayer1 || isAdmin) && duel.status === 'ready' && (
-            <Button onClick={handleStart}>Start Match</Button>
+            <Button onClick={handleStart}>{t('duel:room.startMatch')}</Button>
           )}
           {isPlayer2 && duel.status === 'ready' && (
-            <Button variant="destructive" onClick={handleLeave}>Leave Room</Button>
+            <Button variant="destructive" onClick={handleLeave}>{t('duel:room.leaveRoom')}</Button>
           )}
           {canJoin && (
             <div className="flex items-center gap-2">
@@ -408,7 +409,7 @@ export default function DuelRoom() {
                     onChange={(e) => setSelectedDeckId(e.target.value ? parseInt(e.target.value) : undefined)}
                     className="bg-zinc-900 border border-zinc-700 rounded px-2 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 w-[150px]"
                   >
-                    <option value="">No Deck</option>
+                    <option value="">{t('duel:room.noDeck')}</option>
                     {userDecks.map(deck => (
                       <option key={deck.id} value={deck.id}>
                         {deck.name}
@@ -416,14 +417,14 @@ export default function DuelRoom() {
                     ))}
                   </select>
                 )}
-              <Button onClick={handleJoin}>Join Duel</Button>
+              <Button onClick={handleJoin}>{t('duel:room.joinDuel')}</Button>
             </div>
           )}
           {isAdmin && duel.status === 'completed' && (
-            <Button variant="outline" onClick={handleOpenEditResult}>Edit Result</Button>
+            <Button variant="outline" onClick={handleOpenEditResult}>{t('duel:room.editResult')}</Button>
           )}
           {(isParticipant || isAdmin) && duel.status === 'completed' && (
-            <Button onClick={handleRematch}>Rematch</Button>
+            <Button onClick={handleRematch}>{t('duel:room.rematch')}</Button>
           )}
         </div>
       </div>
@@ -436,7 +437,7 @@ export default function DuelRoom() {
             <UserLabel username={duel.player1?.username} displayName={duel.player1?.displayName} color={duel.player1?.color} userId={duel.player1?.id} className="text-xl" />
             <div className="text-zinc-500 text-sm mt-1">
               {duel.player1?.rank && <span className="text-zinc-400 mr-2">#{duel.player1.rank} •</span>}
-              MMR: {duel.player1?.mmr}
+              {t('duel:room.mmr')} {duel.player1?.mmr}
             </div>
             {duel.player1?.deck ? (
               <div className="mt-2 text-sm font-medium flex items-center gap-2" style={{ color: duel.player1.deck.color }}>
@@ -456,7 +457,7 @@ export default function DuelRoom() {
             ) : (
                 (isAdmin || (user?.id === duel.player1Id)) && (
                     <Button variant="outline" size="sm" className="mt-2 h-7 text-xs" onClick={() => openEditDeck(duel.player1Id!)}>
-                        <Plus className="w-3 h-3 mr-1" /> Add Deck
+                        <Plus className="w-3 h-3 mr-1" /> {t('duel:room.addDeck')}
                     </Button>
                 )
             )}
@@ -467,17 +468,17 @@ export default function DuelRoom() {
               className="w-full mt-4 border-green-500/20 hover:bg-green-500/10 hover:text-green-400"
               onClick={() => handleReport(duel.player1Id)}
             >
-              Report Win
+              {t('duel:room.reportWin')}
             </Button>
           )}
           {duel.winnerId === duel.player1Id && (
-            <div className="mt-4 text-green-400 font-bold text-lg">WINNER</div>
+            <div className="mt-4 text-green-400 font-bold text-lg">{t('duel:room.winner')}</div>
           )}
           
           {/* Note Section */}
           <div className="w-full mt-4 pt-4 border-t border-white/5">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Note</span>
+              <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">{t('duel:room.note')}</span>
               {(isPlayer1 || isAdmin) && (
                 <button 
                   onClick={() => openNoteDialog(duel.player1Id, duel.player1Note)}
@@ -488,25 +489,25 @@ export default function DuelRoom() {
               )}
             </div>
             <div className="text-sm text-zinc-400 bg-black/20 p-3 rounded-md min-h-[60px] whitespace-pre-wrap">
-              {duel.player1Note || <span className="text-zinc-600 italic">No notes</span>}
+              {duel.player1Note || <span className="text-zinc-600 italic">{t('duel:room.noNotes')}</span>}
             </div>
           </div>
         </div>
 
         {/* VS */}
         <div className="flex flex-col items-center justify-center gap-2">
-          <div className="text-4xl font-black text-zinc-800 italic">VS</div>
+          <div className="text-4xl font-black text-zinc-800 italic">{t('common:vs')}</div>
           {duel.status === 'open' && (
-            <div className="text-zinc-500 text-sm animate-pulse">Waiting for opponent...</div>
+            <div className="text-zinc-500 text-sm animate-pulse">{t('duel:room.waitingForOpponent')}</div>
           )}
           {duel.status === 'ready' && (
-            <div className="text-yellow-500 text-sm font-medium">Ready to start!</div>
+            <div className="text-yellow-500 text-sm font-medium">{t('duel:room.readyToStart')}</div>
           )}
           
           {/* Who Goes First UI */}
           {(duel.status === 'ready' || duel.status === 'active' || duel.status === 'completed') && (
              <div className="mt-4 flex flex-col items-center gap-1">
-                <span className="text-xs text-zinc-500 uppercase font-medium tracking-wider">Going First</span>
+                <span className="text-xs text-zinc-500 uppercase font-medium tracking-wider">{t('duel:room.goingFirst')}</span>
                 {(isAdmin || isParticipant) && duel.status !== 'completed' ? (
                     <div className="flex bg-zinc-900 border border-zinc-700 rounded-md p-0.5">
                          <button 
@@ -524,9 +525,9 @@ export default function DuelRoom() {
                                 }
                             }}
                          >
-                            {duel.player1?.username || 'P1'}
+                            {duel.player1?.username || t('duel:room.p1')}
                          </button>
-                         <button 
+                         <button
                             className={`px-3 py-1 text-xs rounded-sm transition-colors ${duel.firstPlayerId === duel.player2Id ? 'bg-zinc-700 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}
                             onClick={async () => {
                                 if (duel.firstPlayerId === duel.player2Id) return
@@ -541,13 +542,13 @@ export default function DuelRoom() {
                                 }
                             }}
                          >
-                            {duel.player2?.username || 'P2'}
+                            {duel.player2?.username || t('duel:room.p2')}
                          </button>
                     </div>
                 ) : (
                     <div className="text-white font-medium text-sm">
                         {duel.firstPlayerId === duel.player1Id ? duel.player1.username : 
-                         duel.firstPlayerId === duel.player2Id ? duel.player2?.username : 'Not set'}
+                         duel.firstPlayerId === duel.player2Id ? duel.player2?.username : t('duel:room.notSet')}
                     </div>
                 )}
              </div>
@@ -563,7 +564,7 @@ export default function DuelRoom() {
               <UserLabel username={duel.player2.username} displayName={duel.player2.displayName} color={duel.player2.color} userId={duel.player2.id} className="text-xl" />
                 <div className="text-zinc-500 text-sm mt-1">
                   {duel.player2?.rank && <span className="text-zinc-400 mr-2">#{duel.player2.rank} •</span>}
-                  MMR: {duel.player2.mmr}
+                  {t('duel:room.mmr')} {duel.player2.mmr}
                 </div>
                 {duel.player2?.deck ? (
                   <div className="mt-2 text-sm font-medium flex items-center justify-center gap-2" style={{ color: duel.player2.deck.color }}>
@@ -583,7 +584,7 @@ export default function DuelRoom() {
                 ) : (
                     (isAdmin || (user?.id === duel.player2Id)) && (
                         <Button variant="outline" size="sm" className="mt-2 h-7 text-xs" onClick={() => openEditDeck(duel.player2Id!)}>
-                            <Plus className="w-3 h-3 mr-1" /> Add Deck
+                            <Plus className="w-3 h-3 mr-1" /> {t('duel:room.addDeck')}
                         </Button>
                     )
                 )}
@@ -594,17 +595,17 @@ export default function DuelRoom() {
                   className="w-full mt-4 border-green-500/20 hover:bg-green-500/10 hover:text-green-400"
                   onClick={() => handleReport(duel.player2Id!)}
                 >
-                  Report Win
+                  {t('duel:room.reportWin')}
                 </Button>
               )}
               {duel.winnerId === duel.player2Id && (
-                <div className="mt-4 text-green-400 font-bold text-lg">WINNER</div>
+                <div className="mt-4 text-green-400 font-bold text-lg">{t('duel:room.winner')}</div>
               )}
 
               {/* Note Section */}
               <div className="w-full mt-4 pt-4 border-t border-white/5">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Note</span>
+                  <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">{t('duel:room.note')}</span>
                   {(isPlayer2 || isAdmin) && (
                     <button 
                       onClick={() => openNoteDialog(duel.player2Id!, duel.player2Note)}
@@ -615,16 +616,16 @@ export default function DuelRoom() {
                   )}
                 </div>
                 <p className="text-sm text-zinc-400 italic">
-                  {duel.player2Note || "No notes"}
+                  {duel.player2Note || t('duel:room.noNotes')}
                 </p>
               </div>
             </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-zinc-500 gap-4">
-              <div>Waiting for player...</div>
+              <div>{t('duel:room.waitingForPlayer')}</div>
               {isAdmin && (
                 <Button variant="outline" size="sm" onClick={() => setAddPlayerOpen(true)}>
-                  Add Player
+                  {t('duel:room.addPlayer')}
                 </Button>
               )}
             </div>
@@ -635,19 +636,19 @@ export default function DuelRoom() {
       <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Player Note</DialogTitle>
+            <DialogTitle>{t('duel:room.editPlayerNote')}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <textarea
               className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Enter note about this player..."
+              placeholder={t('duel:room.enterNote')}
               value={noteContent}
               onChange={(e) => setNoteContent(e.target.value)}
             />
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setNoteDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveNote}>Save Note</Button>
+            <Button variant="outline" onClick={() => setNoteDialogOpen(false)}>{t('common:actions.cancel')}</Button>
+            <Button onClick={handleSaveNote}>{t('duel:room.saveNote')}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -655,7 +656,7 @@ export default function DuelRoom() {
       <Dialog open={editResultOpen} onOpenChange={setEditResultOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Match Result</DialogTitle>
+            <DialogTitle>{t('duel:room.editMatchResult')}</DialogTitle>
           </DialogHeader>
           <div className="py-4 flex items-center justify-center gap-4">
             <div className="flex flex-col items-center gap-2">
@@ -681,8 +682,8 @@ export default function DuelRoom() {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setEditResultOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveResult}>Save Result</Button>
+            <Button variant="outline" onClick={() => setEditResultOpen(false)}>{t('common:actions.cancel')}</Button>
+            <Button onClick={handleSaveResult}>{t('common:actions.save')}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -690,42 +691,42 @@ export default function DuelRoom() {
       <Dialog open={addPlayerOpen} onOpenChange={setAddPlayerOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Player to Duel</DialogTitle>
+            <DialogTitle>{t('duel:room.addPlayerToDuel')}</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-400">Search User</label>
-              <UserSearchSelect 
+              <label className="text-sm font-medium text-zinc-400">{t('duel:room.searchUser')}</label>
+              <UserSearchSelect
                 onSelect={(user) => setAddPlayerId(user.id.toString())}
-                placeholder="Search by name..."
+                placeholder={t('duel:room.searchByName')}
               />
               {addPlayerId && (
                 <div className="text-xs text-green-400">
-                  Selected User ID: {addPlayerId}
+                  {t('duel:room.selectedUserId')} {addPlayerId}
                 </div>
               )}
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setAddPlayerOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddPlayer} disabled={!addPlayerId}>Add Player</Button>
+            <Button variant="outline" onClick={() => setAddPlayerOpen(false)}>{t('common:actions.cancel')}</Button>
+            <Button onClick={handleAddPlayer} disabled={!addPlayerId}>{t('duel:room.addPlayer')}</Button>
           </div>
         </DialogContent>
       </Dialog>
       <Dialog open={editDeckOpen} onOpenChange={setEditDeckOpen}>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>Change Deck</DialogTitle>
+                <DialogTitle>{t('duel:room.changeDeck')}</DialogTitle>
             </DialogHeader>
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">Select Deck</label>
+                    <label className="text-sm font-medium text-zinc-400">{t('duel:room.selectDeck')}</label>
                     <select
                         value={newDeckId ?? ''}
                         onChange={(e) => setNewDeckId(e.target.value ? parseInt(e.target.value) : undefined)}
                         className="w-full bg-zinc-950 border border-zinc-800 rounded px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
                     >
-                        <option value="">No Deck</option>
+                        <option value="">{t('duel:room.noDeck')}</option>
                         {targetUserDecks.map(deck => (
                             <option key={deck.id} value={deck.id}>
                                 {deck.name}
@@ -735,8 +736,8 @@ export default function DuelRoom() {
                 </div>
             </div>
             <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setEditDeckOpen(false)}>Cancel</Button>
-                <Button onClick={saveDeckChange}>Save</Button>
+                <Button variant="ghost" onClick={() => setEditDeckOpen(false)}>{t('common:actions.cancel')}</Button>
+                <Button onClick={saveDeckChange}>{t('common:actions.save')}</Button>
             </div>
         </DialogContent>
       </Dialog>

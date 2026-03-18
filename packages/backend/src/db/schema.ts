@@ -34,6 +34,7 @@ export const users = sqliteTable('users', {
   color: text('color').default('#ffffff'),
   avatarUrl: text('avatar_url'),
   tokenVersion: integer('token_version').default(0).notNull(),
+  points: integer('points').default(0).notNull(),
 })
 // Games Table
 export const games = sqliteTable('games', {
@@ -155,6 +156,18 @@ export const customDeckCards = sqliteTable('custom_deck_cards', {
   chibisafeUuid: text('chibisafe_uuid'), // UUID from chibisafe for deletion
   quantity: integer('quantity').default(1).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
+})
+
+// OAuth Accounts (provider-agnostic for future extensibility)
+export const oauthAccounts = sqliteTable('oauth_accounts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  provider: text('provider').notNull(), // 'google', 'discord', 'github', etc.
+  providerAccountId: text('provider_account_id').notNull(), // The ID from the provider
+  email: text('email'),
+  displayName: text('display_name'),
+  avatarUrl: text('avatar_url'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`).notNull(),
 })
 
