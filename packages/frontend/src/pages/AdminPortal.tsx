@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button'
 import { UserLabel } from '../components/UserLabel'
 import { UserAvatar } from '../components/UserAvatar'
 import { useNavigate, Link } from 'react-router-dom'
-import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2, Users, UserPlus, RefreshCw, Plus, Coins } from 'lucide-react'
+import { Check, X, MoreVertical, Shield, Key, Trophy, Palette, Image as ImageIcon, Trash2, Edit2, Users, UserPlus, RefreshCw, Plus, Coins, Download, FileSpreadsheet, FileText } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,7 @@ import { EditMMRDialog } from '../components/EditMMRDialog'
 import { EditPointsDialog } from '../components/EditPointsDialog'
 
 import { DeckModal } from '../components/DeckModal'
+import { exportUsersToExcel, exportUsersToPDF } from '../lib/userExport'
 import { User, Deck } from '../types'
 
 interface AdminDeck extends Deck {
@@ -774,12 +775,52 @@ export default function AdminPortal() {
         <div className="w-full">
           <div className="flex justify-between items-center mb-4">
              <h2 className="text-xl font-bold text-white">Users</h2>
-             {(hasPermission('users.manage')) && (
-               <Button onClick={() => setShowCreateUser(true)}>
-                 <UserPlus className="mr-2 h-4 w-4" />
-                 Create User
-               </Button>
-             )}
+             <div className="flex items-center gap-2">
+               <DropdownMenu>
+                 <DropdownMenuTrigger asChild>
+                   <Button variant="outline" size="sm">
+                     <Download className="mr-2 h-4 w-4" />
+                     Export
+                   </Button>
+                 </DropdownMenuTrigger>
+                 <DropdownMenuContent align="end">
+                   <DropdownMenuLabel>Export Users</DropdownMenuLabel>
+                   <DropdownMenuSeparator />
+                   <DropdownMenuItem onClick={() => {
+                     const gameName = filterGameId !== 'all' ? games.find(g => g.id === parseInt(filterGameId))?.name : undefined
+                     exportUsersToExcel({
+                       users,
+                       pointDisplayName: siteSettings.pointDisplayName,
+                       siteName: siteSettings.siteName,
+                       filterGameId,
+                       gameName,
+                     })
+                   }}>
+                     <FileSpreadsheet className="mr-2 h-4 w-4 text-green-500" />
+                     Export to Excel
+                   </DropdownMenuItem>
+                   <DropdownMenuItem onClick={() => {
+                     const gameName = filterGameId !== 'all' ? games.find(g => g.id === parseInt(filterGameId))?.name : undefined
+                     exportUsersToPDF({
+                       users,
+                       pointDisplayName: siteSettings.pointDisplayName,
+                       siteName: siteSettings.siteName,
+                       filterGameId,
+                       gameName,
+                     })
+                   }}>
+                     <FileText className="mr-2 h-4 w-4 text-red-500" />
+                     Export to PDF
+                   </DropdownMenuItem>
+                 </DropdownMenuContent>
+               </DropdownMenu>
+               {(hasPermission('users.manage')) && (
+                 <Button onClick={() => setShowCreateUser(true)}>
+                   <UserPlus className="mr-2 h-4 w-4" />
+                   Create User
+                 </Button>
+               )}
+             </div>
           </div>
           <div className="w-full overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
             <table className="w-full text-left text-sm text-zinc-400 min-w-[800px]">
