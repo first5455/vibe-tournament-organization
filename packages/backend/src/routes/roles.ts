@@ -95,9 +95,6 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
         return { error: 'Role not found' }
     }
     
-    // Allow renaming system roles as per user request
-    // if (role.isSystem && name !== role.name) { ... } REMOVED
-    
     // Check if trying to unset system status for default role
     if (body.isSystem !== undefined && role.isSystem && !body.isSystem) {
         const defaultRoleSetting = await db.select().from(systemSettings).where(eq(systemSettings.key, 'default_role_id')).get()

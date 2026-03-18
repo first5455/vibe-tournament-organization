@@ -476,16 +476,8 @@ export const userRoutes = new Elysia({ prefix: '/users' })
     
     // Only admin/manager can update role and mmr
     if (canManage) {
-      // if (role) updates.role = role
       if (body.roleId) {
           updates.roleId = body.roleId
-          // Sync legacy role column if possible
-          try {
-              const r = await db.select().from(roles).where(eq(roles.id, body.roleId)).get()
-              if (r) {
-                  // updates.role = r.name === 'Admin' ? 'admin' : 'user'
-              }
-          } catch(e) { /* ignore */ }
       }
       
       // Update MMR

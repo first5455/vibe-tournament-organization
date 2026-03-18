@@ -100,7 +100,6 @@ export default function DuelRoom() {
         ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws')
         
         ws.onopen = () => {
-          // console.log('WS Connected')
           ws?.send(JSON.stringify({ type: 'SUBSCRIBE_DUEL', duelId: id }))
         }
         

@@ -54,8 +54,6 @@ export async function generatePairings(tournamentId: number, roundNumber: number
   
   const finalOrder = [fixed, ...rotated]
   
-  // console.log(`Round ${roundNumber} order:`, finalOrder.map(p => p.id))
-
   const pairings = []
   for (let i = 0; i < half; i++) {
     const p1 = finalOrder[i]

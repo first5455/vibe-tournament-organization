@@ -5,8 +5,6 @@ import { eq, and, or, desc, aliasedTable, sql } from 'drizzle-orm'
 import { getRank } from '../utils'
 import { events, EVENTS } from '../lib/events'
 
-console.log('Duels routes module loaded')
-
 export const duelRoutes = new Elysia({ prefix: '/duels' })
   .get('/', async ({ query }) => {
     // ... (existing GET / code) ...

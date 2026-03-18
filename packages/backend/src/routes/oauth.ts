@@ -39,9 +39,6 @@ const providerVerifiers: Record<string, ProviderVerifier> = {
     }
   },
 
-  // Future providers can be added here:
-  // discord: async (credential: string) => { ... },
-  // github: async (credential: string) => { ... },
 }
 
 // ========================
@@ -227,10 +224,6 @@ export const oauthRoutes = new Elysia({ prefix: '/auth/oauth' })
     if (googleClientId) {
       providers.push({ name: 'google', clientId: googleClientId })
     }
-
-    // Future providers:
-    // const discordClientId = settingsMap['oauth_discord_client_id']
-    // if (discordClientId) providers.push({ name: 'discord', clientId: discordClientId })
 
     return { providers }
   })

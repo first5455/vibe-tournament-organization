@@ -171,7 +171,6 @@ export default function AdminPortal() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    console.log('AdminPortal Effect:', { authLoading, user, permissions: user?.permissions })
     if (authLoading) return
 
     if (!user) {

@@ -300,7 +300,6 @@ export default function TournamentView() {
         body: JSON.stringify({ 
           userId: selectedUser.id, 
           createdBy: user.id
-          // TODO: Admin selecting deck for user? maybe later
         })
       })
       setShowAddParticipant(false)
@@ -335,16 +334,6 @@ export default function TournamentView() {
     setEditDeckOpen(true)
     setTargetUserDecks([]) // Clear previous
     setNewDeckId(undefined)
-
-    // Initial selected deck? We don't have the ID in participant list easily unless we add it to API
-    // The API sends everything, let's check table cols. I added deckName/Color but not deckId to `participants` query in `tournaments.ts`?
-    // Let's check `backend/src/routes/tournaments.ts` ... I did `...getTableColumns(participants)` so `deckId` IS there.
-    // However, I need to cast it or update interface.
-    // Interface Participant has ... wait, where is deckId in interface?
-    // It's not in the interface in `TournamentView.tsx` line 14. I should add it.
-    
-    // For now assuming we can fix interface below or just access it as any for a sec, 
-    // but better to add it to interface.
 
     try {
       const decks = await api(`/decks?userId=${p.userId}`)
